@@ -159,7 +159,8 @@ const KetoBruciaLanding = () => {
       city: "Milano",
       result: "-8 kg in 6 settimane",
       text: "Dopo la menopausa pensavo fosse impossibile perdere peso. Keto Brucia ha riattivato il mio metabolismo e ora mi sento come a 30 anni!",
-      stars: 5
+      stars: 5,
+      image: ""
     },
     {
       name: "Giulia R.",
@@ -167,7 +168,8 @@ const KetoBruciaLanding = () => {
       city: "Roma",
       result: "-6 kg in 4 settimane",
       text: "Il gonfiore addominale che mi tormentava è completamente sparito. Finalmente posso indossare i miei vestiti preferiti!",
-      stars: 5
+      stars: 5,
+      image: ""
     },
     {
       name: "Francesca L.",
@@ -175,7 +177,8 @@ const KetoBruciaLanding = () => {
       city: "Torino",
       result: "-10 kg in 8 settimane",
       text: "I miei valori ormonali si sono normalizzati e ho ritrovato l'energia che avevo perso. È stata una trasformazione incredibile!",
-      stars: 5
+      stars: 5,
+      image: ""
     }
   ];
 
@@ -270,8 +273,8 @@ const KetoBruciaLanding = () => {
           <div className="text-center mt-8">
             <div className="mb-6">
               <img
-                src="/api/placeholder/400/300"
-                alt="Donna preoccupata"
+                src="images/donna-1.jpg"
+                alt="Donna"
                 className="rounded-2xl shadow-lg mx-auto max-w-md w-full"
               />
             </div>
@@ -326,7 +329,7 @@ const KetoBruciaLanding = () => {
 
             <div className="text-center">
               <img
-                src="/api/placeholder/400/300"
+                src="images/infografica-1.jpg"
                 alt="Grafico declino ormonale"
                 className="rounded-xl shadow-lg mx-auto max-w-sm w-full"
               />
@@ -468,7 +471,7 @@ const KetoBruciaLanding = () => {
             <div className="bg-gradient-to-br from-green-50 to-emerald-100 rounded-xl p-6 border border-green-200">
               <div className="text-center mb-4">
                 <img
-                  src="/api/placeholder/150/150"
+                  src="images/lino.webp"
                   alt="Semi di lino"
                   className="w-24 h-24 rounded-full mx-auto object-cover shadow-lg"
                 />
@@ -488,7 +491,7 @@ const KetoBruciaLanding = () => {
             <div className="bg-gradient-to-br from-emerald-50 to-teal-100 rounded-xl p-6 border border-emerald-200">
               <div className="text-center mb-4">
                 <img
-                  src="/api/placeholder/150/150"
+                  src="https://images.unsplash.com/photo-1627435601361-ec25f5b1d0e5?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
                   alt="Foglie di tè verde"
                   className="w-24 h-24 rounded-full mx-auto object-cover shadow-lg"
                 />
@@ -508,7 +511,7 @@ const KetoBruciaLanding = () => {
             <div className="bg-gradient-to-br from-blue-50 to-cyan-100 rounded-xl p-6 border border-blue-200">
               <div className="text-center mb-4">
                 <img
-                  src="/api/placeholder/150/150"
+                  src="https://images.unsplash.com/photo-1586201375761-83865001e31c?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&q=80"
                   alt="Fagioli bianchi"
                   className="w-24 h-24 rounded-full mx-auto object-cover shadow-lg"
                 />
@@ -639,9 +642,9 @@ const KetoBruciaLanding = () => {
               <div key={index} className="bg-white rounded-xl p-6 shadow-lg border border-gray-100">
                 <div className="mb-6" style={{ height: '300px' }}>
                   <img
-                    src="/api/placeholder/300/200"
-                    alt={`Prima e dopo ${testimonial.name}`}
-                    style={{ height: '200px' }}
+                    src={`/api/placeholder/300/200?random=${index + 1}`}
+                    alt={`Evoluzione ${testimonial.name}`}
+                    style={{ height: '300px' }}
                     className="w-full h-48 rounded-xl object-cover shadow-lg"
                   />
                   <div className="text-center mt-3">
@@ -680,7 +683,7 @@ const KetoBruciaLanding = () => {
 
             <div className="mt-6">
               <img
-                src="/api/placeholder/300/400"
+                src="images/keto-brucia-1.jpg"
                 alt="Keto Brucia integratore"
                 className="mx-auto rounded-2xl shadow-xl max-w-xs"
               />
@@ -729,7 +732,7 @@ const KetoBruciaLanding = () => {
         <div id="pricing-section" className="bg-white rounded-2xl shadow-2xl p-8 mb-12 border-4 border-pink-200">
           <div className="text-center mb-8">
             <img
-              src="/api/placeholder/400/300"
+              src="images/keto-brucia-4x.jpg"
               alt="Pacchetto Keto Brucia"
               className="mx-auto rounded-2xl shadow-lg max-w-md w-full"
             />
