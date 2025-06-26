@@ -134,7 +134,7 @@ const PlanSelection: React.FC<PlanSelectionProps> = ({ result, answers }) => {
     },
     {
       id: 'premium',
-      name: 'PREMIUM BUNDLE:',
+      name: 'COFANETTO PREMIUM:',
       subtitle: 'Brucia Grassi + Saziante + Detox',
       duration: '4 MESI',
       price: '€59.99',
@@ -679,7 +679,7 @@ const WeightLossQuiz: React.FC = () => {
       values: ["Per nulla", "Cammino solo", "1 volta", "3-4 volte", "5 volte"]
     },
     {
-      title: "Hai notato qualcuno di questi sintomi della menopausa?",
+      title: "Hai notato qualcuno di questi sintomi?",
       isMultiple: true,
       options: [
         { text: "Vampate di calore", emoji: "⚡", selected: answers.menopauseSymptoms.includes("vampate") },
@@ -694,7 +694,7 @@ const WeightLossQuiz: React.FC = () => {
       values: ["vampate", "affaticamento", "sonno", "capelli-pelle", "umore", "sudorazione", "secchezza", "nessuna"]
     },
     {
-      title: "Qualche altro piano dietetico ti ha aiutato a perdere peso durante la menopausa?",
+      title: "Qualche altro piano dietetico ti ha aiutato a perdere peso?",
       options: [
         { text: "Sì, ho perso molto peso", emoji: "😂", selected: answers.dietSuccess === "molto" },
         { text: "Sì, ho perso un po' di peso", emoji: "🙂", selected: answers.dietSuccess === "poco" },
