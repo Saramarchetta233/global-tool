@@ -189,7 +189,7 @@ const SixSlimLanding = () => {
 
             <div className="text-center my-8">
               <button
-                onClick={scrollToOffer}
+                onClick={handleOrderSubmit}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
               >
                 Inizia il Trattamento
@@ -271,7 +271,7 @@ const SixSlimLanding = () => {
         {/* Call to Action Button */}
         <div className="text-center my-8">
           <button
-            onClick={scrollToOffer}
+            onClick={handleOrderSubmit}
             className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
           >
             Inizia il Trattamento
@@ -654,7 +654,7 @@ const SixSlimLanding = () => {
             <p className="text-xl mb-6">
               Le scorte si stanno esaurendo. Non aspettare settembre per la prossima produzione.
             </p>
-            <button onClick={scrollToOffer} className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 px-12 rounded-lg text-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl mb-4">
+            <button onClick={handleOrderSubmit} className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 px-12 rounded-lg text-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl mb-4">
 
               ORDINA ORA - ULTIME CONFEZIONI
             </button>
