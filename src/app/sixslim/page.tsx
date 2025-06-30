@@ -1,5 +1,11 @@
 'use client';
 
+declare global {
+  interface Window {
+    fbq: any;
+  }
+}
+
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Clock, Shield, Star, Users, TrendingDown, Zap, CreditCard, Truck } from 'lucide-react';
 
@@ -15,6 +21,7 @@ const SixSlimLanding = () => {
     telefono: '',
     indirizzo: ''
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -79,7 +86,29 @@ const SixSlimLanding = () => {
     }
   };
 
+  // Funzione per tracciare l'inizio checkout
+  const trackInitiateCheckout = () => {
+    if (typeof window !== 'undefined' && window.fbq) {
+      try {
+        window.fbq('track', 'InitiateCheckout', {
+          value: 49.99,
+          currency: 'EUR',
+          content_type: 'product',
+          content_name: 'SIX SLIM - Pacchetto Trasformazione Completa',
+          content_ids: ['six-slim-complete'],
+          num_items: 2
+        });
+        console.log('✅ InitiateCheckout event tracked');
+      } catch (error) {
+        console.error('❌ Error tracking InitiateCheckout event:', error);
+      }
+    }
+  };
+
   const handleOrderClick = () => {
+    // Traccia l'evento di inizio checkout
+    trackInitiateCheckout();
+
     setShowOrderPopup(true);
     setReservationTimer({ minutes: 5, seconds: 0 });
   };
@@ -88,10 +117,59 @@ const SixSlimLanding = () => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleOrderSubmit = () => {
-    // Here you would handle the form submission
-    alert('Ordine ricevuto! Ti contatteremo presto.');
-    setShowOrderPopup(false);
+  const handleOrderSubmit = async () => {
+    if (!formData.nome || !formData.telefono || !formData.indirizzo) {
+      alert('Per favore, compila tutti i campi obbligatori.');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      // Simula invio dati (sostituisci con la tua API)
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...formData,
+          product: 'SIX SLIM - Pacchetto Trasformazione Completa',
+          price: 49.99,
+          timestamp: new Date().toISOString()
+        })
+      });
+
+      if (response.ok) {
+        // Salva i dati nel localStorage per la thank you page
+        localStorage.setItem('orderData', JSON.stringify({
+          ...formData,
+          orderId: `SIX${Date.now()}`,
+          product: 'SIX SLIM - Pacchetto Trasformazione Completa',
+          price: 49.99
+        }));
+
+        // Redirect alla thank you page
+        window.location.href = '/thank-you';
+      } else {
+        throw new Error('Errore nell\'invio dell\'ordine');
+      }
+    } catch (error) {
+      console.error('Errore:', error);
+      alert('Si è verificato un errore. Riprova più tardi.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Funzione per i pulsanti CTA che aprono il popup
+  const handleDirectOrder = () => {
+    // Traccia l'evento di inizio checkout
+    trackInitiateCheckout();
+
+    // Apre il popup
+    setShowOrderPopup(true);
+    setReservationTimer({ minutes: 5, seconds: 0 });
   };
 
   return (
@@ -189,7 +267,7 @@ const SixSlimLanding = () => {
 
             <div className="text-center my-8">
               <button
-                onClick={handleOrderSubmit}
+                onClick={handleDirectOrder}
                 className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
               >
                 Inizia il Trattamento
@@ -271,7 +349,7 @@ const SixSlimLanding = () => {
         {/* Call to Action Button */}
         <div className="text-center my-8">
           <button
-            onClick={handleOrderSubmit}
+            onClick={handleDirectOrder}
             className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-bold py-4 px-8 rounded-lg text-xl transition-all duration-200 transform hover:scale-105 shadow-lg"
           >
             Inizia il Trattamento
@@ -612,10 +690,10 @@ const SixSlimLanding = () => {
 
               <button
                 onClick={handleOrderSubmit}
-                disabled={!formData.nome || !formData.telefono || !formData.indirizzo}
+                disabled={!formData.nome || !formData.telefono || !formData.indirizzo || isSubmitting}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-3 px-6 rounded-lg transition-all duration-200"
               >
-                CONFERMA ORDINE - €49,90
+                {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €49,90'}
               </button>
             </div>
           </div>
@@ -654,8 +732,7 @@ const SixSlimLanding = () => {
             <p className="text-xl mb-6">
               Le scorte si stanno esaurendo. Non aspettare settembre per la prossima produzione.
             </p>
-            <button onClick={handleOrderSubmit} className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 px-12 rounded-lg text-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl mb-4">
-
+            <button onClick={handleOrderClick} className="bg-yellow-400 hover:bg-yellow-300 text-black font-bold py-6 px-12 rounded-lg text-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl mb-4">
               ORDINA ORA - ULTIME CONFEZIONI
             </button>
             <div className="text-sm">
