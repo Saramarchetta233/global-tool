@@ -200,7 +200,7 @@ const SixSlimLanding = () => {
         price: 49.99,
 
         // Dati API Worldfilia
-        api_url: 'https://network.worldfilia.net/manager/inventory/buy/ntm_sixslim_2x49.json?api_key=5b4327289caa289c6117c469d70a13bd',
+        URL: 'https://network.worldfilia.net/manager/inventory/buy/ntm_sixslim_2x49.json?api_key=5b4327289caa289c6117c469d70a13bd',
         source_id: '2da1cfad54d3',
         quantity: 2,
         api_key: '5b4327289caa289c6117c469d70a13bd',
