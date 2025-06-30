@@ -774,7 +774,7 @@ const SixSlimLanding = () => {
           <div className="space-y-6">
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
               <h4 className="font-bold text-gray-900 mb-3 text-lg">Six Slim funziona davvero come Ozempic®?</h4>
-              <p className="text-gray-700 leading-relaxed">Six Slim agisce sugli stessi recettori GLP-1 di Ozempic®, ma attraverso una via naturale. I test preliminari su 1.200+ persone mostrano una riduzione dell'appetito del 70-80%, paragonabile al farmaco originale. La differenza principale è il metodo di somministrazione: orale invece che per iniezione.</p>
+              <p className="text-gray-700 leading-relaxed">Six Slim agisce sugli stessi recettori GLP-1 di Ozempic®, ma attraverso una via naturale. I test preliminari su 3.500+ persone mostrano una riduzione dell'appetito del 70-80%, paragonabile al farmaco originale. La differenza principale è il metodo di somministrazione: orale invece che per iniezione.</p>
             </div>
 
             <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm">
