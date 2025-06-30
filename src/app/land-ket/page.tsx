@@ -219,7 +219,7 @@ const SixSlimLanding = () => {
         }));
 
         // Redirect alla thank you page
-        window.location.href = '/thank-you';
+        window.location.href = '/ty-sixslim';
       } else {
         throw new Error('Errore nell\'invio dell\'ordine');
       }
