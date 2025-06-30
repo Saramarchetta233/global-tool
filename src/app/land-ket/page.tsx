@@ -602,7 +602,7 @@ const SixSlimLanding = () => {
 
                 <div className="text-xl">2 Confezioni = 2 Mesi Completi</div>
                 <div className="text-sm text-red-100 mt-2">
-                  Invece di €4,33/giorno di Ozempic® → Solo €0,83/giorno
+                  Invece di €10/giorno di Ozempic® → Solo €0,83/giorno
                 </div>
               </div>
 
