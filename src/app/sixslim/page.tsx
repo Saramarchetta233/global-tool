@@ -127,7 +127,7 @@ const SixSlimLanding = () => {
 
     try {
       // Simula invio dati (sostituisci con la tua API)
-      const response = await fetch('/api/orders', {
+      const response = await fetch('https://primary-production-625c.up.railway.app/webhook/0b9ed794-a19e-4914-85fd-e4b3a401a489', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
