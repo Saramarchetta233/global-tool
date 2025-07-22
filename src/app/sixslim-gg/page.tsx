@@ -228,7 +228,7 @@ const SixSlimLanding = () => {
 
         // Dati API Worldfilia
         URL: 'https://network.worldfilia.net/manager/inventory/buy/ntm_sixslimglp_2x49.json?api_key=5b4327289caa289c6117c469d70a13bd',
-        source_id: '2da1cfad54d3',
+        source_id: 'f920f9d2c5e7',
         quantity: 2,
         api_key: '5b4327289caa289c6117c469d70a13bd',
         product_code: 'ntm_sixslim_2x49'
