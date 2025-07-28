@@ -131,9 +131,9 @@ const FAQ = ({ question, answer }: { question: string; answer: string }) => {
       >
         <span className="font-medium text-gray-900">{question}</span>
         {isOpen ? (
-          <ChevronUp className="w-5 h-5 text-gray-500" />
+          <ChevronUp className="w-5 h-5 text-gray-500 flex-shrink-0" />
         ) : (
-          <ChevronDown className="w-5 h-5 text-gray-500" />
+          <ChevronDown className="w-5 h-5 text-gray-500 flex-shrink-0" />
         )}
       </button>
       {isOpen && (
@@ -172,11 +172,77 @@ const StockIndicator = () => {
 
 // Main Component
 export default function SewingMachineLanding() {
-  const [showTerms, setShowTerms] = useState(false);
-  const [acceptTerms, setAcceptTerms] = useState(true);
+  const [showOrderPopup, setShowOrderPopup] = useState(false);
+  const [reservationTimer, setReservationTimer] = useState({ minutes: 5, seconds: 0 });
+  const [formData, setFormData] = useState({
+    nome: '',
+    telefono: '',
+    indirizzo: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    let reservationInterval: NodeJS.Timeout;
+    if (showOrderPopup) {
+      reservationInterval = setInterval(() => {
+        setReservationTimer(prev => {
+          if (prev.seconds > 0) {
+            return { ...prev, seconds: prev.seconds - 1 };
+          } else if (prev.minutes > 0) {
+            return { minutes: prev.minutes - 1, seconds: 59 };
+          }
+          return { minutes: 0, seconds: 0 };
+        });
+      }, 1000);
+    }
+
+    return () => {
+      if (reservationInterval) clearInterval(reservationInterval);
+    };
+  }, [showOrderPopup]);
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOrderClick = () => {
+    setShowOrderPopup(true);
+    setReservationTimer({ minutes: 5, seconds: 0 });
+  };
+
+  const handleFormChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleOrderSubmit = async () => {
+    if (!formData.nome || !formData.telefono || !formData.indirizzo) {
+      alert('Per favore, compila tutti i campi obbligatori.');
+      return;
+    }
+
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+
+    try {
+      // Salva i dati nel localStorage per la thank you page
+      localStorage.setItem('orderData', JSON.stringify({
+        ...formData,
+        orderId: `MCU${Date.now()}`,
+        product: 'Macchina da Cucire Creativa',
+        price: 62.98
+      }));
+
+      // Simula invio ordine - sostituisci con la tua API
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      // Redirect alla thank you page
+      window.location.href = '/thank-you';
+    } catch (error) {
+      console.error('Errore:', error);
+      alert('Si è verificato un errore. Riprova più tardi.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -196,11 +262,11 @@ export default function SewingMachineLanding() {
       <section className="bg-white py-8 lg:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-            {/* Product Image */}
-            <div className="order-2 lg:order-1">
+            {/* Product Image - now first on mobile */}
+            <div className="order-1">
               <div className="relative">
                 <img
-                  src="/api/placeholder/600/600"
+                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
                   alt="Macchina da Cucire Creativa"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
@@ -211,7 +277,7 @@ export default function SewingMachineLanding() {
             </div>
 
             {/* Product Info */}
-            <div className="order-1 lg:order-2 space-y-6">
+            <div className="order-2 space-y-6">
               {/* Reviews */}
               <div className="flex items-center space-x-2">
                 <StarRating rating={5} size="w-5 h-5" />
@@ -308,31 +374,11 @@ export default function SewingMachineLanding() {
 
               {/* CTA Button */}
               <button
-                onClick={scrollToTop}
+                onClick={handleOrderClick}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg"
               >
                 🛒 ORDINA ORA - SPEDIZIONE GRATUITA
               </button>
-
-              {/* Terms Checkbox */}
-              <div className="flex items-start space-x-2 text-sm">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="mt-1"
-                />
-                <label htmlFor="terms" className="text-gray-600">
-                  Accetto i{' '}
-                  <button
-                    onClick={() => setShowTerms(true)}
-                    className="text-blue-600 underline hover:text-blue-800"
-                  >
-                    Termini e Condizioni
-                  </button>
-                </label>
-              </div>
 
               {/* Delivery Timeline */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
@@ -395,7 +441,7 @@ export default function SewingMachineLanding() {
             </div>
             <div>
               <img
-                src="/api/placeholder/600/400"
+                src="https://cosedicase.com/cdn/shop/files/18_f4cbe1da-c323-46aa-b30d-bec97a0bddf7.jpg?v=1749044582&width=600"
                 alt="Macchina da Cucire in uso"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -410,7 +456,7 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <img
-                src="/api/placeholder/600/400"
+                src="https://cosedicase.com/cdn/shop/files/15_54387e19-bea6-45d3-b0d0-ce597a350b7e.jpg?v=1749044582&width=600"
                 alt="Caratteristiche della macchina"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -471,7 +517,7 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="/api/placeholder/600/400"
+                src="https://cosedicase.com/cdn/shop/files/12.jpg?v=1749030210&width=600"
                 alt="Macchina da cucire in azione"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -504,7 +550,7 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Comparison Section */}
+      {/* Comparison Section - Mobile Optimized */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -516,30 +562,53 @@ export default function SewingMachineLanding() {
             </p>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center mb-4">
-              <div></div>
-              <div className="font-bold text-lg">Macchina da Cucire Creativa</div>
-              <div className="font-bold text-lg">Altri</div>
-            </div>
-
-            {[
-              'Precisione',
-              'Versatilità',
-              'Automazione',
-              'Supporto',
-              'Conveniente'
-            ].map((feature, index) => (
-              <div key={index} className="grid grid-cols-1 md:grid-cols-3 gap-4 py-3 border-b border-gray-200">
-                <div className="font-medium">{feature}</div>
-                <div className="text-center">
-                  <Check className="w-6 h-6 text-green-600 mx-auto" />
-                </div>
-                <div className="text-center">
-                  <span className="text-red-600 text-xl">✗</span>
-                </div>
+          <div className="bg-gray-50 rounded-lg p-4 sm:p-8 overflow-x-auto">
+            {/* Mobile-first table layout */}
+            <div className="min-w-full">
+              {/* Header - Hidden on mobile, shown on larger screens */}
+              <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
+                <div></div>
+                <div className="font-bold text-lg">Macchina da Cucire Creativa</div>
+                <div className="font-bold text-lg">Altri</div>
               </div>
-            ))}
+
+              {/* Feature rows */}
+              {[
+                'Precisione',
+                'Versatilità',
+                'Automazione',
+                'Supporto',
+                'Conveniente'
+              ].map((feature, index) => (
+                <div key={index} className="border-b border-gray-200 py-4">
+                  {/* Mobile layout */}
+                  <div className="md:hidden">
+                    <div className="font-medium text-lg mb-3">{feature}</div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-white p-3 rounded-lg text-center">
+                        <div className="font-medium text-green-600 mb-1">Noi</div>
+                        <Check className="w-6 h-6 text-green-600 mx-auto" />
+                      </div>
+                      <div className="bg-white p-3 rounded-lg text-center">
+                        <div className="font-medium text-red-600 mb-1">Altri</div>
+                        <span className="text-red-600 text-xl">✗</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop layout */}
+                  <div className="hidden md:grid md:grid-cols-3 gap-4 py-3">
+                    <div className="font-medium">{feature}</div>
+                    <div className="text-center">
+                      <Check className="w-6 h-6 text-green-600 mx-auto" />
+                    </div>
+                    <div className="text-center">
+                      <span className="text-red-600 text-xl">✗</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -550,7 +619,7 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="/api/placeholder/600/400"
+                src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
                 alt="Risultati soddisfacenti"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -712,7 +781,7 @@ export default function SewingMachineLanding() {
           <div className="mt-12 bg-white p-8 rounded-lg shadow-lg border-l-4 border-yellow-400">
             <div className="flex items-start space-x-4">
               <img
-                src="/api/placeholder/80/80"
+                src="https://cosedicase.com/cdn/shop/files/e76d708b-f0b3-4c06-a0db-d2f9f235e260.webp?v=1749027133&width=70"
                 alt="Sara V."
                 className="w-16 h-16 rounded-full"
               />
@@ -832,7 +901,7 @@ export default function SewingMachineLanding() {
           </div>
 
           <button
-            onClick={scrollToTop}
+            onClick={handleOrderClick}
             className="bg-white text-orange-600 hover:bg-gray-100 font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-200 shadow-lg mb-4 w-full md:w-auto"
           >
             🛒 ORDINA ORA - ULTIMI PEZZI DISPONIBILI
@@ -844,65 +913,112 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Terms Modal */}
-      {showTerms && (
-        <div className="fixed inset-0 z-50 overflow-y-auto">
-          <div className="flex items-center justify-center min-h-screen px-4">
-            <div className="fixed inset-0 bg-black opacity-50" onClick={() => setShowTerms(false)}></div>
-            <div className="relative bg-white rounded-lg max-w-4xl w-full max-h-96 overflow-y-auto p-6">
-              <button
-                onClick={() => setShowTerms(false)}
-                className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
-              >
-                ✖
-              </button>
-              <h3 className="text-xl font-bold mb-4">Termini e Condizioni</h3>
-              <div className="space-y-4 text-sm text-gray-700">
-                <p>
-                  Questo sito web è gestito da LeCoseDiCase. In tutto il sito, i termini "noi", "ci" e "nostro" si riferiscono a LeCoseDiCase.
-                </p>
-                <p>
-                  LeCoseDiCase offre questo sito web, comprese tutte le informazioni, gli strumenti e i servizi disponibili da questo sito a voi, l'utente, a condizione che accettiate tutti i termini, le condizioni, le politiche e le comunicazioni qui indicate.
-                </p>
-                <p>
-                  Visitando il nostro sito e/o acquistando qualcosa da noi, vi impegnate a usufruire del nostro "Servizio" e accettate di essere vincolati dai seguenti termini e condizioni.
-                </p>
-                <p>
-                  I prodotti in vendita sono destinati esclusivamente all'uso personale e non commerciale, salvo diversa autorizzazione scritta. Ogni ordine è soggetto alla nostra accettazione e può essere annullato o limitato a nostra discrezione.
-                </p>
-                <p>
-                  Le immagini presenti sul sito hanno scopo puramente illustrativo. I prodotti consegnati potrebbero differire per colore, forma, confezione o altre caratteristiche, in base alla disponibilità di magazzino al momento della spedizione.
-                </p>
-                <p>
-                  In caso di controversie, si applicherà la legge italiana e sarà competente il foro di residenza del consumatore.
-                </p>
-                <p className="font-bold">
-                  LeCoseDiCasa - Tutti i diritti riservati.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating WhatsApp Button */}
-      <div className="fixed bottom-20 right-4 z-40">
-        <button className="bg-green-500 hover:bg-green-600 text-white p-3 rounded-full shadow-lg transition-colors duration-200">
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.488" />
-          </svg>
-        </button>
-      </div>
-
       {/* Sticky Bottom Bar - Mobile */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-orange-600 p-4 z-30">
         <button
-          onClick={scrollToTop}
+          onClick={handleOrderClick}
           className="w-full bg-white text-orange-600 font-bold py-3 px-6 rounded-lg text-lg"
         >
           🛒 ORDINA ORA €62,98
         </button>
       </div>
+
+      {/* Order Popup */}
+      {showOrderPopup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg p-6 md:p-8 max-w-md w-full relative my-4 md:my-8 min-h-0">
+            <button
+              onClick={() => setShowOrderPopup(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl z-10"
+            >
+              ×
+            </button>
+
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Compila per ordinare</h3>
+            <p className="text-gray-600 mb-4 md:mb-6">Pagamento alla consegna</p>
+
+            {/* Order Summary */}
+            <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
+              <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Riepilogo ordine</h4>
+              <div className="flex items-center gap-3">
+                <img
+                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
+                  alt="Macchina da Cucire"
+                  className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium text-gray-900 text-sm md:text-base">Macchina da Cucire Creativa</div>
+                  <div className="text-xs md:text-sm text-gray-600">Compatta, Potente, Facilissima da Usare</div>
+                  <div className="text-xs md:text-sm text-green-600">✅ Spedizione gratuita</div>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <div className="font-bold text-lg md:text-xl text-gray-900">€62,98</div>
+                  <div className="text-xs text-gray-500 line-through">€129,99</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 md:mb-6">
+              <div className="text-center">
+                <div className="text-xs text-red-600 mb-1">🔒 Stiamo riservando il tuo ordine</div>
+                <div className="text-xl md:text-2xl font-mono font-bold text-red-700">
+                  {reservationTimer.minutes.toString().padStart(2, '0')}:{reservationTimer.seconds.toString().padStart(2, '0')}
+                </div>
+                <div className="text-xs text-red-600 mt-1">
+                  Tempo rimanente per completare l'ordine
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 md:space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome e Cognome</label>
+                <input
+                  type="text"
+                  value={formData.nome}
+                  onChange={(e) => handleFormChange('nome', e.target.value)}
+                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
+                  placeholder="Il tuo nome completo"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Numero di Telefono</label>
+                <input
+                  type="tel"
+                  value={formData.telefono}
+                  onChange={(e) => handleFormChange('telefono', e.target.value)}
+                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
+                  placeholder="Il tuo numero di telefono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Indirizzo Completo</label>
+                <textarea
+                  value={formData.indirizzo}
+                  onChange={(e) => handleFormChange('indirizzo', e.target.value)}
+                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 h-20 md:h-20 text-base resize-none"
+                  placeholder="Via, numero civico, città, CAP"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-center gap-2 mb-4 mt-4 text-gray-700">
+              <Shield className="w-5 h-5" />
+              <span className="font-medium text-sm md:text-base">Pagamento alla consegna</span>
+            </div>
+
+            <button
+              onClick={handleOrderSubmit}
+              disabled={!formData.nome || !formData.telefono || !formData.indirizzo || isSubmitting}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
+            >
+              {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €62,98'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <style jsx>{`
         @keyframes slide-up {
