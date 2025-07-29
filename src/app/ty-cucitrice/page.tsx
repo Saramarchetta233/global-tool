@@ -3,6 +3,7 @@
 declare global {
   interface Window {
     fbq: any;
+    gtag: any;
     dataLayer: any[];
   }
 }
@@ -10,9 +11,287 @@ declare global {
 import React, { useState, useEffect } from 'react';
 import { CheckCircle, Phone, Clock, Shield, Package, Star, Heart, Award, Truck } from 'lucide-react';
 
+// Advanced tracking utilities for Thank You page
+const advancedTrackingUtils = {
+  // Initialize Facebook Pixel with enhanced configuration
+  initFacebookPixel: () => {
+    if (typeof window !== 'undefined') {
+      (function (f: any, b: any, e: any, v: any, n?: any, t?: any, s?: any) {
+        if (f.fbq) return;
+        n = f.fbq = function () {
+          n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+        };
+        if (!f._fbq) f._fbq = n;
+        n.push = n;
+        n.loaded = !0;
+        n.version = '2.0';
+        n.queue = [];
+        t = b.createElement(e);
+        t.async = !0;
+        t.src = v;
+        s = b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t, s);
+      })(window, document, 'script', 'https://connect.facebook.net/en_US/fbevents.js');
+
+      window.fbq('init', '763716602087140', {}, {
+        test_event_code: 'TEST20028'
+      });
+    }
+  },
+
+  // Initialize Google Ads with enhanced ecommerce
+  initGoogleAds: () => {
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+      window.gtag('config', 'AW-17086993346', {
+        send_page_view: false // We'll send it manually with purchase data
+      });
+
+      // Load gtag script
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17086993346';
+      document.head.appendChild(script);
+    }
+  },
+
+  // Enhanced Purchase tracking with retry mechanism and CAPI
+  trackPurchaseEvent: async (orderData: any, retries = 5) => {
+    const clientEventId = `purchase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    console.log(`🎯 Starting Purchase tracking (attempt ${6 - retries}/5)...`);
+
+    // Facebook Client-Side + CAPI Tracking
+    await advancedTrackingUtils.trackFacebookPurchase(orderData, clientEventId, retries);
+
+    // Google Ads Conversion Tracking
+    await advancedTrackingUtils.trackGooglePurchase(orderData, retries);
+
+    return true;
+  },
+
+  // Facebook Purchase with CAPI fallback
+  trackFacebookPurchase: async (orderData: any, clientEventId: string, retries: number) => {
+    const purchaseData = {
+      content_type: 'product',
+      content_ids: ['sewing-machine-creative'],
+      content_name: 'Macchina da Cucire Creativa',
+      value: 62.98,
+      currency: 'EUR',
+      num_items: 1
+    };
+
+    // Client-side tracking
+    if (typeof window !== 'undefined' && window.fbq) {
+      try {
+        window.fbq('track', 'Purchase', purchaseData, {
+          eventID: clientEventId
+        });
+        console.log('✅ Facebook Purchase tracked (client-side)');
+      } catch (error) {
+        console.error('❌ Facebook client tracking error:', error);
+      }
+    }
+
+    // Enhanced CAPI tracking with more user data
+    try {
+      const userIP = await advancedTrackingUtils.getClientIP();
+
+      const capiData = {
+        data: [{
+          event_name: 'purchase',
+          event_time: Math.floor(Date.now() / 1000),
+          event_id: clientEventId,
+          action_source: 'website',
+          event_source_url: window.location.href,
+          user_data: {
+            client_ip_address: userIP,
+            client_user_agent: navigator.userAgent,
+            fbc: advancedTrackingUtils.getFbClickId(),
+            fbp: advancedTrackingUtils.getFbBrowserId(),
+            // Add order data if available
+            em: orderData?.email ? [advancedTrackingUtils.hashData(orderData.email)] : undefined,
+            ph: orderData?.telefono ? [advancedTrackingUtils.hashData(orderData.telefono)] : undefined,
+            fn: orderData?.nome ? [advancedTrackingUtils.hashData(orderData.nome.split(' ')[0])] : undefined,
+            ln: orderData?.nome ? [advancedTrackingUtils.hashData(orderData.nome.split(' ').slice(1).join(' '))] : undefined
+          },
+          custom_data: {
+            currency: 'EUR',
+            value: 62.98,
+            content_name: 'Macchina da Cucire Creativa',
+            content_type: 'product',
+            content_ids: ['sewing-machine-creative'],
+            order_id: orderData?.orderId || `MCU${Date.now()}`
+          }
+        }],
+        test_event_code: 'TEST20028',
+        access_token: 'EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD'
+      };
+
+      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(capiData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ Facebook Purchase tracked (CAPI)', result);
+      } else {
+        throw new Error(`CAPI request failed: ${response.status} ${response.statusText}`);
+      }
+    } catch (error) {
+      console.error(`❌ Facebook CAPI tracking error (${retries} retries left):`, error);
+
+      // Retry mechanism for CAPI
+      if (retries > 0) {
+        setTimeout(() => {
+          advancedTrackingUtils.trackFacebookPurchase(orderData, clientEventId, retries - 1);
+        }, 2000 * (6 - retries)); // Exponential backoff
+      }
+    }
+  },
+
+  // Google Ads Purchase tracking with retry
+  trackGooglePurchase: async (orderData: any, retries: number) => {
+    if (typeof window !== 'undefined' && window.gtag) {
+      try {
+        // Enhanced ecommerce tracking
+        window.gtag('event', 'purchase', {
+          transaction_id: orderData?.orderId || `MCU${Date.now()}`,
+          value: 62.98,
+          currency: 'EUR',
+          items: [{
+            item_id: 'sewing-machine-creative',
+            item_name: 'Macchina da Cucire Creativa',
+            category: 'Sewing Machines',
+            quantity: 1,
+            price: 62.98
+          }]
+        });
+
+        // Conversion tracking
+        window.gtag('event', 'conversion', {
+          send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
+          value: 62.98,
+          currency: 'EUR',
+          transaction_id: orderData?.orderId || `MCU${Date.now()}`
+        });
+
+        // Page view with purchase context
+        window.gtag('config', 'AW-17086993346', {
+          page_title: 'Thank You - Order Confirmed',
+          page_location: window.location.href,
+          custom_map: {
+            'purchase_value': 62.98,
+            'purchase_currency': 'EUR'
+          }
+        });
+
+        console.log('✅ Google Ads Purchase & Conversion tracked');
+      } catch (error) {
+        console.error(`❌ Google Ads tracking error (${retries} retries left):`, error);
+
+        // Retry mechanism
+        if (retries > 0) {
+          setTimeout(() => {
+            advancedTrackingUtils.trackGooglePurchase(orderData, retries - 1);
+          }, 1000 * (6 - retries));
+        }
+      }
+    } else if (retries > 0) {
+      // Wait for gtag to load
+      setTimeout(() => {
+        advancedTrackingUtils.trackGooglePurchase(orderData, retries - 1);
+      }, 1000);
+    }
+  },
+
+  // Utility functions
+  getClientIP: async (): Promise<string> => {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Failed to get client IP:', error);
+      return '';
+    }
+  },
+
+  getFbClickId: (): string => {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('fbclid') || '';
+  },
+
+  getFbBrowserId: (): string => {
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === '_fbp') return value;
+    }
+    return '';
+  },
+
+  hashData: (data: string): string => {
+    // Simple hash function for PII (in production, use proper SHA-256)
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
+    }
+    return hash.toString();
+  },
+
+  // Track additional events for remarketing
+  trackEngagementEvents: () => {
+    // Track that user stayed on thank you page
+    setTimeout(() => {
+      if (window.fbq) {
+        window.fbq('trackCustom', 'ThankYouPageEngagement', {
+          engagement_time: 10,
+          page_type: 'thank_you'
+        });
+      }
+
+      if (window.gtag) {
+        window.gtag('event', 'engagement', {
+          engagement_time_msec: 10000
+        });
+      }
+    }, 10000);
+
+    // Track scroll engagement
+    let scrollTracked = false;
+    const handleScroll = () => {
+      if (!scrollTracked && window.scrollY > 500) {
+        scrollTracked = true;
+        if (window.fbq) {
+          window.fbq('trackCustom', 'ThankYouPageScroll');
+        }
+        if (window.gtag) {
+          window.gtag('event', 'scroll', {
+            page_location: window.location.href
+          });
+        }
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+  }
+};
+
 const ThankYouPage = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [pixelFired, setPixelFired] = useState(false);
+  const [orderData, setOrderData] = useState<any>(null);
 
   const steps = [
     "Ordine Ricevuto",
@@ -22,52 +301,60 @@ const ThankYouPage = () => {
   ];
 
   useEffect(() => {
-    // Timer esistente
+    // Load order data from localStorage
+    const savedOrderData = localStorage.getItem('orderData');
+    if (savedOrderData) {
+      try {
+        const parsedOrderData = JSON.parse(savedOrderData);
+        setOrderData(parsedOrderData);
+      } catch (error) {
+        console.error('Failed to parse order data:', error);
+      }
+    }
+
+    // Initialize tracking systems
+    advancedTrackingUtils.initFacebookPixel();
+    advancedTrackingUtils.initGoogleAds();
+
+    // Timer for step animation
     const timer = setInterval(() => {
       setCurrentStep(prev => (prev < 3 ? prev + 1 : 0));
     }, 2000);
 
-    // Funzione per tracciare l'evento Purchase con retry
-    const trackPurchaseEvent = (retries = 5, delay = 500) => {
-      if (pixelFired) return; // Evita duplicati
+    // Enhanced Purchase tracking with multiple retry attempts
+    const trackPurchaseWithRetry = async (attempt = 1, maxAttempts = 7) => {
+      if (pixelFired) return;
 
-      if (typeof window !== 'undefined' && window.fbq) {
-        try {
-          window.fbq('track', 'Purchase', {
-            value: 62.98,
-            currency: 'EUR',
-            content_type: 'product',
-            content_name: 'Macchina da Cucire Creativa',
-            content_ids: ['sewing-machine-creative'],
-            num_items: 1
-          });
-          setPixelFired(true);
-          console.log('✅ Purchase event successfully tracked');
-        } catch (error) {
-          console.error('❌ Error tracking Purchase event:', error);
-          if (retries > 0) {
-            setTimeout(() => trackPurchaseEvent(retries - 1, delay * 1.5), delay);
-          }
-        }
-      } else {
-        console.log(`⏳ Facebook Pixel not ready, retrying... (${retries} attempts left)`);
-        if (retries > 0) {
-          setTimeout(() => trackPurchaseEvent(retries - 1, delay * 1.2), delay);
-        } else {
-          console.error('❌ Facebook Pixel not available after all retries');
+      console.log(`🎯 Purchase tracking attempt ${attempt}/${maxAttempts}`);
+
+      try {
+        await advancedTrackingUtils.trackPurchaseEvent(orderData || {});
+        setPixelFired(true);
+        console.log('🎉 All purchase tracking completed successfully!');
+      } catch (error) {
+        console.error(`❌ Purchase tracking attempt ${attempt} failed:`, error);
+
+        if (attempt < maxAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, attempt - 1), 10000); // Exponential backoff, max 10s
+          setTimeout(() => {
+            trackPurchaseWithRetry(attempt + 1, maxAttempts);
+          }, delay);
         }
       }
     };
 
-    // Avvia il tracking con un delay iniziale
-    const pixelTimeout = setTimeout(() => {
-      trackPurchaseEvent();
-    }, 1000);
+    // Start tracking with progressive delays
+    const trackingTimeouts = [
+      setTimeout(() => trackPurchaseWithRetry(1), 500),   // First attempt after 500ms
+      setTimeout(() => trackPurchaseWithRetry(2), 2000),  // Second attempt after 2s
+      setTimeout(() => trackPurchaseWithRetry(3), 5000),  // Third attempt after 5s
+      setTimeout(() => trackPurchaseWithRetry(4), 10000), // Fourth attempt after 10s
+    ];
 
-    // Listener per quando la pagina è completamente caricata
+    // Page load completion tracking
     const handleLoad = () => {
       if (!pixelFired) {
-        setTimeout(() => trackPurchaseEvent(), 500);
+        setTimeout(() => trackPurchaseWithRetry(5), 1000);
       }
     };
 
@@ -77,12 +364,29 @@ const ThankYouPage = () => {
       window.addEventListener('load', handleLoad);
     }
 
+    // Track engagement events
+    advancedTrackingUtils.trackEngagementEvents();
+
+    // Cleanup
     return () => {
       clearInterval(timer);
-      clearTimeout(pixelTimeout);
+      trackingTimeouts.forEach(timeout => clearTimeout(timeout));
       window.removeEventListener('load', handleLoad);
     };
-  }, [pixelFired]);
+  }, [pixelFired, orderData]);
+
+  // Track additional events when user interacts with page
+  const handleUserInteraction = (eventName: string) => {
+    if (window.fbq) {
+      window.fbq('trackCustom', `ThankYou_${eventName}`);
+    }
+    if (window.gtag) {
+      window.gtag('event', 'interaction', {
+        interaction_type: eventName,
+        page_location: window.location.href
+      });
+    }
+  };
 
   const benefits = [
     {
@@ -137,6 +441,11 @@ const ThankYouPage = () => {
           <p className="text-xl md:text-2xl opacity-90">
             Grazie per aver scelto la Macchina da Cucire Creativa
           </p>
+          {orderData?.orderId && (
+            <p className="text-lg mt-2 opacity-80">
+              Numero Ordine: <strong>{orderData.orderId}</strong>
+            </p>
+          )}
         </div>
       </div>
 
@@ -196,6 +505,27 @@ const ThankYouPage = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Customer Data */}
+              {orderData && (
+                <div className="mt-6 pt-4 border-t border-gray-200">
+                  <h5 className="font-semibold text-gray-800 mb-3">Dati di Spedizione:</h5>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-gray-600">Nome:</span>
+                      <span className="ml-2 font-medium">{orderData.nome}</span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Telefono:</span>
+                      <span className="ml-2 font-medium">{orderData.telefono}</span>
+                    </div>
+                    <div className="md:col-span-2">
+                      <span className="text-gray-600">Indirizzo:</span>
+                      <span className="ml-2 font-medium">{orderData.indirizzo}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -234,8 +564,8 @@ const ThankYouPage = () => {
 
           <div className="grid md:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
-              <div key={index} className="text-center">
-                <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
+              <div key={index} className="text-center" onClick={() => handleUserInteraction('benefit_click')}>
+                <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg cursor-pointer hover:bg-white/30 transition-all">
                   {benefit.icon}
                 </div>
                 <h3 className="font-bold text-lg mb-2 drop-shadow">{benefit.title}</h3>
@@ -287,18 +617,18 @@ const ThankYouPage = () => {
               Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>venerdì 1 ago e lunedì 4 ago</strong>
             </p>
             <div className="flex justify-between items-center">
-              <div className="text-center flex-1">
-                <div className="text-4xl mb-2">📦</div>
+              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
+                <div className="text-4xl mb-2 cursor-pointer">📦</div>
                 <div className="font-medium text-gray-800">Ordinato</div>
                 <div className="text-gray-500 text-sm">gio, 31 lug</div>
               </div>
-              <div className="text-center flex-1">
-                <div className="text-4xl mb-2">🚚</div>
+              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
+                <div className="text-4xl mb-2 cursor-pointer">🚚</div>
                 <div className="font-medium text-gray-800">Spedito</div>
                 <div className="text-gray-500 text-sm">ven, 1 ago</div>
               </div>
-              <div className="text-center flex-1">
-                <div className="text-4xl mb-2">📍</div>
+              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
+                <div className="text-4xl mb-2 cursor-pointer">📍</div>
                 <div className="font-medium text-gray-800">Consegnato</div>
                 <div className="text-gray-500 text-sm">lun, 4 ago</div>
               </div>
@@ -332,7 +662,7 @@ const ThankYouPage = () => {
           </h3>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200">
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200" onClick={() => handleUserInteraction('package_details')}>
               <h4 className="font-bold text-lg text-purple-700 mb-4">📦 Macchina da Cucire Creativa</h4>
               <ul className="space-y-2 text-purple-600">
                 <li>• 165 punti incorporati</li>
@@ -342,7 +672,7 @@ const ThankYouPage = () => {
               </ul>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-200">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-200" onClick={() => handleUserInteraction('accessories_details')}>
               <h4 className="font-bold text-lg text-blue-700 mb-4">🛠️ Accessori Inclusi</h4>
               <ul className="space-y-2 text-blue-600">
                 <li>• Tavolo estensibile per quilt</li>
@@ -372,24 +702,71 @@ const ThankYouPage = () => {
             </p>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
+              <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200" onClick={() => handleUserInteraction('stats_view')}>
                 <div className="text-2xl font-bold text-green-600">97%</div>
                 <p className="text-green-700 text-sm">Cucito più semplice e veloce</p>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200">
+              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200" onClick={() => handleUserInteraction('stats_view')}>
                 <div className="text-2xl font-bold text-blue-600">98%</div>
                 <p className="text-blue-700 text-sm">Aumento della creatività</p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200">
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200" onClick={() => handleUserInteraction('stats_view')}>
                 <div className="text-2xl font-bold text-purple-600">96%</div>
                 <p className="text-purple-700 text-sm">Lo consiglierebbe ad un'amica</p>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Tracking Status Debug (only visible when needed) */}
+        {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
+          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 mt-8">
+            <h4 className="font-bold mb-2">🔧 Tracking Debug Info</h4>
+            <div className="space-y-1 text-sm">
+              <p>Facebook Pixel Fired: <span className={pixelFired ? 'text-green-600' : 'text-red-600'}>{pixelFired ? 'Yes' : 'No'}</span></p>
+              <p>Order Data: <span className={orderData ? 'text-green-600' : 'text-red-600'}>{orderData ? 'Loaded' : 'Missing'}</span></p>
+              <p>Page Load: <span className="text-blue-600">{typeof document !== 'undefined' ? document.readyState : 'Unknown'}</span></p>
+              <p>User Agent: <span className="text-gray-600 text-xs">{typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'Unknown'}</span></p>
+            </div>
+          </div>
+        )}
       </div>
+
+      {/* Enhanced tracking scripts */}
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+            // Additional tracking verification
+            (function() {
+              console.log('🎯 Thank You Page Tracking Initialized');
+              
+              // Monitor for successful tracking
+              window.addEventListener('beforeunload', function() {
+                if (window.fbq && window.gtag) {
+                  try {
+                    // Final tracking attempt on page unload
+                    window.fbq('trackCustom', 'ThankYouPageUnload');
+                    window.gtag('event', 'page_unload', {
+                      page_location: window.location.href
+                    });
+                  } catch(e) {
+                    console.error('Final tracking error:', e);
+                  }
+                }
+              });
+
+              // Track visibility changes
+              document.addEventListener('visibilitychange', function() {
+                if (document.visibilityState === 'visible' && window.fbq) {
+                  window.fbq('trackCustom', 'ThankYouPageVisible');
+                }
+              });
+            })();
+          `
+        }}
+      />
     </div>
   );
 };

@@ -95,7 +95,7 @@ const SocialProofNotification = () => {
     };
 
     const interval = setInterval(showNotification, 8000);
-    showNotification(); // Show immediately
+    showNotification();
 
     return () => clearInterval(interval);
   }, []);
@@ -180,9 +180,31 @@ export default function SewingMachineLanding() {
     indirizzo: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [formErrors, setFormErrors] = useState({
+    nome: '',
+    telefono: '',
+    indirizzo: ''
+  });
+
+  // Load fingerprinting script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://offers.supertrendaffiliateprogram.com/forms/tmfp/';
+    script.crossOrigin = 'anonymous';
+    script.defer = true;
+    document.head.appendChild(script);
+
+    return () => {
+      try {
+        document.head.removeChild(script);
+      } catch (e) {
+        // Script might already be removed
+      }
+    };
+  }, []);
 
   useEffect(() => {
-    let reservationInterval: NodeJS.Timeout;
+    let reservationInterval: NodeJS.Timeout | undefined;
     if (showOrderPopup) {
       reservationInterval = setInterval(() => {
         setReservationTimer(prev => {
@@ -201,45 +223,104 @@ export default function SewingMachineLanding() {
     };
   }, [showOrderPopup]);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
   const handleOrderClick = () => {
     setShowOrderPopup(true);
     setReservationTimer({ minutes: 5, seconds: 0 });
+    setFormErrors({ nome: '', telefono: '', indirizzo: '' });
   };
 
   const handleFormChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    if (formErrors[field as keyof typeof formErrors]) {
+      setFormErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = { nome: '', telefono: '', indirizzo: '' };
+    let isValid = true;
+
+    if (!formData.nome.trim()) {
+      errors.nome = 'Il nome è obbligatorio';
+      isValid = false;
+    } else if (formData.nome.trim().length < 2) {
+      errors.nome = 'Il nome deve contenere almeno 2 caratteri';
+      isValid = false;
+    }
+
+    if (!formData.telefono.trim()) {
+      errors.telefono = 'Il numero di telefono è obbligatorio';
+      isValid = false;
+    } else {
+      const phoneRegex = /^[\+]?[0-9\s\-\(\)]{8,15}$/;
+      if (!phoneRegex.test(formData.telefono.trim())) {
+        errors.telefono = 'Inserisci un numero di telefono valido';
+        isValid = false;
+      }
+    }
+
+    if (!formData.indirizzo.trim()) {
+      errors.indirizzo = 'L\'indirizzo è obbligatorio';
+      isValid = false;
+    } else if (formData.indirizzo.trim().length < 10) {
+      errors.indirizzo = 'L\'indirizzo deve essere più dettagliato (via, numero, città, CAP)';
+      isValid = false;
+    }
+
+    setFormErrors(errors);
+    return isValid;
   };
 
   const handleOrderSubmit = async () => {
-    if (!formData.nome || !formData.telefono || !formData.indirizzo) {
-      alert('Per favore, compila tutti i campi obbligatori.');
+    if (isSubmitting) return;
+
+    if (!validateForm()) {
       return;
     }
 
-    if (isSubmitting) return;
     setIsSubmitting(true);
 
     try {
-      // Salva i dati nel localStorage per la thank you page
-      localStorage.setItem('orderData', JSON.stringify({
-        ...formData,
-        orderId: `MCU${Date.now()}`,
-        product: 'Macchina da Cucire Creativa',
-        price: 62.98
-      }));
+      const apiFormData = new FormData();
 
-      // Simula invio ordine - sostituisci con la tua API
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      apiFormData.append('uid', '01980825-ae5a-7aca-8796-640a3c5ee3da');
+      apiFormData.append('key', 'ad79469b31b0058f6ea72c');
+      apiFormData.append('offer', '236');
+      apiFormData.append('lp', '236');
+      apiFormData.append('name', formData.nome.trim());
+      apiFormData.append('tel', formData.telefono.trim());
+      apiFormData.append('street-address', formData.indirizzo.trim());
 
-      // Redirect alla thank you page
-      window.location.href = '/ty-cucitrice';
+      const tmfpInput = document.querySelector('input[name="tmfp"]') as HTMLInputElement | null;
+      if (!tmfpInput || !tmfpInput.value) {
+        apiFormData.append('ua', navigator.userAgent);
+      }
+
+      const response = await fetch('https://offers.supertrendaffiliateprogram.com/forms/api/', {
+        method: 'POST',
+        body: apiFormData,
+      });
+
+      if (response.ok) {
+        const responseData = await response.text();
+
+        const orderData = {
+          ...formData,
+          orderId: `MCU${Date.now()}`,
+          product: 'Macchina da Cucire Creativa',
+          price: 62.98,
+          apiResponse: responseData
+        };
+
+        localStorage.setItem('orderData', JSON.stringify(orderData));
+        window.location.href = '/ty-cucitrice';
+      } else {
+        console.error('API Error:', response.status, response.statusText);
+        alert('Si è verificato un errore durante l\'invio dell\'ordine. Riprova più tardi.');
+      }
     } catch (error) {
-      console.error('Errore:', error);
-      alert('Si è verificato un errore. Riprova più tardi.');
+      console.error('Network Error:', error);
+      alert('Si è verificato un errore di connessione. Controlla la tua connessione internet e riprova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -247,10 +328,10 @@ export default function SewingMachineLanding() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Social Proof Notification */}
+      <input type="hidden" name="tmfp" />
+
       <SocialProofNotification />
 
-      {/* Header with Urgency Banner */}
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">
           <span>🔥 OFFERTA LIMITATA - Scade tra:</span>
@@ -258,11 +339,9 @@ export default function SewingMachineLanding() {
         </div>
       </div>
 
-      {/* Hero Section */}
       <section className="bg-white py-8 lg:py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center">
-            {/* Product Image - now first on mobile */}
             <div className="order-1">
               <div className="relative">
                 <img
@@ -276,26 +355,21 @@ export default function SewingMachineLanding() {
               </div>
             </div>
 
-            {/* Product Info */}
             <div className="order-2 space-y-6">
-              {/* Reviews */}
               <div className="flex items-center space-x-2">
                 <StarRating rating={5} size="w-5 h-5" />
                 <span className="text-yellow-600 font-medium">4.9</span>
                 <span className="text-gray-600">(347 recensioni)</span>
               </div>
 
-              {/* Title */}
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
                 🧵 Macchina da Cucire Creativa – Compatta, Potente, Facilissima da Usare
               </h1>
 
-              {/* Subtitle */}
               <p className="text-lg text-gray-700 font-medium">
                 <strong>Facilita il cucito con opzioni automatiche e risultati precisi per progetti creativi.</strong>
               </p>
 
-              {/* Benefits */}
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
@@ -315,7 +389,6 @@ export default function SewingMachineLanding() {
                 </div>
               </div>
 
-              {/* Pricing Box */}
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
                 <div className="text-center space-y-4">
                   <h3 className="text-xl font-bold text-gray-900">
@@ -372,7 +445,6 @@ export default function SewingMachineLanding() {
                 </div>
               </div>
 
-              {/* CTA Button */}
               <button
                 onClick={handleOrderClick}
                 className="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg"
@@ -380,7 +452,6 @@ export default function SewingMachineLanding() {
                 🛒 ORDINA ORA - SPEDIZIONE GRATUITA
               </button>
 
-              {/* Delivery Timeline */}
               <div className="bg-white border border-gray-200 rounded-lg p-4">
                 <p className="text-center text-gray-700 mb-4">
                   Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>venerdì 26 lug e lunedì 29 lug</strong>
@@ -404,7 +475,6 @@ export default function SewingMachineLanding() {
                 </div>
               </div>
 
-              {/* Trust Indicators */}
               <div className="flex justify-center space-x-8 text-sm text-gray-600">
                 <div className="flex items-center space-x-1">
                   <Truck className="w-4 h-4" />
@@ -424,7 +494,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Product Features Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -450,7 +519,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Detailed Features */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -502,7 +570,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Benefits Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -550,7 +617,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Comparison Section - Mobile Optimized */}
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -563,16 +629,13 @@ export default function SewingMachineLanding() {
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4 sm:p-8 overflow-x-auto">
-            {/* Mobile-first table layout */}
             <div className="min-w-full">
-              {/* Header - Hidden on mobile, shown on larger screens */}
               <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
                 <div></div>
                 <div className="font-bold text-lg">Macchina da Cucire Creativa</div>
                 <div className="font-bold text-lg">Altri</div>
               </div>
 
-              {/* Feature rows */}
               {[
                 'Precisione',
                 'Versatilità',
@@ -581,7 +644,6 @@ export default function SewingMachineLanding() {
                 'Conveniente'
               ].map((feature, index) => (
                 <div key={index} className="border-b border-gray-200 py-4">
-                  {/* Mobile layout */}
                   <div className="md:hidden">
                     <div className="font-medium text-lg mb-3">{feature}</div>
                     <div className="grid grid-cols-2 gap-4">
@@ -596,7 +658,6 @@ export default function SewingMachineLanding() {
                     </div>
                   </div>
 
-                  {/* Desktop layout */}
                   <div className="hidden md:grid md:grid-cols-3 gap-4 py-3">
                     <div className="font-medium">{feature}</div>
                     <div className="text-center">
@@ -613,7 +674,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Statistics Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
@@ -665,7 +725,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* FAQ Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -702,7 +761,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Reviews Section */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -777,7 +835,6 @@ export default function SewingMachineLanding() {
             ))}
           </div>
 
-          {/* Featured Review */}
           <div className="mt-12 bg-white p-8 rounded-lg shadow-lg border-l-4 border-yellow-400">
             <div className="flex items-start space-x-4">
               <img
@@ -800,7 +857,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Guarantee Section */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="bg-green-50 border border-green-200 rounded-lg p-8">
@@ -818,7 +874,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Why Buy From Us */}
       <section className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
@@ -870,7 +925,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Final CTA Section */}
       <section className="py-16 bg-orange-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">
@@ -913,7 +967,6 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      {/* Sticky Bottom Bar - Mobile */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-orange-600 p-4 z-30">
         <button
           onClick={handleOrderClick}
@@ -923,7 +976,6 @@ export default function SewingMachineLanding() {
         </button>
       </div>
 
-      {/* Order Popup */}
       {showOrderPopup && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-start justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-white rounded-lg p-6 md:p-8 max-w-md w-full relative my-4 md:my-8 min-h-0">
@@ -937,7 +989,6 @@ export default function SewingMachineLanding() {
             <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Compila per ordinare</h3>
             <p className="text-gray-600 mb-4 md:mb-6">Pagamento alla consegna</p>
 
-            {/* Order Summary */}
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
               <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Riepilogo ordine</h4>
               <div className="flex items-center gap-3">
@@ -972,35 +1023,53 @@ export default function SewingMachineLanding() {
 
             <div className="space-y-3 md:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome e Cognome</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nome e Cognome *</label>
                 <input
                   type="text"
                   value={formData.nome}
                   onChange={(e) => handleFormChange('nome', e.target.value)}
-                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.nome
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-green-500'
+                    }`}
                   placeholder="Il tuo nome completo"
                 />
+                {formErrors.nome && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.nome}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numero di Telefono</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Numero di Telefono *</label>
                 <input
                   type="tel"
                   value={formData.telefono}
                   onChange={(e) => handleFormChange('telefono', e.target.value)}
-                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-base"
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.telefono
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-green-500'
+                    }`}
                   placeholder="Il tuo numero di telefono"
                 />
+                {formErrors.telefono && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.telefono}</p>
+                )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Indirizzo Completo</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Indirizzo Completo *</label>
                 <textarea
                   value={formData.indirizzo}
                   onChange={(e) => handleFormChange('indirizzo', e.target.value)}
-                  className="w-full px-3 py-3 md:py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 h-20 md:h-20 text-base resize-none"
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 h-20 md:h-20 text-base resize-none ${formErrors.indirizzo
+                    ? 'border-red-300 focus:ring-red-500'
+                    : 'border-gray-300 focus:ring-green-500'
+                    }`}
                   placeholder="Via, numero civico, città, CAP"
                 />
+                {formErrors.indirizzo && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.indirizzo}</p>
+                )}
               </div>
             </div>
 
@@ -1011,7 +1080,7 @@ export default function SewingMachineLanding() {
 
             <button
               onClick={handleOrderSubmit}
-              disabled={!formData.nome || !formData.telefono || !formData.indirizzo || isSubmitting}
+              disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
             >
               {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €62,98'}
