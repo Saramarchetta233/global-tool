@@ -635,7 +635,7 @@ export default function SmartwatchLanding() {
 
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Monitoraggio salute più accurato</span>
+                    <span className="text-sm font-medium">Monitoraggio salute è più accurato</span>
                     <span className="text-sm font-medium">96%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
