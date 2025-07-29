@@ -320,7 +320,7 @@ const ThankYouPage = () => {
   ];
 
   useEffect(() => {
-    // Load order data from localStorage
+    // Load order data from localStorage (ONLY ONCE)
     const savedOrderData = localStorage.getItem('orderData');
     if (savedOrderData) {
       try {
@@ -330,8 +330,11 @@ const ThankYouPage = () => {
         console.error('Failed to parse order data:', error);
       }
     }
+  }, []); // EMPTY DEPENDENCY ARRAY - runs only once
 
-    // Initialize tracking systems
+  useEffect(() => {
+    // Initialize tracking systems (ONLY ONCE)
+    console.log('🎯 Thank You Page Tracking Initialized');
     advancedTrackingUtils.initFacebookPixel();
     advancedTrackingUtils.initGoogleAds();
 
@@ -340,7 +343,19 @@ const ThankYouPage = () => {
       setCurrentStep(prev => (prev < 3 ? prev + 1 : 0));
     }, 2000);
 
-    // Enhanced Purchase tracking with multiple retry attempts (FIXED)
+    return () => {
+      clearInterval(timer);
+    };
+  }, []); // EMPTY DEPENDENCY ARRAY - runs only once
+
+  useEffect(() => {
+    // Purchase tracking (runs when orderData changes OR on mount)
+    if (pixelFired) {
+      console.log('🎉 Purchase already tracked, skipping...');
+      return;
+    }
+
+    // Enhanced Purchase tracking with single retry mechanism
     const trackPurchaseWithRetry = async (attempt = 1, maxAttempts = 3) => {
       if (pixelFired) {
         console.log('🎉 Purchase already tracked, skipping...');
@@ -368,37 +383,20 @@ const ThankYouPage = () => {
       }
     };
 
-    // Single tracking attempt with delay
-    const initialTrackingTimeout = setTimeout(() => {
-      if (!pixelFired) {
-        trackPurchaseWithRetry(1, 3);
-      }
+    // Start tracking with delay
+    const trackingTimeout = setTimeout(() => {
+      trackPurchaseWithRetry(1, 3);
     }, 1000);
 
-    // Page load completion tracking (SINGLE ATTEMPT)
-    const handleLoad = () => {
-      if (!pixelFired) {
-        setTimeout(() => trackPurchaseWithRetry(1, 3), 500);
-      }
-    };
-
-    if (document.readyState === 'complete') {
-      handleLoad();
-    } else {
-      window.addEventListener('load', handleLoad, { once: true });
-    }
-
-    // Track engagement events (with cleanup)
+    // Track engagement events (ONLY ONCE)
     const cleanupEngagement = advancedTrackingUtils.trackEngagementEvents();
 
     // Cleanup
     return () => {
-      clearInterval(timer);
-      clearTimeout(initialTrackingTimeout);
-      window.removeEventListener('load', handleLoad);
+      clearTimeout(trackingTimeout);
       if (cleanupEngagement) cleanupEngagement();
     };
-  }, [pixelFired, orderData]);
+  }, [orderData, pixelFired]); // Dependencies: orderData and pixelFired
 
   // Track additional events when user interacts with page
   const handleUserInteraction = (eventName: string) => {
