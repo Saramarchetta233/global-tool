@@ -79,10 +79,10 @@ const SocialProofNotification = () => {
   const [currentNotification, setCurrentNotification] = useState(0);
 
   const notifications = [
-    { name: "Maria da Milano", action: "ha appena acquistato", time: "2 minuti fa" },
-    { name: "Anna da Roma", action: "ha aggiunto al carrello", time: "4 minuti fa" },
-    { name: "Lucia da Napoli", action: "ha appena acquistato", time: "6 minuti fa" },
-    { name: "Sara da Torino", action: "sta visualizzando", time: "1 minuto fa" },
+    { name: "Marco da Milano", action: "ha appena acquistato", time: "2 minuti fa" },
+    { name: "Andrea da Roma", action: "ha aggiunto al carrello", time: "4 minuti fa" },
+    { name: "Giuseppe da Napoli", action: "ha appena acquistato", time: "6 minuti fa" },
+    { name: "Alessandro da Torino", action: "sta visualizzando", time: "1 minuto fa" },
   ];
 
   useEffect(() => {
@@ -103,7 +103,7 @@ const SocialProofNotification = () => {
   if (!visible) return null;
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm animate-slide-up">
+    <div className="fixed bottom-4 left-4 z-50 bg-white border border-gray-200 rounded-lg shadow-lg p-4 max-w-sm transition-all duration-300 transform translate-y-0 opacity-100">
       <div className="flex items-center space-x-3">
         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
         <div className="flex-1">
@@ -147,13 +147,13 @@ const FAQ = ({ question, answer }: { question: string; answer: string }) => {
 
 // Stock Indicator
 const StockIndicator = () => {
-  const [stock, setStock] = useState(12);
+  const [stock, setStock] = useState(8);
 
   useEffect(() => {
     const interval = setInterval(() => {
       setStock(prev => {
         const change = Math.random() > 0.7 ? -1 : 0;
-        return Math.max(8, prev + change);
+        return Math.max(4, prev + change);
       });
     }, 30000);
 
@@ -171,7 +171,7 @@ const StockIndicator = () => {
 };
 
 // Main Component
-export default function SewingMachineLanding() {
+export default function SmartwatchLanding() {
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [reservationTimer, setReservationTimer] = useState({ minutes: 5, seconds: 0 });
   const [formData, setFormData] = useState({
@@ -224,19 +224,12 @@ export default function SewingMachineLanding() {
     setIsSubmitting(true);
 
     try {
-      // Salva i dati nel localStorage per la thank you page
-      localStorage.setItem('orderData', JSON.stringify({
-        ...formData,
-        orderId: `MCU${Date.now()}`,
-        product: 'Macchina da Cucire Creativa',
-        price: 62.98
-      }));
-
       // Simula invio ordine - sostituisci con la tua API
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Redirect alla thank you page
-      window.location.href = '/ty-cucitrice';
+      alert('Ordine confermato! Riceverai presto una chiamata per la conferma.');
+      setShowOrderPopup(false);
     } catch (error) {
       console.error('Errore:', error);
       alert('Si è verificato un errore. Riprova più tardi.');
@@ -266,12 +259,12 @@ export default function SewingMachineLanding() {
             <div className="order-1">
               <div className="relative">
                 <img
-                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
-                  alt="Macchina da Cucire Creativa"
+                  src="https://img.kwcdn.com/product/Fancyalgo/VirtualModelMatting/7a28d35cf0c75b8b8ef7c4a9fdbe59b6.jpg?imageView2/2/w/800/q/70/format/webp"
+                  alt="Smartwatch Resistente Pro"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  -52% OFF
+                  -58% OFF
                 </div>
               </div>
             </div>
@@ -281,37 +274,37 @@ export default function SewingMachineLanding() {
               {/* Reviews */}
               <div className="flex items-center space-x-2">
                 <StarRating rating={5} size="w-5 h-5" />
-                <span className="text-yellow-600 font-medium">4.9</span>
-                <span className="text-gray-600">(347 recensioni)</span>
+                <span className="text-yellow-600 font-medium">4.8</span>
+                <span className="text-gray-600">(523 recensioni)</span>
               </div>
 
               {/* Title */}
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                🧵 Macchina da Cucire Creativa – Compatta, Potente, Facilissima da Usare
+                ⌚ Smartwatch Resistente Pro – Chiamate, Fitness AI, 100+ Sport, Impermeabile IP68
               </h1>
 
               {/* Subtitle */}
               <p className="text-lg text-gray-700 font-medium">
-                <strong>Facilita il cucito con opzioni automatiche e risultati precisi per progetti creativi.</strong>
+                <strong>Il compagno perfetto per il tuo stile di vita attivo con tecnologia AI avanzata.</strong>
               </p>
 
               {/* Benefits */}
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎯 <strong>Migliora precisione</strong> – Cuciture complesse senza errori</span>
+                  <span>📞 <strong>Chiamate wireless</strong> – Rispondi direttamente dal polso</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎨 <strong>Aumenta creatività</strong> – Dai vita a progetti divertenti</span>
+                  <span>🏃 <strong>100+ modalità sport</strong> – Monitora ogni attività</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>⏱️ <strong>Riduce tempo</strong> – Infilatura automatica in un attimo</span>
+                  <span>💧 <strong>Impermeabile IP68</strong> – Resistente a immersioni profonde</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🤝 <strong>Supporto continuo</strong> – Assistenza sempre disponibile</span>
+                  <span>🤖 <strong>AI Voice Assistant</strong> – Controllo vocale intelligente</span>
                 </div>
               </div>
 
@@ -319,24 +312,24 @@ export default function SewingMachineLanding() {
               <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
                 <div className="text-center space-y-4">
                   <h3 className="text-xl font-bold text-gray-900">
-                    🧵 Macchina da Cucire Creativa – Compatta, Potente, Facilissima da Usare
+                    ⌚ Smartwatch Resistente Pro – Tecnologia Avanzata al Polso
                   </h3>
 
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
-                      <span>📅 Ampia varietà di punti: 165 programmi inclusi</span>
-                      <span className="text-red-600 line-through font-bold">€129,99</span>
+                      <span>📞 Chiamate wireless Bluetooth integrate</span>
+                      <span className="text-red-600 line-through font-bold">€119,99</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>✨ Infila ago automatico: Risparmia tempo e stress</span>
+                      <span>🏃 100+ modalità sportive con monitoraggio AI</span>
                       <span className="text-green-600 font-bold">✔ Incluso</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>🔢 Display LCD retroilluminato: Tutto sotto controllo</span>
+                      <span>💧 Resistenza IP68 - immersioni fino a 50m</span>
                       <span className="text-green-600 font-bold">✔ Incluso</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span>🛋 Accessori completi: Tavolo estensibile, piedini, DVD</span>
+                      <span>🔋 Batteria 7 giorni + ricarica wireless</span>
                       <span className="text-green-600 font-bold">✔ Incluso</span>
                     </div>
                   </div>
@@ -355,9 +348,9 @@ export default function SewingMachineLanding() {
                   <div className="bg-green-600 text-white p-4 rounded-lg">
                     <div className="text-center">
                       <div className="text-sm">Prezzo di listino:</div>
-                      <div className="text-lg line-through text-red-200">€129,99</div>
+                      <div className="text-lg line-through text-red-200">€119,99</div>
                       <div className="text-sm">Oggi solo:</div>
-                      <div className="text-3xl font-bold">€62,98</div>
+                      <div className="text-3xl font-bold">€49,99</div>
                     </div>
                   </div>
 
@@ -430,19 +423,19 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                ✨ Scopri la Macchina da Cucire Creativa – La Tua Compagna Ideale per Ogni Progetto!
+                ⌚ Scopri il Smartwatch Resistente Pro – Tecnologia Avanzata al Tuo Polso!
               </h2>
               <p className="text-lg text-gray-700 mb-6">
-                La <strong>Macchina da Cucire Creativa</strong> è progettata per liberare la tua creatività e semplificare ogni fase del cucito.
+                Il <strong>Smartwatch Resistente Pro</strong> è progettato per accompagnarti in ogni momento della giornata, dallo sport al lavoro.
               </p>
               <p className="text-lg text-gray-700">
-                Con <strong>165 punti incorporati</strong>, inclusi punti utili, decorativi e alfabetici, potrai realizzare qualsiasi progetto, dai capi d'abbigliamento alle decorazioni per la casa.
+                Con <strong>100+ modalità sportive</strong> e intelligenza artificiale integrata, monitora la tua salute e prestazioni in tempo reale.
               </p>
             </div>
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/18_f4cbe1da-c323-46aa-b30d-bec97a0bddf7.jpg?v=1749044582&width=600"
-                alt="Macchina da Cucire in uso"
+                src="https://img.kwcdn.com/product/fancy/e7f69b71-a5b7-46c7-b6a8-df5f3d6b3c5f.jpg?imageView2/2/w/800/q/70/format/webp"
+                alt="Smartwatch in uso"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
@@ -456,8 +449,8 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <img
-                src="https://cosedicase.com/cdn/shop/files/15_54387e19-bea6-45d3-b0d0-ce597a350b7e.jpg?v=1749044582&width=600"
-                alt="Caratteristiche della macchina"
+                src="https://img.kwcdn.com/product/fancy/e14c96b7-f7ca-4c67-8c88-0e98e5b6e9d9.jpg?imageView2/2/w/800/q/70/format/webp"
+                alt="Caratteristiche dello smartwatch"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
@@ -469,31 +462,31 @@ export default function SewingMachineLanding() {
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Ampia varietà di punti:</strong> 165 punti incorporati, tra cui 110 punti utili e decorativi, 8 stili di asole automatiche e 55 caratteri alfanumerici.
+                    <strong>Chiamate wireless integrate:</strong> Effettua e ricevi chiamate direttamente dal polso grazie al Bluetooth 5.0 avanzato.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Infila ago automatico:</strong> Risparmia tempo e fatica grazie al sistema di infilatura automatica dell'ago.
+                    <strong>100+ modalità sportive:</strong> Monitora running, nuoto, ciclismo, yoga e molte altre attività con precisione professionale.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Display LCD intuitivo:</strong> Seleziona facilmente i punti e le impostazioni tramite il display retroilluminato.
+                    <strong>Resistenza IP68:</strong> Completamente impermeabile, resiste a immersioni fino a 50 metri di profondità.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Accessori inclusi:</strong> Viene fornita con una copertura rigida protettiva, tavolo estensibile, 8 piedini per cucito e quilting, DVD istruttivo e altro ancora.
+                    <strong>AI Voice Assistant:</strong> Controllo vocale intelligente per gestire chiamate, messaggi e app senza toccare lo schermo.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <strong>Supporto dedicato:</strong> Assistenza tecnica gratuita online, via chat o telefono per tutta la durata della macchina.
+                    <strong>Batteria 7 giorni:</strong> Autonomia eccezionale con ricarica wireless rapida inclusa nella confezione.
                   </div>
                 </div>
               </div>
@@ -507,42 +500,42 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Cucito Semplice e Creativo
+              Tecnologia Intelligente per uno Stile di Vita Attivo
             </h2>
             <p className="text-lg text-gray-700">
-              Scopri come questa macchina semplifica il cucito, migliorando la precisione e la creatività nei tuoi progetti.
+              Scopri come questo smartwatch rivoluziona la tua routine quotidiana con funzioni avanzate e design resistente.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/12.jpg?v=1749030210&width=600"
-                alt="Macchina da cucire in azione"
+                src="https://img.kwcdn.com/product/fancy/46bb9c3f-3c19-45d8-94ba-8efc6c5e5b8c.jpg?imageView2/2/w/800/q/70/format/webp"
+                alt="Smartwatch in azione"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
             <div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
-                  <div className="text-4xl mb-4">📏</div>
-                  <h3 className="font-bold text-lg mb-2">Precisione</h3>
-                  <p className="text-gray-600">Ottieni cuciture precise e uniformi facilmente.</p>
+                  <div className="text-4xl mb-4">📞</div>
+                  <h3 className="font-bold text-lg mb-2">Chiamate</h3>
+                  <p className="text-gray-600">Rispondi alle chiamate direttamente dal polso.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
-                  <div className="text-4xl mb-4">🧵</div>
-                  <h3 className="font-bold text-lg mb-2">Versatilità</h3>
-                  <p className="text-gray-600">Scegli tra tanti punti decorativi e utili.</p>
+                  <div className="text-4xl mb-4">🏃</div>
+                  <h3 className="font-bold text-lg mb-2">Fitness AI</h3>
+                  <p className="text-gray-600">Monitoraggio intelligente per ogni sport.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
-                  <div className="text-4xl mb-4">🕒</div>
-                  <h3 className="font-bold text-lg mb-2">Risparmio Tempo</h3>
-                  <p className="text-gray-600">Infilatura automatica per iniziare subito.</p>
+                  <div className="text-4xl mb-4">💧</div>
+                  <h3 className="font-bold text-lg mb-2">Impermeabile</h3>
+                  <p className="text-gray-600">IP68: nuota, immergiti senza preoccupazioni.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
-                  <div className="text-4xl mb-4">📚</div>
-                  <h3 className="font-bold text-lg mb-2">Supporto</h3>
-                  <p className="text-gray-600">Assistenza tecnica a vita per la tua tranquillità.</p>
+                  <div className="text-4xl mb-4">🔋</div>
+                  <h3 className="font-bold text-lg mb-2">Lunga Durata</h3>
+                  <p className="text-gray-600">7 giorni di autonomia con una ricarica.</p>
                 </div>
               </div>
             </div>
@@ -555,10 +548,10 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Cosa Rende Unica la Macchina da Cucire Creativa
+              Cosa Rende Unico il Smartwatch Resistente Pro
             </h2>
             <p className="text-lg text-gray-700">
-              A differenza di altri, offre funzioni automatiche, un ampio tavolo e supporto tecnico a vita, migliorando l'esperienza di cucito e creatività.
+              A differenza della concorrenza, offre chiamate wireless native, AI avanzata e resistenza militare, tutto a un prezzo imbattibile.
             </p>
           </div>
 
@@ -568,17 +561,17 @@ export default function SewingMachineLanding() {
               {/* Header - Hidden on mobile, shown on larger screens */}
               <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
                 <div></div>
-                <div className="font-bold text-lg">Macchina da Cucire Creativa</div>
-                <div className="font-bold text-lg">Altri</div>
+                <div className="font-bold text-lg">Smartwatch Resistente Pro</div>
+                <div className="font-bold text-lg">Altri Smartwatch</div>
               </div>
 
               {/* Feature rows */}
               {[
-                'Precisione',
-                'Versatilità',
-                'Automazione',
-                'Supporto',
-                'Conveniente'
+                'Chiamate Wireless',
+                'Resistenza IP68',
+                'AI Voice Assistant',
+                '100+ Sport',
+                'Prezzo Conveniente'
               ].map((feature, index) => (
                 <div key={index} className="border-b border-gray-200 py-4">
                   {/* Mobile layout */}
@@ -619,44 +612,44 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
-                alt="Risultati soddisfacenti"
+                src="https://img.kwcdn.com/product/fancy/75d8e2d3-c6e0-4e8f-ba1b-9c2f3a1d4e5f.jpg?imageView2/2/w/800/q/70/format/webp"
+                alt="Risultati fitness"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-8">
-                Trasforma il Tuo Cucito con Risultati Eccezionali
+                Trasforma il Tuo Fitness con Risultati Eccezionali
               </h2>
 
               <div className="space-y-6">
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Cucito più semplice e veloce</span>
-                    <span className="text-sm font-medium">97%</span>
+                    <span className="text-sm font-medium">Miglioramento delle prestazioni sportive</span>
+                    <span className="text-sm font-medium">94%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '97%' }}></div>
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '94%' }}></div>
                   </div>
                 </div>
 
                 <div>
                   <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Aumento della creatività</span>
-                    <span className="text-sm font-medium">98%</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '98%' }}></div>
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Risparmio di tempo</span>
+                    <span className="text-sm font-medium">Monitoraggio salute più accurato</span>
                     <span className="text-sm font-medium">96%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div className="bg-green-600 h-2 rounded-full" style={{ width: '96%' }}></div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="flex justify-between mb-2">
+                    <span className="text-sm font-medium">Comodità nell'uso quotidiano</span>
+                    <span className="text-sm font-medium">98%</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="bg-green-600 h-2 rounded-full" style={{ width: '98%' }}></div>
                   </div>
                 </div>
               </div>
@@ -679,24 +672,24 @@ export default function SewingMachineLanding() {
 
           <div className="space-y-4">
             <FAQ
-              question="Come facilita il cucito automatico?"
-              answer="La macchina dispone di selezione automatica dei punti e infilatura per un cucito semplice e veloce."
+              question="Come funzionano le chiamate wireless?"
+              answer="Lo smartwatch si connette al tuo telefono via Bluetooth 5.0 e ti permette di effettuare e ricevere chiamate direttamente dal polso con audio cristallino."
             />
             <FAQ
-              question="Quali accessori sono inclusi?"
-              answer="Include tavolo ampio, copertura dura, piedi per cucito e un DVD istruttivo."
+              question="È davvero impermeabile IP68?"
+              answer="Sì, è certificato IP68 e resiste a immersioni fino a 50 metri. Puoi nuotare, fare la doccia e praticare sport acquatici senza problemi."
             />
             <FAQ
-              question="È adatta per progetti di quilt?"
-              answer="Sì, grazie al tavolo ampio e ai punti decorativi, è perfetta per quilt grandi."
+              question="Quanto dura la batteria?"
+              answer="La batteria dura fino a 7 giorni con uso normale e fino a 3 giorni con uso intensivo. Include ricarica wireless rapida."
             />
             <FAQ
-              question="Come funziona il supporto tecnico?"
-              answer="Offriamo supporto online e telefonico per la vita del prodotto, garantendo assistenza continua."
+              question="È compatibile con iPhone e Android?"
+              answer="Sì, è compatibile con tutti gli smartphone iOS (iPhone 6 e successivi) e Android (versione 5.0 e successive)."
             />
             <FAQ
-              question="La macchina è facile da usare per i principianti?"
-              answer="Assolutamente, con funzioni intuitive e un display LCD, è ideale anche per chi è alle prime armi."
+              question="Cosa include la confezione?"
+              answer="Smartwatch, cinturino in silicone, caricatore wireless, manuale d'uso in italiano e garanzia di 2 anni."
             />
           </div>
         </div>
@@ -708,10 +701,10 @@ export default function SewingMachineLanding() {
           <div className="text-center mb-12">
             <div className="flex items-center justify-center space-x-2 mb-4">
               <StarRating rating={5} size="w-6 h-6" />
-              <span className="text-2xl font-bold">4.9/5</span>
+              <span className="text-2xl font-bold">4.8/5</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Le opinioni dei clienti sulla macchina da cucire
+              Le opinioni dei clienti sullo smartwatch
             </h2>
             <p className="text-lg text-gray-700">
               Feedback autentici e affidabili
@@ -721,49 +714,49 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                name: "Sara V.",
+                name: "Marco R.",
                 rating: 5,
-                review: "Questa macchina da cucire ha cambiato il mio modo di cucire! 😍 Le opzioni di punti sono incredibili e mi permettono di creare capolavori. Amo la facilità d'uso e il supporto tecnico è sempre disponibile."
+                review: "Incredibile! 😍 Finalmente posso rispondere al telefono mentre sono in palestra. La qualità audio è cristallina e la batteria dura davvero una settimana!"
               },
               {
-                name: "Caterina D.",
+                name: "Alessandro T.",
+                rating: 5,
+                review: "Perfetto per il mio stile di vita attivo. L'ho usato in piscina, in montagna e al lavoro. Resistente e preciso!"
+              },
+              {
+                name: "Giuseppe M.",
                 rating: 4,
-                review: "Facile da usare, anche se alcune funzioni richiedono pratica. Nel complesso molto soddisfatta dell'acquisto."
+                review: "Ottimo rapporto qualità-prezzo. Le funzioni fitness sono molto accurate e l'AI voice è comoda da usare."
               },
               {
-                name: "Anna S.",
+                name: "Andrea F.",
                 rating: 5,
-                review: "Perfetta per cucire! Non posso credere a quanto sia semplice creare abiti con questa macchina!"
+                review: "Mai avuto uno smartwatch così completo! Il monitoraggio del sonno è fantastico e le 100+ modalità sport sono utilissime."
               },
               {
-                name: "Martina F.",
+                name: "Roberto L.",
+                rating: 5,
+                review: "Design elegante e funzioni top. Lo consiglio a tutti gli sportivi e non solo!"
+              },
+              {
+                name: "Davide S.",
                 rating: 4,
-                review: "Le funzioni di questa macchina mi hanno permesso di esplorare nuovi orizzonti nel cucito. Consigliatissima!"
+                review: "Funziona benissimo, molto intuitivo. La resistenza all'acqua è reale, l'ho testato in mare!"
               },
               {
-                name: "Valentina J.",
+                name: "Matteo P.",
                 rating: 5,
-                review: "La macchina è fantastica ma il servizio clienti è ancora meglio. Mi hanno aiutato con ogni domanda."
+                review: "Comodissimo per lavoro. Posso gestire chiamate e messaggi senza tirare fuori il telefono. Perfetto!"
               },
               {
-                name: "Federica O.",
+                name: "Luca D.",
                 rating: 5,
-                review: "Un ottimo acquisto per chi cerca versatilità e qualità. La varietà di punti è perfetta per ogni progetto creativo!"
+                review: "La funzione AI è impressionante. Capisce perfettamente i comandi vocali anche in ambienti rumorosi."
               },
               {
-                name: "Chiara N.",
-                rating: 4,
-                review: "Veramente utile! Ho cucito tende, abiti e persino un quilt gigante! La tabella larga è indispensabile."
-              },
-              {
-                name: "Laura P.",
+                name: "Simone B.",
                 rating: 5,
-                review: "Non posso fare a meno della funzione di infilatura automatica, un vero salvavita!"
-              },
-              {
-                name: "Beatrice H.",
-                rating: 5,
-                review: "Ideale per chi ama cucire e creare capolavori unici. Dopo settimane di uso intenso, continua a funzionare perfettamente."
+                review: "Dopo 3 mesi di uso intensivo continua a funzionare perfettamente. Qualità costruttiva eccellente!"
               }
             ].map((review, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
@@ -781,18 +774,18 @@ export default function SewingMachineLanding() {
           <div className="mt-12 bg-white p-8 rounded-lg shadow-lg border-l-4 border-yellow-400">
             <div className="flex items-start space-x-4">
               <img
-                src="https://cosedicase.com/cdn/shop/files/e76d708b-f0b3-4c06-a0db-d2f9f235e260.webp?v=1749027133&width=70"
-                alt="Sara V."
+                src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=70&h=70&fit=crop&crop=face"
+                alt="Marco R."
                 className="w-16 h-16 rounded-full"
               />
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <StarRating rating={5} />
-                  <span className="font-medium">Sara V.</span>
+                  <span className="font-medium">Marco R.</span>
                   <span className="text-sm text-gray-600">Acquirente Verificato</span>
                 </div>
                 <p className="text-gray-700">
-                  "Questa macchina da cucire ha cambiato il mio modo di cucire! 😍 Le opzioni di punti sono incredibili e mi permettono di creare capolavori. Amo la facilità d'uso e il supporto tecnico è sempre disponibile. Non potrei essere più felice con il mio acquisto!"
+                  "Questo smartwatch ha rivoluzionato la mia routine! 😍 Le chiamate wireless sono chiarissime, il monitoraggio fitness è preciso al 100% e la resistenza all'acqua è stata testata in ogni condizione. Non potrei essere più soddisfatto!"
                 </p>
               </div>
             </div>
@@ -809,10 +802,10 @@ export default function SewingMachineLanding() {
               Garanzia di Rimborso di 30 Giorni
             </h2>
             <p className="text-lg text-gray-700 mb-6">
-              Prova la macchina da cucire in tutta sicurezza con la nostra garanzia di rimborso di 30 giorni. Sperimenta la facilità e la precisione del cucito senza rischi, e scopri come può trasformare la tua creatività.
+              Prova lo smartwatch in tutta sicurezza con la nostra garanzia di rimborso di 30 giorni. Sperimenta le funzioni avanzate, la resistenza e la comodità senza rischi.
             </p>
             <p className="text-xl font-bold text-green-600">
-              Se non sei completamente soddisfatta, ti rimborsiamo l'intero importo.
+              Se non sei completamente soddisfatto, ti rimborsiamo l'intero importo.
             </p>
           </div>
         </div>
@@ -863,7 +856,7 @@ export default function SewingMachineLanding() {
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-4">
-                Venduto esclusivamente da <strong>LECOSEDICASE.COM</strong>
+                Venduto esclusivamente da <strong>TECHWEAR.COM</strong>
               </p>
             </div>
           </div>
@@ -877,19 +870,19 @@ export default function SewingMachineLanding() {
             🔥 Non Perdere Questa Offerta Speciale!
           </h2>
           <p className="text-xl mb-8">
-            Solo per oggi: <span className="line-through opacity-75">€129,99</span> <span className="text-5xl font-bold">€62,98</span>
+            Solo per oggi: <span className="line-through opacity-75">€119,99</span> <span className="text-5xl font-bold">€49,99</span>
           </p>
 
           <div className="bg-white/10 backdrop-blur rounded-lg p-6 mb-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
               <div>
                 <Users className="w-8 h-8 mx-auto mb-2" />
-                <div className="font-bold">2,847+</div>
+                <div className="font-bold">4,523+</div>
                 <div className="text-sm opacity-90">Clienti Soddisfatti</div>
               </div>
               <div>
                 <Package className="w-8 h-8 mx-auto mb-2" />
-                <div className="font-bold">98.7%</div>
+                <div className="font-bold">97.8%</div>
                 <div className="text-sm opacity-90">Tasso di Soddisfazione</div>
               </div>
               <div>
@@ -919,7 +912,7 @@ export default function SewingMachineLanding() {
           onClick={handleOrderClick}
           className="w-full bg-white text-orange-600 font-bold py-3 px-6 rounded-lg text-lg"
         >
-          🛒 ORDINA ORA €62,98
+          🛒 ORDINA ORA €49,99
         </button>
       </div>
 
@@ -942,18 +935,18 @@ export default function SewingMachineLanding() {
               <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Riepilogo ordine</h4>
               <div className="flex items-center gap-3">
                 <img
-                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
-                  alt="Macchina da Cucire"
+                  src="https://img.kwcdn.com/product/Fancyalgo/VirtualModelMatting/7a28d35cf0c75b8b8ef7c4a9fdbe59b6.jpg?imageView2/2/w/800/q/70/format/webp"
+                  alt="Smartwatch Resistente Pro"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 text-sm md:text-base">Macchina da Cucire Creativa</div>
-                  <div className="text-xs md:text-sm text-gray-600">Compatta, Potente, Facilissima da Usare</div>
+                  <div className="font-medium text-gray-900 text-sm md:text-base">Smartwatch Resistente Pro</div>
+                  <div className="text-xs md:text-sm text-gray-600">Chiamate, Fitness AI, 100+ Sport</div>
                   <div className="text-xs md:text-sm text-green-600">✅ Spedizione gratuita</div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-lg md:text-xl text-gray-900">€62,98</div>
-                  <div className="text-xs text-gray-500 line-through">€129,99</div>
+                  <div className="font-bold text-lg md:text-xl text-gray-900">€49,99</div>
+                  <div className="text-xs text-gray-500 line-through">€119,99</div>
                 </div>
               </div>
             </div>
@@ -1014,27 +1007,11 @@ export default function SewingMachineLanding() {
               disabled={!formData.nome || !formData.telefono || !formData.indirizzo || isSubmitting}
               className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
             >
-              {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €62,98'}
+              {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €49,99'}
             </button>
           </div>
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-      `}</style>
     </div>
   );
 }
