@@ -89,7 +89,7 @@ const trackingUtils = {
       }
     }
 
-    // Server-side CAPI tracking
+    // Server-side CAPI tracking - FIXED with better error handling
     try {
       const capiData = {
         data: [{
@@ -112,11 +112,10 @@ const trackingUtils = {
             content_ids: eventData.content_ids || ['sewing-machine-creative']
           }
         }],
-        test_event_code: 'TEST20028',
-        access_token: 'EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD'
+        test_event_code: 'TEST20028'
       };
 
-      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events`, {
+      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events?access_token=EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -127,10 +126,14 @@ const trackingUtils = {
       if (response.ok) {
         console.log(`✅ Facebook ${eventName} tracked (CAPI)`);
       } else {
-        throw new Error(`CAPI request failed: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`❌ Facebook ${eventName} CAPI tracking failed: ${response.status}`);
+        console.error('Response body:', errorText);
+        console.log('⚠️ CAPI failed but client-side tracking may still work');
       }
     } catch (error) {
       console.error(`❌ Facebook ${eventName} CAPI tracking error:`, error);
+      console.log('⚠️ CAPI failed but client-side tracking may still work');
     }
   },
 

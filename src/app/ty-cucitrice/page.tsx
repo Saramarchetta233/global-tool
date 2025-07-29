@@ -108,7 +108,7 @@ const advancedTrackingUtils = {
       }
     }
 
-    // CAPI tracking (single attempt)
+    // CAPI tracking (single attempt) - FIXED with better error handling
     try {
       const userIP = await advancedTrackingUtils.getClientIP();
 
@@ -139,11 +139,10 @@ const advancedTrackingUtils = {
             order_id: orderData?.orderId || `MCU${Date.now()}`
           }
         }],
-        test_event_code: 'TEST20028',
-        access_token: 'EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD'
+        test_event_code: 'TEST20028'
       };
 
-      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events`, {
+      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events?access_token=EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -155,10 +154,16 @@ const advancedTrackingUtils = {
         const result = await response.json();
         console.log('✅ Facebook Purchase tracked (CAPI)', result);
       } else {
+        const errorText = await response.text();
         console.error(`❌ CAPI request failed: ${response.status} ${response.statusText}`);
+        console.error('Response body:', errorText);
+
+        // For now, don't throw error - client-side tracking might still work
+        console.log('⚠️ CAPI failed but client-side tracking may still work');
       }
     } catch (error) {
       console.error('❌ Facebook CAPI tracking error:', error);
+      console.log('⚠️ CAPI failed but client-side tracking may still work');
     }
   },
 
