@@ -59,11 +59,11 @@ const advancedTrackingUtils = {
     }
   },
 
-  // Enhanced Purchase tracking with retry mechanism and CAPI (FIXED)
-  trackPurchaseEvent: async (orderData: any, retries = 3): Promise<boolean> => {
+  // Enhanced Purchase tracking with CAPI via N8N
+  trackPurchaseEvent: async (orderData: any): Promise<boolean> => {
     const clientEventId = `purchase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log(`🎯 Starting Purchase tracking (${retries} retries left)...`);
+    console.log(`🎯 Starting Purchase tracking...`);
 
     try {
       // Facebook Client-Side + CAPI Tracking
@@ -76,16 +76,11 @@ const advancedTrackingUtils = {
       return true;
     } catch (error) {
       console.error('❌ Purchase tracking error:', error);
-      if (retries > 0) {
-        console.log(`⏰ Retrying purchase tracking... (${retries - 1} attempts left)`);
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        return advancedTrackingUtils.trackPurchaseEvent(orderData, retries - 1);
-      }
-      throw error;
+      return false;
     }
   },
 
-  // Facebook Purchase with client-side tracking only (CORS-safe)
+  // Facebook Purchase with client-side + CAPI
   trackFacebookPurchase: async (orderData: any, clientEventId: string): Promise<void> => {
     const purchaseData = {
       content_type: 'product',
@@ -96,7 +91,7 @@ const advancedTrackingUtils = {
       num_items: 1
     };
 
-    // Client-side tracking (this works!)
+    // Client-side tracking
     if (typeof window !== 'undefined' && window.fbq) {
       try {
         window.fbq('track', 'Purchase', purchaseData, {
@@ -106,16 +101,65 @@ const advancedTrackingUtils = {
       } catch (error) {
         console.error('❌ Facebook client tracking error:', error);
       }
-    } else {
-      console.log('⚠️ Facebook Pixel not loaded (probably blocked by ad blocker)');
     }
 
-    // CAPI is disabled for now due to CORS restrictions
-    // In production, CAPI should be implemented server-side, not from browser
-    console.log('ℹ️ CAPI tracking disabled (requires server-side implementation)');
+    // CAPI tracking via N8N
+    if (orderData) {
+      try {
+        console.log(`📡 Sending Purchase to N8N webhook...`);
+
+        // Hash dei dati sensibili
+        const hashedPhone = orderData.telefono ? await advancedTrackingUtils.hashData(orderData.telefono.replace(/\D/g, '')) : null;
+        const hashedFirstName = orderData.nome ? await advancedTrackingUtils.hashData(orderData.nome.split(' ')[0]) : null;
+        const hashedLastName = orderData.nome && orderData.nome.split(' ').length > 1 ? await advancedTrackingUtils.hashData(orderData.nome.split(' ').slice(1).join(' ')) : null;
+
+        const capiData = {
+          event_name: 'Purchase',
+          event_id: clientEventId,
+          timestamp: Math.floor(Date.now() / 1000),
+          event_source_url: window.location.href,
+          token: 'EAAPYtpMdWREBPJH0W7LzwU2MuZA61clyQOfYg5C6E0vo9E5QYgJWl2n5XtO8Ur93YTZANcWYz3qsAbDOadffn10KbQZCOwkRS6DpM8bRjwX25NBn5d1lvVNQhFOCGY9eZARrjyCbJs1OtFk2BOc4ZBbaUjeD7dvkejyxZAZAEQdeb8AQzUKdAQitdhU0jVGywZDZD',
+          telefono_hash: hashedPhone,
+          nome_hash: hashedFirstName,
+          cognome_hash: hashedLastName,
+          indirizzo: orderData.indirizzo || null,
+          user_agent: navigator.userAgent,
+          fbp: advancedTrackingUtils.getFbBrowserId(),
+          fbc: advancedTrackingUtils.getFbClickId(),
+          page_title: document.title,
+          referrer: document.referrer,
+          language: navigator.language,
+          screen_resolution: `${screen.width}x${screen.height}`,
+          content_name: 'Macchina da Cucire Creativa',
+          content_category: 'Sewing Machines',
+          value: 62.98,
+          currency: 'EUR',
+          quantity: 1
+        };
+
+        const response = await fetch('https://primary-production-625c.up.railway.app/webhook-test/CAPI-Meta', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(capiData)
+        });
+
+        const responseText = await response.text();
+        console.log(`📥 Purchase webhook response:`, response.status, responseText);
+
+        if (response.ok) {
+          console.log(`✅ Facebook Purchase CAPI tracked via N8N`);
+        } else {
+          console.error(`❌ Facebook Purchase CAPI error:`, response.status, responseText);
+        }
+      } catch (error) {
+        console.error(`❌ Facebook Purchase CAPI tracking error:`, error);
+      }
+    }
   },
 
-  // Google Ads Purchase tracking (FIXED)
+  // Google Ads Purchase tracking
   trackGooglePurchase: async (orderData: any): Promise<void> => {
     if (typeof window !== 'undefined' && window.gtag) {
       try {
@@ -141,37 +185,14 @@ const advancedTrackingUtils = {
           transaction_id: orderData?.orderId || `MCU${Date.now()}`
         });
 
-        // Page view with purchase context
-        window.gtag('config', 'AW-17086993346', {
-          page_title: 'Thank You - Order Confirmed',
-          page_location: window.location.href,
-          custom_map: {
-            'purchase_value': 62.98,
-            'purchase_currency': 'EUR'
-          }
-        });
-
         console.log('✅ Google Ads Purchase & Conversion tracked');
       } catch (error) {
         console.error('❌ Google Ads tracking error:', error);
       }
-    } else {
-      console.log('⏰ Google gtag not available');
     }
   },
 
   // Utility functions
-  getClientIP: async (): Promise<string> => {
-    try {
-      const response = await fetch('https://api.ipify.org?format=json');
-      const data = await response.json();
-      return data.ip;
-    } catch (error) {
-      console.error('Failed to get client IP:', error);
-      return '';
-    }
-  },
-
   getFbClickId: (): string => {
     const urlParams = new URLSearchParams(window.location.search);
     return urlParams.get('fbclid') || '';
@@ -186,84 +207,37 @@ const advancedTrackingUtils = {
     return '';
   },
 
-  // Proper SHA-256 hashing for PII data (Facebook requirement)
+  // Proper SHA-256 hashing for PII data
   hashData: async (data: string): Promise<string> => {
     if (!data || typeof data !== 'string') return '';
 
     try {
-      // Normalize data (lowercase, trim spaces)
       const normalizedData = data.toLowerCase().trim();
-
-      // Use Web Crypto API for SHA-256 hashing
       const encoder = new TextEncoder();
       const dataBuffer = encoder.encode(normalizedData);
       const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-
       return hashHex;
     } catch (error) {
       console.error('Error hashing data:', error);
       return '';
     }
-  },
-
-  // Track additional events for remarketing (FIXED - no infinite loops)
-  trackEngagementEvents: (): (() => void) => {
-    let engagementTracked = false;
-    let scrollTracked = false;
-
-    // Track that user stayed on thank you page (ONLY ONCE)
-    const engagementTimeout = setTimeout(() => {
-      if (!engagementTracked) {
-        engagementTracked = true;
-        if (window.fbq) {
-          window.fbq('trackCustom', 'ThankYouPageEngagement', {
-            engagement_time: 10,
-            page_type: 'thank_you'
-          });
-        }
-
-        if (window.gtag) {
-          window.gtag('event', 'engagement', {
-            engagement_time_msec: 10000
-          });
-        }
-        console.log('✅ Engagement event tracked (10s)');
-      }
-    }, 10000);
-
-    // Track scroll engagement (ONLY ONCE)
-    const handleScroll = () => {
-      if (!scrollTracked && window.scrollY > 500) {
-        scrollTracked = true;
-        if (window.fbq) {
-          window.fbq('trackCustom', 'ThankYouPageScroll');
-        }
-        if (window.gtag) {
-          window.gtag('event', 'scroll', {
-            page_location: window.location.href
-          });
-        }
-        console.log('✅ Scroll event tracked');
-        window.removeEventListener('scroll', handleScroll);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
-    // Cleanup function
-    return () => {
-      clearTimeout(engagementTimeout);
-      window.removeEventListener('scroll', handleScroll);
-    };
   }
 };
 
 const ThankYouPage = () => {
+  const [mounted, setMounted] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);
   const [pixelFired, setPixelFired] = useState(false);
   const [orderData, setOrderData] = useState<any>(null);
+  const [deliveryDates, setDeliveryDates] = useState({
+    orderDate: '',
+    shipDate: '',
+    deliveryStart: '',
+    deliveryEnd: '',
+    deliveryRange: ''
+  });
 
   const steps = [
     "Ordine Ricevuto",
@@ -272,8 +246,54 @@ const ThankYouPage = () => {
     "Spedizione"
   ];
 
+  // Fix hydration by ensuring component is mounted
   useEffect(() => {
-    // Load order data from localStorage (ONLY ONCE)
+    setMounted(true);
+  }, []);
+
+  // Calculate delivery dates
+  useEffect(() => {
+    if (!mounted) return;
+
+    const formatData = (data: Date): string => {
+      const giorni = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+      const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+      const giornoSettimana = giorni[data.getDay()];
+      const giorno = String(data.getDate()).padStart(2, '0');
+      const mese = mesi[data.getMonth()];
+      return `${giornoSettimana}, ${giorno} ${mese}`;
+    };
+
+    const aggiungiGiorniLavorativi = (data: Date, giorni: number): Date => {
+      let count = 0;
+      const nuovaData = new Date(data);
+      while (count < giorni) {
+        nuovaData.setDate(nuovaData.getDate() + 1);
+        const giorno = nuovaData.getDay();
+        if (giorno !== 0 && giorno !== 6) count++;
+      }
+      return nuovaData;
+    };
+
+    const oggi = new Date();
+    const dataOrdine = oggi;
+    const dataSpedizione = aggiungiGiorniLavorativi(dataOrdine, 1);
+    const dataConsegnaInizio = aggiungiGiorniLavorativi(dataSpedizione, 2);
+    const dataConsegnaFine = aggiungiGiorniLavorativi(dataSpedizione, 3);
+
+    setDeliveryDates({
+      orderDate: formatData(dataOrdine),
+      shipDate: formatData(dataSpedizione),
+      deliveryStart: formatData(dataConsegnaInizio),
+      deliveryEnd: formatData(dataConsegnaFine),
+      deliveryRange: `${formatData(dataConsegnaInizio)} e ${formatData(dataConsegnaFine)}`
+    });
+  }, [mounted]);
+
+  // Load order data from localStorage
+  useEffect(() => {
+    if (!mounted) return;
+
     const savedOrderData = localStorage.getItem('orderData');
     if (savedOrderData) {
       try {
@@ -283,10 +303,12 @@ const ThankYouPage = () => {
         console.error('Failed to parse order data:', error);
       }
     }
-  }, []); // EMPTY DEPENDENCY ARRAY - runs only once
+  }, [mounted]);
 
+  // Initialize tracking systems
   useEffect(() => {
-    // Initialize tracking systems (ONLY ONCE)
+    if (!mounted) return;
+
     console.log('🎯 Thank You Page Tracking Initialized');
     advancedTrackingUtils.initFacebookPixel();
     advancedTrackingUtils.initGoogleAds();
@@ -299,70 +321,32 @@ const ThankYouPage = () => {
     return () => {
       clearInterval(timer);
     };
-  }, []); // EMPTY DEPENDENCY ARRAY - runs only once
+  }, [mounted]);
 
+  // Purchase tracking
   useEffect(() => {
-    // Purchase tracking (runs when orderData changes OR on mount)
-    if (pixelFired) {
-      console.log('🎉 Purchase already tracked, skipping...');
-      return;
-    }
+    if (!mounted || pixelFired || !orderData) return;
 
-    // Enhanced Purchase tracking with single retry mechanism
-    const trackPurchaseWithRetry = async (attempt = 1, maxAttempts = 3) => {
-      if (pixelFired) {
-        console.log('🎉 Purchase already tracked, skipping...');
-        return;
-      }
+    console.log('🎯 Starting purchase tracking...');
 
-      console.log(`🎯 Purchase tracking attempt ${attempt}/${maxAttempts}`);
-
+    const trackPurchase = async () => {
       try {
-        await advancedTrackingUtils.trackPurchaseEvent(orderData || {});
+        await advancedTrackingUtils.trackPurchaseEvent(orderData);
         setPixelFired(true);
-        console.log('🎉 All purchase tracking completed successfully!');
+        console.log('🎉 Purchase tracking completed!');
       } catch (error) {
-        console.error(`❌ Purchase tracking attempt ${attempt} failed:`, error);
-
-        if (attempt < maxAttempts) {
-          const delay = 2000 * attempt; // Linear backoff: 2s, 4s, 6s
-          console.log(`⏰ Retrying in ${delay / 1000}s...`);
-          setTimeout(() => {
-            trackPurchaseWithRetry(attempt + 1, maxAttempts);
-          }, delay);
-        } else {
-          console.log('❌ All tracking attempts failed');
-        }
+        console.error('❌ Purchase tracking failed:', error);
       }
     };
 
-    // Start tracking with delay
-    const trackingTimeout = setTimeout(() => {
-      trackPurchaseWithRetry(1, 3);
-    }, 1000);
+    const trackingTimeout = setTimeout(trackPurchase, 1000);
+    return () => clearTimeout(trackingTimeout);
+  }, [mounted, orderData, pixelFired]);
 
-    // Track engagement events (ONLY ONCE)
-    const cleanupEngagement = advancedTrackingUtils.trackEngagementEvents();
-
-    // Cleanup
-    return () => {
-      clearTimeout(trackingTimeout);
-      if (cleanupEngagement) cleanupEngagement();
-    };
-  }, [orderData, pixelFired]); // Dependencies: orderData and pixelFired
-
-  // Track additional events when user interacts with page
-  const handleUserInteraction = (eventName: string) => {
-    if (window.fbq) {
-      window.fbq('trackCustom', `ThankYou_${eventName}`);
-    }
-    if (window.gtag) {
-      window.gtag('event', 'interaction', {
-        interaction_type: eventName,
-        page_location: window.location.href
-      });
-    }
-  };
+  // Don't render until mounted to prevent hydration issues
+  if (!mounted) {
+    return null;
+  }
 
   const benefits = [
     {
@@ -540,8 +524,8 @@ const ThankYouPage = () => {
 
           <div className="grid md:grid-cols-3 gap-6">
             {benefits.map((benefit, index) => (
-              <div key={index} className="text-center" onClick={() => handleUserInteraction('benefit_click')}>
-                <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg cursor-pointer hover:bg-white/30 transition-all">
+              <div key={index} className="text-center">
+                <div className="bg-white/20 backdrop-blur-sm rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 shadow-lg">
                   {benefit.icon}
                 </div>
                 <h3 className="font-bold text-lg mb-2 drop-shadow">{benefit.title}</h3>
@@ -590,23 +574,23 @@ const ThankYouPage = () => {
 
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
             <p className="text-center text-gray-700 mb-6 text-lg">
-              Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>venerdì 1 ago e lunedì 4 ago</strong>
+              Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>{deliveryDates.deliveryRange}</strong>
             </p>
             <div className="flex justify-between items-center">
-              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
-                <div className="text-4xl mb-2 cursor-pointer">📦</div>
+              <div className="text-center flex-1">
+                <div className="text-4xl mb-2">📦</div>
                 <div className="font-medium text-gray-800">Ordinato</div>
-                <div className="text-gray-500 text-sm">gio, 31 lug</div>
+                <div className="text-gray-500 text-sm">{deliveryDates.orderDate}</div>
               </div>
-              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
-                <div className="text-4xl mb-2 cursor-pointer">🚚</div>
+              <div className="text-center flex-1">
+                <div className="text-4xl mb-2">🚚</div>
                 <div className="font-medium text-gray-800">Spedito</div>
-                <div className="text-gray-500 text-sm">ven, 1 ago</div>
+                <div className="text-gray-500 text-sm">{deliveryDates.shipDate}</div>
               </div>
-              <div className="text-center flex-1" onClick={() => handleUserInteraction('timeline_click')}>
-                <div className="text-4xl mb-2 cursor-pointer">📍</div>
+              <div className="text-center flex-1">
+                <div className="text-4xl mb-2">📍</div>
                 <div className="font-medium text-gray-800">Consegnato</div>
-                <div className="text-gray-500 text-sm">lun, 4 ago</div>
+                <div className="text-gray-500 text-sm">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
               </div>
             </div>
           </div>
@@ -638,7 +622,7 @@ const ThankYouPage = () => {
           </h3>
 
           <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200" onClick={() => handleUserInteraction('package_details')}>
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200">
               <h4 className="font-bold text-lg text-purple-700 mb-4">📦 Macchina da Cucire Creativa</h4>
               <ul className="space-y-2 text-purple-600">
                 <li>• 165 punti incorporati</li>
@@ -648,7 +632,7 @@ const ThankYouPage = () => {
               </ul>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-200" onClick={() => handleUserInteraction('accessories_details')}>
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-200">
               <h4 className="font-bold text-lg text-blue-700 mb-4">🛠️ Accessori Inclusi</h4>
               <ul className="space-y-2 text-blue-600">
                 <li>• Tavolo estensibile per quilt</li>
@@ -678,71 +662,24 @@ const ThankYouPage = () => {
             </p>
 
             <div className="grid md:grid-cols-3 gap-4">
-              <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200" onClick={() => handleUserInteraction('stats_view')}>
+              <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
                 <div className="text-2xl font-bold text-green-600">97%</div>
                 <p className="text-green-700 text-sm">Cucito più semplice e veloce</p>
               </div>
 
-              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200" onClick={() => handleUserInteraction('stats_view')}>
+              <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200">
                 <div className="text-2xl font-bold text-blue-600">98%</div>
                 <p className="text-blue-700 text-sm">Aumento della creatività</p>
               </div>
 
-              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200" onClick={() => handleUserInteraction('stats_view')}>
+              <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">96%</div>
                 <p className="text-purple-700 text-sm">Lo consiglierebbe ad un'amica</p>
               </div>
             </div>
           </div>
         </div>
-
-        {/* Tracking Status Debug (only visible when needed) */}
-        {typeof window !== 'undefined' && window.location.hostname === 'localhost' && (
-          <div className="bg-gray-100 border border-gray-300 rounded-lg p-4 mt-8">
-            <h4 className="font-bold mb-2">🔧 Tracking Debug Info</h4>
-            <div className="space-y-1 text-sm">
-              <p>Facebook Pixel Fired: <span className={pixelFired ? 'text-green-600' : 'text-red-600'}>{pixelFired ? 'Yes' : 'No'}</span></p>
-              <p>Order Data: <span className={orderData ? 'text-green-600' : 'text-red-600'}>{orderData ? 'Loaded' : 'Missing'}</span></p>
-              <p>Page Load: <span className="text-blue-600">{typeof document !== 'undefined' ? document.readyState : 'Unknown'}</span></p>
-              <p>User Agent: <span className="text-gray-600 text-xs">{typeof navigator !== 'undefined' ? navigator.userAgent.substring(0, 50) + '...' : 'Unknown'}</span></p>
-            </div>
-          </div>
-        )}
       </div>
-
-      {/* Enhanced tracking scripts */}
-      <script
-        dangerouslySetInnerHTML={{
-          __html: `
-            // Additional tracking verification
-            (function() {
-              console.log('🎯 Thank You Page Tracking Initialized');
-              
-              // Monitor for successful tracking
-              window.addEventListener('beforeunload', function() {
-                if (window.fbq && window.gtag) {
-                  try {
-                    // Final tracking attempt on page unload
-                    window.fbq('trackCustom', 'ThankYouPageUnload');
-                    window.gtag('event', 'page_unload', {
-                      page_location: window.location.href
-                    });
-                  } catch(e) {
-                    console.error('Final tracking error:', e);
-                  }
-                }
-              });
-
-              // Track visibility changes
-              document.addEventListener('visibilitychange', function() {
-                if (document.visibilityState === 'visible' && window.fbq) {
-                  window.fbq('trackCustom', 'ThankYouPageVisible');
-                }
-              });
-            })();
-          `
-        }}
-      />
     </div>
   );
 };

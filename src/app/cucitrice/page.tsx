@@ -73,11 +73,11 @@ const trackingUtils = {
     }
   },
 
-  // Track Facebook events with client-side only (CORS-safe)
-  trackFacebookEvent: async (eventName: string, eventData: any = {}): Promise<void> => {
+  // Track Facebook events - CLIENT SIDE + CAPI via N8N
+  trackFacebookEvent: async (eventName: string, eventData: any = {}, userFormData: any = null): Promise<void> => {
     const clientEventId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Client-side tracking (this works!)
+    // 1. CLIENT-SIDE TRACKING (Pixel)
     if (typeof window !== 'undefined' && window.fbq) {
       try {
         window.fbq('track', eventName, eventData, {
@@ -87,13 +87,93 @@ const trackingUtils = {
       } catch (error) {
         console.error(`❌ Facebook ${eventName} client tracking error:`, error);
       }
-    } else {
-      console.log('⚠️ Facebook Pixel not loaded (probably blocked by ad blocker)');
     }
 
-    // CAPI is disabled for now due to CORS restrictions  
-    // In production, CAPI should be implemented server-side, not from browser
-    console.log('ℹ️ CAPI tracking disabled (requires server-side implementation)');
+    // 2. SERVER-SIDE TRACKING (CAPI) via N8N - Always track major events
+    const majorEvents = ['InitiateCheckout', 'Purchase', 'Lead', 'CompleteRegistration'];
+    if (majorEvents.includes(eventName) || userFormData) {
+      try {
+        console.log(`📡 Sending ${eventName} to N8N webhook...`);
+
+        // Hash dei dati sensibili se abbiamo form data
+        let hashedPhone = null;
+        let hashedFirstName = null;
+        let hashedLastName = null;
+
+        if (userFormData) {
+          hashedPhone = userFormData.telefono ? await trackingUtils.hashData(userFormData.telefono.replace(/\D/g, '')) : null;
+          hashedFirstName = userFormData.nome ? await trackingUtils.hashData(userFormData.nome.split(' ')[0]) : null;
+          hashedLastName = userFormData.nome && userFormData.nome.split(' ').length > 1 ? await trackingUtils.hashData(userFormData.nome.split(' ').slice(1).join(' ')) : null;
+        }
+
+        // Prepara i dati per N8N
+        const capiData = {
+          // Event data
+          event_name: eventName,
+          event_id: clientEventId,
+          timestamp: Math.floor(Date.now() / 1000),
+          event_source_url: window.location.href,
+
+          // Token Facebook
+          token: 'EAAYp5ZBfTWLQBO7OG7pjzpN8GXQ1VrWK3nEJQWZCYctgdKDKtKIB2W0BPBZCZAAX7aQhyLyqZBNKaaTEFN2TIhBY1eaEHFPdZAiEypcPKgOJgROjNZCinHGPpZAlMGZCZCJzPMXPPQNQAZA6iJwQpfnWYQM6CHtcMUJpUb5ZBZATNRHRLLEOa4jOUOYKxJwSHXnXs2ZBrZBJwZDZD',
+
+          // Dati hashati del form (se disponibili)
+          telefono_hash: hashedPhone,
+          nome_hash: hashedFirstName,
+          cognome_hash: hashedLastName,
+          indirizzo: userFormData?.indirizzo || null,
+
+          // Dati tecnici
+          user_agent: navigator.userAgent,
+          fbp: trackingUtils.getFbBrowserId(),
+          fbc: trackingUtils.getFbClickId(),
+
+          // Parametri UTM
+          utm_source: new URLSearchParams(window.location.search).get('utm_source'),
+          utm_medium: new URLSearchParams(window.location.search).get('utm_medium'),
+          utm_campaign: new URLSearchParams(window.location.search).get('utm_campaign'),
+          utm_content: new URLSearchParams(window.location.search).get('utm_content'),
+          utm_term: new URLSearchParams(window.location.search).get('utm_term'),
+
+          // Altri dati utili
+          page_title: document.title,
+          referrer: document.referrer,
+          language: navigator.language,
+          screen_resolution: `${screen.width}x${screen.height}`,
+
+          // Dati custom per questo prodotto
+          content_name: 'Macchina da Cucire Creativa',
+          content_category: 'Sewing Machines',
+          value: eventData.value || 62.98,
+          currency: eventData.currency || 'EUR',
+          quantity: eventData.num_items || 1
+        };
+
+        console.log(`📤 Sending to webhook:`, capiData);
+
+        // Invia a N8N webhook
+        const response = await fetch('https://primary-production-625c.up.railway.app/webhook-test/CAPI-Meta', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(capiData)
+        });
+
+        const responseText = await response.text();
+        console.log(`📥 Webhook response:`, response.status, responseText);
+
+        if (response.ok) {
+          console.log(`✅ Facebook ${eventName} CAPI tracked via N8N`);
+        } else {
+          console.error(`❌ Facebook ${eventName} CAPI error:`, response.status, responseText);
+        }
+      } catch (error) {
+        console.error(`❌ Facebook ${eventName} CAPI tracking error:`, error);
+      }
+    } else {
+      console.log(`ℹ️ ${eventName} not configured for CAPI tracking`);
+    }
   },
 
   // Track Google Ads events
@@ -688,7 +768,7 @@ export default function SewingMachineLanding() {
 
     setIsSubmitting(true);
 
-    // Track InitiateCheckout event
+    // Track InitiateCheckout event con CAPI
     trackingUtils.trackFacebookEvent('InitiateCheckout', {
       content_type: 'product',
       content_ids: ['sewing-machine-creative'],
@@ -696,7 +776,7 @@ export default function SewingMachineLanding() {
       value: 62.98,
       currency: 'EUR',
       num_items: 1
-    });
+    }, formData);
 
     trackingUtils.trackGoogleEvent('begin_checkout', {
       currency: 'EUR',
@@ -735,7 +815,7 @@ export default function SewingMachineLanding() {
         const responseData = await response.text();
         const orderId = `MCU${Date.now()}`;
 
-        // Track Purchase events
+        // Track Purchase events con CAPI
         trackingUtils.trackFacebookEvent('Purchase', {
           content_type: 'product',
           content_ids: ['sewing-machine-creative'],
@@ -743,7 +823,7 @@ export default function SewingMachineLanding() {
           value: 62.98,
           currency: 'EUR',
           num_items: 1
-        });
+        }, formData);
 
         trackingUtils.trackGoogleEvent('Purchase', {
           value: 62.98,
