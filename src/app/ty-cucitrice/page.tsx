@@ -85,7 +85,7 @@ const advancedTrackingUtils = {
     }
   },
 
-  // Facebook Purchase with CAPI fallback (FIXED)
+  // Facebook Purchase with client-side tracking only (CORS-safe)
   trackFacebookPurchase: async (orderData: any, clientEventId: string): Promise<void> => {
     const purchaseData = {
       content_type: 'product',
@@ -96,7 +96,7 @@ const advancedTrackingUtils = {
       num_items: 1
     };
 
-    // Client-side tracking
+    // Client-side tracking (this works!)
     if (typeof window !== 'undefined' && window.fbq) {
       try {
         window.fbq('track', 'Purchase', purchaseData, {
@@ -106,65 +106,13 @@ const advancedTrackingUtils = {
       } catch (error) {
         console.error('❌ Facebook client tracking error:', error);
       }
+    } else {
+      console.log('⚠️ Facebook Pixel not loaded (probably blocked by ad blocker)');
     }
 
-    // CAPI tracking (single attempt) - FIXED with better error handling
-    try {
-      const userIP = await advancedTrackingUtils.getClientIP();
-
-      const capiData = {
-        data: [{
-          event_name: 'purchase',
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: clientEventId,
-          action_source: 'website',
-          event_source_url: window.location.href,
-          user_data: {
-            client_ip_address: userIP,
-            client_user_agent: navigator.userAgent,
-            fbc: advancedTrackingUtils.getFbClickId(),
-            fbp: advancedTrackingUtils.getFbBrowserId(),
-            // Add order data if available (properly hashed)
-            em: orderData?.email ? [await advancedTrackingUtils.hashData(orderData.email)] : undefined,
-            ph: orderData?.telefono ? [await advancedTrackingUtils.hashData(orderData.telefono)] : undefined,
-            fn: orderData?.nome ? [await advancedTrackingUtils.hashData(orderData.nome.split(' ')[0])] : undefined,
-            ln: orderData?.nome && orderData.nome.split(' ').length > 1 ? [await advancedTrackingUtils.hashData(orderData.nome.split(' ').slice(1).join(' '))] : undefined
-          },
-          custom_data: {
-            currency: 'EUR',
-            value: 62.98,
-            content_name: 'Macchina da Cucire Creativa',
-            content_type: 'product',
-            content_ids: ['sewing-machine-creative'],
-            order_id: orderData?.orderId || `MCU${Date.now()}`
-          }
-        }],
-        test_event_code: 'TEST20028'
-      };
-
-      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events?access_token=EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(capiData)
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Facebook Purchase tracked (CAPI)', result);
-      } else {
-        const errorText = await response.text();
-        console.error(`❌ CAPI request failed: ${response.status} ${response.statusText}`);
-        console.error('Response body:', errorText);
-
-        // For now, don't throw error - client-side tracking might still work
-        console.log('⚠️ CAPI failed but client-side tracking may still work');
-      }
-    } catch (error) {
-      console.error('❌ Facebook CAPI tracking error:', error);
-      console.log('⚠️ CAPI failed but client-side tracking may still work');
-    }
+    // CAPI is disabled for now due to CORS restrictions
+    // In production, CAPI should be implemented server-side, not from browser
+    console.log('ℹ️ CAPI tracking disabled (requires server-side implementation)');
   },
 
   // Google Ads Purchase tracking (FIXED)

@@ -73,11 +73,11 @@ const trackingUtils = {
     }
   },
 
-  // Track Facebook events with CAPI fallback
+  // Track Facebook events with client-side only (CORS-safe)
   trackFacebookEvent: async (eventName: string, eventData: any = {}): Promise<void> => {
     const clientEventId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-    // Client-side tracking
+    // Client-side tracking (this works!)
     if (typeof window !== 'undefined' && window.fbq) {
       try {
         window.fbq('track', eventName, eventData, {
@@ -87,54 +87,13 @@ const trackingUtils = {
       } catch (error) {
         console.error(`❌ Facebook ${eventName} client tracking error:`, error);
       }
+    } else {
+      console.log('⚠️ Facebook Pixel not loaded (probably blocked by ad blocker)');
     }
 
-    // Server-side CAPI tracking - FIXED with better error handling
-    try {
-      const capiData = {
-        data: [{
-          event_name: eventName.toLowerCase(),
-          event_time: Math.floor(Date.now() / 1000),
-          event_id: clientEventId,
-          action_source: 'website',
-          event_source_url: window.location.href,
-          user_data: {
-            client_ip_address: await trackingUtils.getClientIP(),
-            client_user_agent: navigator.userAgent,
-            fbc: trackingUtils.getFbClickId(),
-            fbp: trackingUtils.getFbBrowserId()
-          },
-          custom_data: {
-            currency: 'EUR',
-            value: eventData.value || 62.98,
-            content_name: eventData.content_name || 'Macchina da Cucire Creativa',
-            content_type: eventData.content_type || 'product',
-            content_ids: eventData.content_ids || ['sewing-machine-creative']
-          }
-        }],
-        test_event_code: 'TEST20028'
-      };
-
-      const response = await fetch(`https://graph.facebook.com/v18.0/763716602087140/events?access_token=EAAPYtpMdWREBOLjUOn7SdNOjxDb1RlZBVTfkvNCskiNhzm3hYAdfMFZBz34Xd13aF10XFnkAM1GicYwZAfszCO9gL3oWAdJtZCvTHIKeCuZBU3z8lp4I1w35hhDLZCd4xGONZA7ZAAdptDiNcc8g08enSnVZBfiHmQaZC3R0WnnKak8dIVvN76QCpnZBXCAOYShxQZDZD`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(capiData)
-      });
-
-      if (response.ok) {
-        console.log(`✅ Facebook ${eventName} tracked (CAPI)`);
-      } else {
-        const errorText = await response.text();
-        console.error(`❌ Facebook ${eventName} CAPI tracking failed: ${response.status}`);
-        console.error('Response body:', errorText);
-        console.log('⚠️ CAPI failed but client-side tracking may still work');
-      }
-    } catch (error) {
-      console.error(`❌ Facebook ${eventName} CAPI tracking error:`, error);
-      console.log('⚠️ CAPI failed but client-side tracking may still work');
-    }
+    // CAPI is disabled for now due to CORS restrictions  
+    // In production, CAPI should be implemented server-side, not from browser
+    console.log('ℹ️ CAPI tracking disabled (requires server-side implementation)');
   },
 
   // Track Google Ads events
