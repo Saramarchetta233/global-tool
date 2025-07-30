@@ -186,6 +186,8 @@ const CountdownTimer = () => {
           minutes: Math.floor((difference / 1000 / 60) % 60),
           seconds: Math.floor((difference / 1000) % 60)
         });
+      } else {
+        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
       }
     };
 
@@ -196,14 +198,11 @@ const CountdownTimer = () => {
   }, []);
 
   return (
-    <div className="flex items-center justify-center space-x-2 text-red-600 font-bold text-lg">
-      <Clock className="w-5 h-5" />
-      <span>
-        {String(timeLeft.hours).padStart(2, '0')}:
-        {String(timeLeft.minutes).padStart(2, '0')}:
-        {String(timeLeft.seconds).padStart(2, '0')}
-      </span>
-    </div>
+    <span className="text-red-600 font-bold text-lg">
+      {String(timeLeft.hours).padStart(2, '0')}:
+      {String(timeLeft.minutes).padStart(2, '0')}:
+      {String(timeLeft.seconds).padStart(2, '0')}
+    </span>
   );
 };
 
@@ -225,6 +224,7 @@ const StarRating = ({ rating, size = 'w-4 h-4' }: { rating: number; size?: strin
 const SocialProofNotification = () => {
   const [visible, setVisible] = useState(false);
   const [currentNotification, setCurrentNotification] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
 
   const notifications = [
     { name: "Maria da Milano", action: "ha appena acquistato", time: "2 minuti fa" },
@@ -234,6 +234,17 @@ const SocialProofNotification = () => {
   ];
 
   useEffect(() => {
+    // Aspetta 10 secondi prima di iniziare a mostrare le notifiche
+    const initialDelay = setTimeout(() => {
+      setHasStarted(true);
+    }, 10000);
+
+    return () => clearTimeout(initialDelay);
+  }, []);
+
+  useEffect(() => {
+    if (!hasStarted) return;
+
     const showNotification = () => {
       setVisible(true);
       setTimeout(() => setVisible(false), 4000);
@@ -246,7 +257,7 @@ const SocialProofNotification = () => {
     showNotification();
 
     return () => clearInterval(interval);
-  }, []);
+  }, [hasStarted]);
 
   if (!visible) return null;
 
@@ -513,6 +524,7 @@ const DeliveryTracking = () => {
 export default function SewingMachineLanding() {
   const [showOrderPopup, setShowOrderPopup] = useState(false);
   const [reservationTimer, setReservationTimer] = useState({ minutes: 5, seconds: 0 });
+  const [showStickyButton, setShowStickyButton] = useState(false);
   const [formData, setFormData] = useState({
     nome: '',
     telefono: '',
@@ -545,12 +557,26 @@ export default function SewingMachineLanding() {
     script.defer = true;
     document.head.appendChild(script);
 
+    // Scroll listener per sticky button
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      const scrollPercentage = (scrollY / (documentHeight - windowHeight)) * 100;
+
+      // Mostra il pulsante sticky dopo aver scrollato il 20%
+      setShowStickyButton(scrollPercentage > 20);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
     return () => {
       try {
         document.head.removeChild(script);
       } catch (e) {
         // Script might already be removed
       }
+      window.removeEventListener('scroll', handleScroll);
     };
   }, []);
 
@@ -927,7 +953,9 @@ export default function SewingMachineLanding() {
                   fontWeight: 'bold'
                 }}>
                   Prezzo di listino: <span style={{ textDecoration: 'line-through', color: 'red' }}>€129,99</span><br />
-                  Oggi solo: <span style={{ fontSize: '26px' }}>€59,99</span>
+                  <div style={{ marginTop: '10px' }}>
+                    Oggi solo: <span style={{ fontSize: '26px' }}>€59,99</span>
+                  </div>
                 </div>
 
                 <div style={{
@@ -1409,7 +1437,10 @@ export default function SewingMachineLanding() {
         </div>
       </section>
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-green-600 p-4 z-30">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-green-600 p-4 z-30" style={{
+        transform: showStickyButton ? 'translateY(0)' : 'translateY(100%)',
+        transition: 'transform 0.3s ease-in-out'
+      }}>
         <button
           onClick={handleOrderClick}
           className="w-full bg-white text-green-600 font-bold py-3 px-6 rounded-lg text-lg"
