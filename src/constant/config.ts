@@ -1,7 +1,7 @@
 export const siteConfig = {
-  title: 'Erboristeria Urbino',
+  title: 'Newheras™',
   description:
-    'Solo prodotti di alta qualità e Made in Italy',
+    'Creative tools for your everyday life',
   /** Without additional '/' on the end, e.g. https://theodorusclarence.com */
-  url: 'https://erboristeriaurbino.com',
+  url: 'https://newheras.com',
 };

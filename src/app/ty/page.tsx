@@ -84,9 +84,9 @@ const advancedTrackingUtils = {
   trackFacebookPurchase: async (orderData: any, clientEventId: string): Promise<void> => {
     const purchaseData = {
       content_type: 'product',
-      content_ids: ['sewing-machine-creative'],
-      content_name: 'Macchina da Cucire Creativa',
-      value: 62.98,
+      content_ids: ['product-order'],
+      content_name: 'Product Order',
+      value: 1,
       currency: 'EUR',
       num_items: 1
     };
@@ -141,11 +141,11 @@ const advancedTrackingUtils = {
           screen_resolution: `${screen.width}x${screen.height}`,
 
           // Dati custom per questo prodotto - DINAMICI
-          content_name: 'Macchina da Cucire Creativa',
-          content_category: 'Sewing Machines',
-          content_ids: 'sewing-machine-creative',
+          content_name: 'Product Order',
+          content_category: 'Products',
+          content_ids: 'product-order',
           content_type: 'product',
-          value: 62.98,
+          value: 1,
           currency: 'EUR', // Currency dinamica
           quantity: 1
         };
@@ -178,24 +178,24 @@ const advancedTrackingUtils = {
       try {
         // Enhanced ecommerce tracking
         window.gtag('event', 'purchase', {
-          transaction_id: orderData?.orderId || `MCU${Date.now()}`,
-          value: 62.98,
+          transaction_id: orderData?.orderId || `ORD${Date.now()}`,
+          value: 1,
           currency: 'EUR',
           items: [{
-            item_id: 'sewing-machine-creative',
-            item_name: 'Macchina da Cucire Creativa',
-            category: 'Sewing Machines',
+            item_id: 'product-order',
+            item_name: 'Product Order',
+            category: 'Products',
             quantity: 1,
-            price: 62.98
+            price: 1
           }]
         });
 
         // Conversion tracking
         window.gtag('event', 'conversion', {
           send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-          value: 62.98,
+          value: 1,
           currency: 'EUR',
-          transaction_id: orderData?.orderId || `MCU${Date.now()}`
+          transaction_id: orderData?.orderId || `ORD${Date.now()}`
         });
 
         console.log('✅ Google Ads Purchase & Conversion tracked');
@@ -374,8 +374,8 @@ const ThankYouPage = () => {
     },
     {
       icon: <Heart className="w-6 h-6" />,
-      title: "Supporto Tecnico a Vita",
-      description: "Assistenza per tutta la durata della macchina"
+      title: "Supporto Clienti",
+      description: "Assistenza dedicata per ogni tua esigenza"
     }
   ];
 
@@ -389,7 +389,7 @@ const ThankYouPage = () => {
     {
       step: "2",
       title: "Preparazione Ordine",
-      description: "La tua macchina da cucire verrà preparata e imballata con cura nel nostro magazzino",
+      description: "Il tuo prodotto verrà preparato e imballato con cura nel nostro magazzino",
       time: "24 ore"
     },
     {
@@ -412,7 +412,7 @@ const ThankYouPage = () => {
             🎉 Ordine Confermato!
           </h1>
           <p className="text-xl md:text-2xl opacity-90">
-            Grazie per aver scelto la Macchina da Cucire Creativa
+            Grazie per aver scelto i nostri prodotti
           </p>
           {orderData?.orderId && (
             <p className="text-lg mt-2 opacity-80">
@@ -452,55 +452,7 @@ const ThankYouPage = () => {
             </div>
           </div>
 
-          {/* Order Summary */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-6 mb-8 border-2 border-blue-200">
-            <h3 className="text-2xl font-bold text-center text-gray-800 mb-4">
-              Riepilogo Ordine
-            </h3>
 
-            <div className="bg-white rounded-lg p-6 shadow-md border border-blue-200">
-              <h4 className="font-bold text-gray-800 mb-4">Prodotto Ordinato:</h4>
-
-              <div className="flex items-center space-x-4">
-                <img
-                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
-                  alt="Macchina da Cucire Creativa"
-                  className="w-20 h-20 rounded-lg border-2 border-gray-300 object-cover"
-                />
-                <div className="flex-1">
-                  <p className="font-semibold text-gray-800 text-lg">🧵 Macchina da Cucire Creativa</p>
-                  <p className="text-sm text-gray-600 mb-2">Compatta, Potente, Facilissima da Usare</p>
-                  <p className="text-green-600 font-bold text-xl">€62,98</p>
-                  <div className="mt-2 space-y-1">
-                    <p className="text-sm text-blue-600 font-semibold">💳 Pagamento alla Consegna</p>
-                    <p className="text-sm text-green-600 font-semibold">🚚 Spedizione Gratuita</p>
-                    <p className="text-sm text-purple-600 font-semibold">🎁 Accessori Inclusi</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Customer Data */}
-              {orderData && (
-                <div className="mt-6 pt-4 border-t border-gray-200">
-                  <h5 className="font-semibold text-gray-800 mb-3">Dati di Spedizione:</h5>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Nome:</span>
-                      <span className="ml-2 font-medium">{orderData.nome}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">Telefono:</span>
-                      <span className="ml-2 font-medium">{orderData.telefono}</span>
-                    </div>
-                    <div className="md:col-span-2">
-                      <span className="text-gray-600">Indirizzo:</span>
-                      <span className="ml-2 font-medium">{orderData.indirizzo}</span>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Process Steps */}
@@ -587,7 +539,7 @@ const ThankYouPage = () => {
 
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
             <p className="text-center text-gray-700 mb-6 text-lg">
-              Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>{deliveryDates.deliveryRange}</strong>
+              Ordinato <strong>OGGI</strong> e consegnato tra <strong>{deliveryDates.deliveryRange}</strong>
             </p>
             <div className="flex justify-between items-center">
               <div className="text-center flex-1">
@@ -622,36 +574,7 @@ const ThankYouPage = () => {
                 <li>• <strong>Verifica i tuoi dati</strong> - L'operatore confermerà nome, telefono e indirizzo</li>
                 <li>• <strong>Nessun pagamento ora</strong> - Pagherai alla consegna</li>
                 <li>• <strong>Spedizione gratuita</strong> - Nessun costo aggiuntivo</li>
-                <li>• <strong>Accessori inclusi</strong> - Tavolo estensibile, DVD e piedini speciali</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        {/* What's Included */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-gray-200">
-          <h3 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            🎁 Cosa Riceverai nel Pacchetto
-          </h3>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border-2 border-purple-200">
-              <h4 className="font-bold text-lg text-purple-700 mb-4">📦 Macchina da Cucire Creativa</h4>
-              <ul className="space-y-2 text-purple-600">
-                <li>• 165 punti incorporati</li>
-                <li>• Infilatura automatica dell'ago</li>
-                <li>• Display LCD retroilluminato</li>
-                <li>• Copertura rigida protettiva</li>
-              </ul>
-            </div>
-
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border-2 border-blue-200">
-              <h4 className="font-bold text-lg text-blue-700 mb-4">🛠️ Accessori Inclusi</h4>
-              <ul className="space-y-2 text-blue-600">
-                <li>• Tavolo estensibile per quilt</li>
-                <li>• 8 piedini specializzati</li>
-                <li>• DVD istruttivo completo</li>
-                <li>• Kit di manutenzione</li>
+                <li>• <strong>Garanzia inclusa</strong> - 30 giorni soddisfatti o rimborsati</li>
               </ul>
             </div>
           </div>
@@ -667,27 +590,27 @@ const ThankYouPage = () => {
             </div>
 
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Ti Sei Unita a Oltre 2.800 Appassionate di Cucito Soddisfatte
+              Ti Sei Unito a Oltre 10.000 Clienti Soddisfatti
             </h3>
 
             <p className="text-gray-600 text-lg mb-6">
-              Hai fatto la scelta giusta per trasformare la tua passione per il cucito in capolavori unici.
+              Hai fatto la scelta giusta per la qualità e l'affidabilità dei nostri prodotti.
             </p>
 
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
-                <div className="text-2xl font-bold text-green-600">97%</div>
-                <p className="text-green-700 text-sm">Cucito più semplice e veloce</p>
+                <div className="text-2xl font-bold text-green-600">98%</div>
+                <p className="text-green-700 text-sm">Clienti soddisfatti</p>
               </div>
 
               <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200">
-                <div className="text-2xl font-bold text-blue-600">98%</div>
-                <p className="text-blue-700 text-sm">Aumento della creatività</p>
+                <div className="text-2xl font-bold text-blue-600">97%</div>
+                <p className="text-blue-700 text-sm">Consegne puntuali</p>
               </div>
 
               <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">96%</div>
-                <p className="text-purple-700 text-sm">Lo consiglierebbe ad un'amica</p>
+                <p className="text-purple-700 text-sm">Lo consiglierebbe ad un amico</p>
               </div>
             </div>
           </div>

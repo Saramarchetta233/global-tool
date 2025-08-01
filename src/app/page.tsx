@@ -1,142 +1,389 @@
-'use client';
+"use client";
 
-import React from 'react';
-import { motion } from 'framer-motion';
-import Button from './components/ui/buttons';
-import Card from './components/ui/card';
-import Input from './components/ui/input';
+import React, { useState } from 'react';
+import { Star, Shield, Truck, CreditCard, ChevronRight, Menu, X, Phone, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
 
-const categories = [
-  { name: 'Infusi e Tisane', image: '/images/categorie/infusi.jpg' },
-  { name: 'Oli Essenziali', image: '/images/categorie/oli.jpg' },
-  { name: 'Integratori', image: '/images/categorie/integratori.jpg' },
-  { name: 'Cosmetici Naturali', image: '/images/categorie/cosmetici.jpg' },
-];
+const HomePage = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState('home');
 
-const featuredProducts = [
-  { title: 'Keto Brucia', price: '€49,90', image: '/images/prodotti/keto-brucia.png' },
-  { title: 'Dolor Fix', price: '€42,50', image: '/images/prodotti/dolor-fix.png' },
-  { title: 'Varico Lift', price: '€55,50', image: '/images/prodotti/varico-lift.jpg' },
-  { title: 'Glutei Fit', price: '€58,00', image: '/images/prodotti/glutei-fit.png' },
-];
+  const products = [
+    {
+      name: "Professional Stapler",
+      price: "€29.99",
+      image: "/api/placeholder/300/300",
+      rating: 4.8,
+      reviews: 245
+    },
+    {
+      name: "Smart Watch Pro",
+      price: "€149.99",
+      image: "/api/placeholder/300/300",
+      rating: 4.9,
+      reviews: 892
+    },
+    {
+      name: "Garden Trimmer",
+      price: "€89.99",
+      image: "/api/placeholder/300/300",
+      rating: 4.7,
+      reviews: 156
+    }
+  ];
 
-const testimonials = [
-  { name: 'Sara B.', feedback: 'Prodotti di altissima qualità, servizio eccellente!', avatar: '/images/testimonial/sara.webp' },
-  { name: 'Marco R.', feedback: 'L’erboristeria più fornita e professionale che conosca.', avatar: '/images/testimonial/marco.webp' },
-  { name: 'Elena G.', feedback: 'Consiglio vivamente per la varietà di tisane e integratori.', avatar: '/images/testimonial/federica.png' },
-];
+  const features = [
+    {
+      icon: <Truck className="w-8 h-8 text-blue-600" />,
+      title: "Free Europe-wide Delivery",
+      description: "Fast and reliable shipping across all European countries"
+    },
+    {
+      icon: <CreditCard className="w-8 h-8 text-blue-600" />,
+      title: "Pay on Delivery",
+      description: "Secure cash on delivery payment option available"
+    },
+    {
+      icon: <Shield className="w-8 h-8 text-blue-600" />,
+      title: "Quality Guarantee",
+      description: "30-day money-back guarantee on all products"
+    }
+  ];
 
-export default function HomePage() {
+  const testimonials = [
+    {
+      name: "Maria Schmidt",
+      location: "Germany",
+      text: "Amazing quality products and fast delivery. The smartwatch exceeded my expectations!",
+      rating: 5
+    },
+    {
+      name: "Jean Dupont",
+      location: "France",
+      text: "Professional tools at great prices. The pay on delivery option gave me confidence to order.",
+      rating: 5
+    },
+    {
+      name: "Alessandro Rossi",
+      location: "Italy",
+      text: "Excellent customer service and high-quality products. Highly recommended!",
+      rating: 5
+    }
+  ];
+
+  const renderStars = (rating: number) => {
+    return Array.from({ length: 5 }, (_, i) => (
+      <Star key={i} className={`w-4 h-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+    ));
+  };
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMenuOpen(false);
+  };
+
   return (
-    <main className="flex flex-col items-center bg-gray-50">
-      {/* Hero Section */}
-      <section
-        className="w-full h-screen bg-center bg-cover relative"
-        style={{ backgroundImage: "url('/images/background.jpg')" }}
-      >
-        <div className="absolute inset-0 bg-black opacity-50" />
-        <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4">
-          <motion.h1
-            className="text-5xl md:text-6xl font-bold mb-4"
-            initial={{ y: -50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8 }}
-          >
-            Benvenuti all'Erboristeria Urbino
-          </motion.h1>
-          <motion.p
-            className="text-lg md:text-xl mb-6 max-w-2xl"
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, delay: 0.2 }}
-          >
-            Scopri i benefici della natura attraverso le nostre selezioni di erbe, infusi e prodotti biologici.
-          </motion.p>
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <span className="text-2xl font-bold text-gray-900">Newheras™</span>
+              <span className="text-sm text-gray-600 ml-2 hidden sm:inline">Creative tools for your everyday life</span>
+            </div>
 
-          <Button size="lg" className="px-8 py-4 bg-green-700 hover:bg-green-800 text-white font-semibold rounded-lg">
-            Scopri Ora
-          </Button>
+            <nav className="hidden md:flex space-x-8">
+              <button onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-blue-600 transition-colors">Home</button>
+              <button onClick={() => scrollToSection('products')} className="text-gray-700 hover:text-blue-600 transition-colors">Products</button>
+              <button onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-blue-600 transition-colors">About Us</button>
+              <button onClick={() => scrollToSection('contact')} className="text-gray-700 hover:text-blue-600 transition-colors">Contact</button>
+            </nav>
+
+            <button
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile menu */}
+        {isMenuOpen && (
+          <div className="md:hidden bg-white border-t">
+            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+              <button onClick={() => scrollToSection('home')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Home</button>
+              <button onClick={() => scrollToSection('products')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Products</button>
+              <button onClick={() => scrollToSection('about')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">About Us</button>
+              <button onClick={() => scrollToSection('contact')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Contact</button>
+            </div>
+          </div>
+        )}
+      </header>
+
+      {/* Hero Section */}
+      <section id="home" className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+              Creative Tools for Your
+              <span className="text-blue-600 block">Everyday Life</span>
+            </h1>
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Discover high-quality tools and gadgets designed to enhance your daily routine.
+              From professional staplers to smart watches and garden equipment - we've got you covered across Europe.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => scrollToSection('products')}
+                className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
+              >
+                Shop Now <ChevronRight className="w-5 h-5 ml-2" />
+              </button>
+              <button
+                onClick={() => scrollToSection('about')}
+                className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
+              >
+                Learn More
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
-
-
-      {/* Featured Products */}
-      <section className="bg-white py-16 px-6 w-full max-w-7xl">
-        <h2 className="text-3xl font-semibold text-center mb-8">Prodotti in Evidenza</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {featuredProducts.map((prod) => (
-            <Card key={prod.title} className="rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
-              <img src={prod.image} alt={prod.title} className="h-40 w-full object-cover" />
-              <div className="p-4">
-                <h3 className="text-lg font-medium">{prod.title}</h3>
-                <p className="mt-2 font-semibold text-green-700">{prod.price}</p>
-                <Button className="mt-4 w-full py-2 rounded-lg">Acquista</Button>
+      {/* Features Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <div key={index} className="text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
+                <div className="flex justify-center mb-4">
+                  {feature.icon}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+                <p className="text-gray-600">{feature.description}</p>
               </div>
-            </Card>
-          ))}
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Products Section */}
+      <section id="products" className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
+            <p className="text-xl text-gray-600">Carefully selected tools for modern living</p>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.map((product, index) => (
+              <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
+                <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                  <div className="w-48 h-48 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
+                    <span className="text-blue-600 font-semibold">{product.name}</span>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-semibold text-lg text-gray-900 mb-2">{product.name}</h3>
+                  <div className="flex items-center mb-2">
+                    <div className="flex">
+                      {renderStars(Math.floor(product.rating))}
+                    </div>
+                    <span className="text-sm text-gray-600 ml-2">({product.reviews} reviews)</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-2xl font-bold text-blue-600">{product.price}</span>
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                      Add to Cart
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* About Section */}
+      <section id="about" className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Why Choose Newheras™?</h2>
+              <p className="text-lg text-gray-600 mb-6">
+                At Newheras™, we believe that the right tools can transform your everyday experiences.
+                Founded with a passion for innovation and quality, we curate exceptional products that
+                combine functionality with style.
+              </p>
+              <div className="space-y-4">
+                <div className="flex items-start">
+                  <Shield className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Quality Assurance</h3>
+                    <p className="text-gray-600">Every product is rigorously tested to meet our high standards</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <Truck className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Europe-wide Reach</h3>
+                    <p className="text-gray-600">Serving customers across all European countries with reliable delivery</p>
+                  </div>
+                </div>
+                <div className="flex items-start">
+                  <CreditCard className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Secure Payment</h3>
+                    <p className="text-gray-600">Pay on delivery option for your peace of mind</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-blue-100 to-indigo-200 rounded-lg h-96 flex items-center justify-center">
+              <div className="text-center">
+                <div className="text-4xl font-bold text-blue-600 mb-2">10,000+</div>
+                <div className="text-lg text-blue-700">Happy Customers</div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 px-6 w-full max-w-4xl text-center">
-        <h2 className="text-3xl font-semibold mb-8">Cosa Dicono di Noi</h2>
-        <motion.div
-          className="flex overflow-x-auto space-x-6 pb-4"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8 }}
-        >
-          {testimonials.map((t, i) => (
-            <div key={i} className="min-w-[300px] flex-shrink-0 p-6 bg-white rounded-2xl shadow-lg">
-              <img src={t.avatar} alt={t.name} className="h-16 w-16 rounded-full mx-auto" />
-              <p className="mt-4 italic">“{t.feedback}”</p>
-              <h4 className="mt-4 font-medium">- {t.name}</h4>
-            </div>
-          ))}
-        </motion.div>
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <div key={index} className="bg-white p-6 rounded-lg shadow-md">
+                <div className="flex mb-4">
+                  {renderStars(testimonial.rating)}
+                </div>
+                <p className="text-gray-600 mb-4">"{testimonial.text}"</p>
+                <div className="border-t pt-4">
+                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                  <div className="text-sm text-gray-600">{testimonial.location}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
-      {/* Newsletter */}
-      <section className="bg-green-700 text-white py-12 w-full">
-        <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-2xl font-semibold mb-4">Rimani Aggiornato</h2>
-          <p className="mb-6">Iscriviti alla nostra newsletter per offerte esclusive e novità naturali.</p>
-          <div className="flex justify-center">
-            <Input placeholder="La tua email" className="rounded-l-md border-0 focus:outline-none p-3 w-full max-w-sm" />
-            <Button className="p-3 rounded-r-md">Iscriviti</Button>
+      {/* Contact Section */}
+      <section id="contact" className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Contact Us</h2>
+            <p className="text-xl text-gray-600">We're here to help with any questions</p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8">
+            <div className="text-center">
+              <Phone className="w-8 h-8 text-blue-600 mx-auto mb-4" />
+              <h3 className="font-semibold text-gray-900 mb-2">Phone</h3>
+              <p className="text-gray-600">+44 7353023196</p>
+            </div>
+            <div className="text-center">
+              <Mail className="w-8 h-8 text-blue-600 mx-auto mb-4" />
+              <h3 className="font-semibold text-gray-900 mb-2">Email</h3>
+              <p className="text-gray-600">info@newheras.com</p>
+            </div>
+            <div className="text-center">
+              <MapPin className="w-8 h-8 text-blue-600 mx-auto mb-4" />
+              <h3 className="font-semibold text-gray-900 mb-2">Address</h3>
+              <p className="text-gray-600">Milan, Italy</p>
+            </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-800 text-gray-300 py-8 w-full">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 px-6">
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-2">Erboristeria Urbino</h4>
-            <p>Via Manzoni 12</p>
-            <p>Email: info@erboristeriaurbino.com</p>
+      <footer className="bg-gray-900 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div className="col-span-1">
+              <h3 className="text-xl font-bold mb-4">Newheras™</h3>
+              <p className="text-gray-400 mb-4">Creative tools for your everyday life</p>
+              <div className="flex space-x-4">
+                <Facebook className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
+                <Instagram className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
+                <Twitter className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
+              </div>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Products</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Office Tools</a></li>
+                <li><a href="#" className="hover:text-white">Smart Devices</a></li>
+                <li><a href="#" className="hover:text-white">Garden Equipment</a></li>
+                <li><a href="#" className="hover:text-white">Home Accessories</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Company</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">About Us</a></li>
+                <li><a href="#" className="hover:text-white">Careers</a></li>
+                <li><a href="#" className="hover:text-white">Press</a></li>
+                <li><a href="#" className="hover:text-white">Blog</a></li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Support</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li><a href="#" className="hover:text-white">Help Center</a></li>
+                <li><a href="#" className="hover:text-white">Shipping Info</a></li>
+                <li><a href="#" className="hover:text-white">Returns</a></li>
+                <li><a href="#" className="hover:text-white">Contact Us</a></li>
+              </ul>
+            </div>
           </div>
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-2">Link Utili</h4>
-            <ul>
-              <li className="hover:text-white"><a href="#">Chi Siamo</a></li>
-              <li className="hover:text-white"><a href="#">Prodotti</a></li>
-              <li className="hover:text-white"><a href="#">Contatti</a></li>
-              <li className="hover:text-white"><a href="#">Blog</a></li>
-            </ul>
-          </div>
-          <div>
-            <h4 className="text-lg font-semibold text-white mb-2">Seguici</h4>
-            <div className="flex space-x-4">
-              <a href="#" aria-label="Instagram">📷</a>
-              <a href="#" aria-label="Facebook">📘</a>
-              <a href="#" aria-label="Twitter">🐦</a>
+
+          <div className="border-t border-gray-800 mt-8 pt-8">
+            <div className="flex flex-col md:flex-row justify-between items-center">
+              <div className="text-gray-400 text-sm mb-4 md:mb-0">
+                © 2025 Newheras™. All rights reserved.
+              </div>
+              <div className="flex space-x-6 text-sm text-gray-400">
+                <a href="/privacy" className="hover:text-white">Privacy Policy</a>
+                <a href="/terms" className="hover:text-white">Terms of Service</a>
+                <a href="/cookies" className="hover:text-white">Cookie Policy</a>
+                <a href="/gdpr" className="hover:text-white">GDPR Compliance</a>
+              </div>
+            </div>
+
+            <div className="mt-4 text-xs text-gray-500">
+              <p className="mb-2">
+                <strong>Legal Notice:</strong> Newheras™ is a registered trademark. All product names, logos, and brands are property of their respective owners.
+              </p>
+              <p className="mb-2">
+                <strong>Delivery:</strong> Free delivery across Europe. Cash on delivery available. Delivery times: 3-7 business days.
+              </p>
+              <p className="mb-2">
+                <strong>Returns:</strong> 30-day return policy. Items must be in original condition. Customer service: info@newheras.com
+              </p>
+              <p>
+                <strong>Business Registration:</strong> VAT ID: IT12345678901 | Commercial Registry: Milan Court |
+                Registered Office: Via Roma 123, 20121 Milano, Italy
+              </p>
             </div>
           </div>
         </div>
-        <div className="text-center text-sm mt-6">© {new Date().getFullYear()} Erboristeria Agrigento - Tutti i diritti riservati.</div>
       </footer>
-    </main>
+    </div>
   );
-}
+};
+
+export default HomePage;
