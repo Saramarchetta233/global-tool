@@ -915,6 +915,7 @@ export default function SewingMachineLanding() {
         price: 299.00
       }]
     });
+
     try {
       const apiFormData = new FormData();
 
@@ -949,19 +950,6 @@ export default function SewingMachineLanding() {
           currency: 'PLN',
           num_items: 1
         }, formData);
-
-        trackingUtils.trackGoogleEvent('Purchase', {
-          value: 299.00,
-          currency: 'PLN',
-          transaction_id: orderId,
-          items: [{
-            item_id: 'sewing-machine-creative',
-            item_name: 'Maszyna do Szycia Kreatywna',
-            category: 'Sewing Machines',
-            quantity: 1,
-            price: 299.00
-          }]
-        });
 
         const orderData = {
           ...formData,
