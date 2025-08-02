@@ -768,7 +768,7 @@ export default function SewingMachineLanding() {
       const scrollPercentage = (scrollY / (documentHeight - windowHeight)) * 100;
 
       // Mostra il pulsante sticky dopo aver scrollato il 20%
-      setShowStickyButton(scrollPercentage > 20);
+      setShowStickyButton(scrollPercentage > 15);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -1018,7 +1018,7 @@ export default function SewingMachineLanding() {
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                🧵 Maszyna do Szycia Kreatywna – Kompaktowa, Potężna, Bardzo Łatwa w Użyciu
+                🧵 Maszyna do Szycia Kreatywna
               </h1>
 
               <p className="text-lg text-gray-700 font-medium">
@@ -1028,19 +1028,19 @@ export default function SewingMachineLanding() {
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎯 <strong>Zwiększa precyzję</strong> – Skomplikowane szwy bez błędów</span>
+                  <span className="text-base">🎯 <strong>Zwiększa precyzję</strong> – Skomplikowane szwy bez błędów</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎨 <strong>Zwiększa kreatywność</strong> – Ożyw zabawne projekty</span>
+                  <span className="text-base">🎨 <strong>Zwiększa kreatywność</strong> – Ożyw zabawne projekty</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>⏱️ <strong>Oszczędza czas</strong> – Automatyczne nawlekanie w mgnieniu oka</span>
+                  <span className="text-base">⏱️ <strong>Oszczędza czas</strong> – Automatyczne nawlekanie w mgnieniu oka</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🤝 <strong>Ciągłe wsparcie</strong> – Pomoc zawsze dostępna</span>
+                  <span className="text-base">🤝 <strong>Ciągłe wsparcie</strong> – Pomoc zawsze dostępna</span>
                 </div>
               </div>
 
@@ -1213,7 +1213,7 @@ export default function SewingMachineLanding() {
 
               <button
                 onClick={handleOrderClick}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg animate-pulse-button"
               >
                 🔥 ZAMÓW TERAZ - Płatność przy Odbiorze
               </button>
@@ -1266,31 +1266,31 @@ export default function SewingMachineLanding() {
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
+                  <div className="text-lg">
                     <strong>Szeroka gama ściegów:</strong> 165 wbudowanych ściegów, w tym 110 ściegów użytkowych i ozdobnych, 8 stylów automatycznych dziurek na guziki i 55 znaków alfanumerycznych.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
+                  <div className="text-lg">
                     <strong>Automatyczne nawlekanie igły:</strong> Oszczędza czas i wysiłek dzięki systemowi automatycznego nawlekania igły.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
+                  <div className="text-lg">
                     <strong>Intuicyjny wyświetlacz LCD:</strong> Łatwo wybieraj ściegi i ustawienia przez podświetlany wyświetlacz.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
+                  <div className="text-lg">
                     <strong>Akcesoria w zestawie:</strong> Dostarczana z twardą pokrywą ochronną, stołem rozkładanym, 8 stopkami do szycia i pikowania, instruktażowym DVD i wieloma innymi.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
+                  <div className="text-lg">
                     <strong>Dedykowane wsparcie:</strong> Bezpłatna pomoc techniczna online, przez czat lub telefon przez cały okres użytkowania maszyny.
                   </div>
                 </div>
@@ -1777,20 +1777,32 @@ export default function SewingMachineLanding() {
       <Footer />
 
       <style jsx>{`
-        @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-      `}</style>
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  @keyframes pulse-button {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+  .animate-pulse-button {
+    animation: pulse-button 2s ease-in-out infinite;
+  }
+`}</style>
     </div>
   );
 }
