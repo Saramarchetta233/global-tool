@@ -578,16 +578,16 @@ const ThankYouPage = () => {
             Status Twojego Zamówienia
           </h3>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 overflow-x-auto">
             {steps.map((step, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 shadow-lg ${index <= currentStep
+              <div key={index} className="flex flex-col items-center min-w-0 flex-1 px-1">
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-xs md:text-sm transition-all duration-500 shadow-lg ${index <= currentStep
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                   : 'bg-gray-300 text-gray-600'
                   }`}>
                   {index + 1}
                 </div>
-                <p className={`text-sm mt-2 font-semibold transition-all duration-500 ${index <= currentStep ? 'text-green-600' : 'text-gray-500'
+                <p className={`text-xs md:text-sm mt-1 md:mt-2 font-semibold transition-all duration-500 text-center leading-tight ${index <= currentStep ? 'text-green-600' : 'text-gray-500'
                   }`}>
                   {step}
                 </p>
