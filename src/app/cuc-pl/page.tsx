@@ -1221,22 +1221,32 @@ export default function SewingMachineLanding() {
               <DeliveryTracking />
 
               {/* Recensione evidenziata */}
-              <div className="mt-8 bg-white p-6 rounded-lg shadow-lg border-l-4 border-yellow-400">
-                <div className="flex items-start space-x-4">
+              <div className="mt-8 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                {/* Layout con foto centrata verticalmente rispetto al testo */}
+                <div className="flex items-center space-x-4">
                   <img
                     src="images/testim2.jpg"
                     alt="Katarzyna M."
-                    className="w-16 h-16 rounded-full object-cover"
+                    className="w-14 h-14 rounded-full object-cover flex-shrink-0"
                   />
+
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <StarRating rating={5} />
-                      <span className="font-medium">Katarzyna M.</span>
-                      <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
+                    {/* Stelle sopra il testo, allineate a sinistra */}
+                    <div className="mb-3">
+                      <StarRating rating={5} size="w-4 h-4" />
                     </div>
-                    <p className="text-gray-700">
+
+                    <p className="text-gray-800 text-sm leading-relaxed mb-3">
                       "Kupiłam tę maszynę 3 tygodnie temu i jestem zachwycona! 🌟 Automatyczne nawlekanie to prawdziwy game-changer - oszczędza mi tyle czasu! Uszyłam już kilka sukienek i pokrowców na poduszki. Jakość ściegów jest niesamowita, a obsługa przez LCD jest bardzo intuicyjna. Najlepszy zakup tego roku!"
                     </p>
+
+                    {/* Nome con checkmark blu */}
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">✓</span>
+                      </div>
+                      <span className="font-bold text-gray-900 text-sm">Katarzyna M.</span>
+                    </div>
                   </div>
                 </div>
               </div>
