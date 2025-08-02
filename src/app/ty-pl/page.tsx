@@ -430,8 +430,8 @@ const ThankYouPage = () => {
     {
       step: "1",
       title: "Połączenie Weryfikacyjne",
-      description: "Nasz operator skontaktuje się z Tobą w ciągu 2 godzin, aby potwierdzić dane zamówienia",
-      time: "W ciągu 2 godzin"
+      description: "Nasz operator skontaktuje się z Tobą w najbliższych godzinach, aby potwierdzić dane zamówienia",
+      time: "W najbliższych godzinach"
     },
     {
       step: "2",
@@ -485,7 +485,7 @@ const ThankYouPage = () => {
                     Nadchodzi Połączenie Weryfikacyjne
                   </h3>
                   <p className="text-green-600">
-                    Nasz operator skontaktuje się z Tobą w ciągu 2 godzin
+                    Nasz operator skontaktuje się z Tobą w najbliższych godzinach
                   </p>
                 </div>
               </div>
@@ -615,7 +615,7 @@ const ThankYouPage = () => {
                 ⚠️ Ważne Informacje
               </h3>
               <ul className="space-y-2 text-yellow-700">
-                <li>• <strong>Trzymaj telefon włączony</strong> - Zadzwonimy do Ciebie w ciągu 2 godzin</li>
+                <li>• <strong>Trzymaj telefon włączony</strong> - Zadzwonimy do Ciebie w najbliższych godzinach</li>
                 <li>• <strong>Zweryfikuj swoje dane</strong> - Operator potwierdzi imię, telefon i adres</li>
                 <li>• <strong>Brak płatności teraz</strong> - Zapłacisz przy odbiorze</li>
                 <li>• <strong>Darmowa wysyłka</strong> - Bez dodatkowych kosztów</li>

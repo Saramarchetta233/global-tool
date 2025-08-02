@@ -1219,6 +1219,28 @@ export default function SewingMachineLanding() {
               </button>
 
               <DeliveryTracking />
+
+              {/* Recensione evidenziata */}
+              <div className="mt-8 bg-white p-6 rounded-lg shadow-lg border-l-4 border-yellow-400">
+                <div className="flex items-start space-x-4">
+                  <img
+                    src="images/testim2.jpg"
+                    alt="Katarzyna M."
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <StarRating rating={5} />
+                      <span className="font-medium">Katarzyna M.</span>
+                      <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
+                    </div>
+                    <p className="text-gray-700">
+                      "Kupiłam tę maszynę 3 tygodnie temu i jestem zachwycona! 🌟 Automatyczne nawlekanie to prawdziwy game-changer - oszczędza mi tyle czasu! Uszyłam już kilka sukienek i pokrowców na poduszki. Jakość ściegów jest niesamowita, a obsługa przez LCD jest bardzo intuicyjna. Najlepszy zakup tego roku!"
+                    </p>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
