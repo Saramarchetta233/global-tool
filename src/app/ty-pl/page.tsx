@@ -369,9 +369,21 @@ const ThankYouPage = () => {
     if (!mounted) return;
 
     console.log('🎯 Thank You Page Tracking Initialized');
+
+    // Inizializzazione forzata del pixel
     advancedTrackingUtils.initFacebookPixel();
     advancedTrackingUtils.initGoogleAds();
     advancedTrackingUtils.initGoogleAnalytics();
+
+    // FORZARE PageView dopo inizializzazione
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.fbq) {
+        window.fbq('track', 'PageView');
+        console.log('✅ Thank You PageView tracked');
+      } else {
+        console.log('❌ Pixel not loaded for PageView');
+      }
+    }, 500);
 
     // Timer for step animation
     const timer = setInterval(() => {
@@ -385,13 +397,28 @@ const ThankYouPage = () => {
 
   // Purchase tracking
   useEffect(() => {
-    if (!mounted || pixelFired || !orderData) return;
+    if (!mounted || pixelFired) return;
 
     console.log('🎯 Starting purchase tracking...');
 
     const trackPurchase = async () => {
       try {
-        await advancedTrackingUtils.trackPurchaseEvent(orderData);
+        // FORZARE L'INIZIALIZZAZIONE del pixel se non è ancora caricato
+        if (!window.fbq) {
+          console.log('⚠️ Pixel not loaded, initializing...');
+          advancedTrackingUtils.initFacebookPixel();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // Usare dati di default se orderData manca
+        const trackingData = orderData || {
+          orderId: `TY${Date.now()}`,
+          imie: 'Guest User',
+          telefon: '',
+          adres: ''
+        };
+
+        await advancedTrackingUtils.trackPurchaseEvent(trackingData);
         setPixelFired(true);
         console.log('🎉 Purchase tracking completed!');
       } catch (error) {
@@ -399,9 +426,9 @@ const ThankYouPage = () => {
       }
     };
 
-    const trackingTimeout = setTimeout(trackPurchase, 1000);
+    const trackingTimeout = setTimeout(trackPurchase, 2000);
     return () => clearTimeout(trackingTimeout);
-  }, [mounted, orderData, pixelFired]);
+  }, [mounted, pixelFired]);
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {

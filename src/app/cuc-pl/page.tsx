@@ -813,13 +813,16 @@ export default function SewingMachineLanding() {
   }, [showOrderPopup]);
 
   const handleOrderClick = () => {
-    // Track ViewContent event
-    trackingUtils.trackFacebookEvent('ViewContent', {
+    console.log('🎯 Order button clicked - tracking InitiateCheckout');
+
+    // Track InitiateCheckout event (inizio processo acquisto)
+    trackingUtils.trackFacebookEvent('InitiateCheckout', {
       content_type: 'product',
       content_ids: ['sewing-machine-creative'],
       content_name: 'Maszyna do Szycia Kreatywna',
       value: 299.00,
-      currency: 'PLN'
+      currency: 'PLN',
+      num_items: 1
     });
 
     trackingUtils.trackGoogleEvent('view_item', {
@@ -890,8 +893,8 @@ export default function SewingMachineLanding() {
 
     setIsSubmitting(true);
 
-    // Track InitiateCheckout event con CAPI
-    trackingUtils.trackFacebookEvent('InitiateCheckout', {
+    /// Track Purchase event con CAPI (form completato = acquisto)
+    trackingUtils.trackFacebookEvent('Purchase', {
       content_type: 'product',
       content_ids: ['sewing-machine-creative'],
       content_name: 'Maszyna do Szycia Kreatywna',
@@ -900,9 +903,10 @@ export default function SewingMachineLanding() {
       num_items: 1
     }, formData);
 
-    trackingUtils.trackGoogleEvent('begin_checkout', {
-      currency: 'PLN',
+    trackingUtils.trackGoogleEvent('Purchase', {
       value: 299.00,
+      currency: 'PLN',
+      transaction_id: `MSK${Date.now()}`,
       items: [{
         item_id: 'sewing-machine-creative',
         item_name: 'Maszyna do Szycia Kreatywna',
@@ -911,7 +915,6 @@ export default function SewingMachineLanding() {
         price: 299.00
       }]
     });
-
     try {
       const apiFormData = new FormData();
 
