@@ -218,37 +218,8 @@ const advancedTrackingUtils = {
     }
   },
 
-  // Google Ads Purchase tracking
   trackGooglePurchase: async (orderData: any): Promise<void> => {
-    if (typeof window !== 'undefined' && window.gtag) {
-      try {
-        // Enhanced ecommerce tracking
-        window.gtag('event', 'purchase', {
-          transaction_id: orderData?.orderId || `MSK${Date.now()}`,
-          value: 299.00,
-          currency: 'PLN',
-          items: [{
-            item_id: 'product-order',
-            item_name: 'Product Order',
-            category: 'Products',
-            quantity: 1,
-            price: 299.00
-          }]
-        });
-
-        // Conversion tracking
-        window.gtag('event', 'conversion', {
-          send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-          value: 299.00,
-          currency: 'PLN',
-          transaction_id: orderData?.orderId || `MSK${Date.now()}`
-        });
-
-        console.log('✅ Google Ads Purchase & Conversion tracked');
-      } catch (error) {
-        console.error('❌ Google Ads tracking error:', error);
-      }
-    }
+    console.log('ℹ️ Google Ads Purchase skipped - already tracked in landing page');
   },
 
   // Utility functions
