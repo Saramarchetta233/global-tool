@@ -986,7 +986,7 @@ export default function SewingMachineLanding() {
     <div className="min-h-screen bg-gray-50">
       <input type="hidden" name="tmfp" />
 
-      <SocialProofNotification />
+
 
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">
