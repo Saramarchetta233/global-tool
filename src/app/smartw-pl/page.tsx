@@ -259,7 +259,13 @@ const trackingUtils = {
 
   getFbClickId: (): string => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('fbclid') || '';
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      // Formato corretto per fbc: fb.1.timestamp.fbclid
+      return `fb.1.${Date.now()}.${fbclid}`;
+    }
+    return '';
   },
 
   getFbBrowserId: (): string => {
@@ -742,12 +748,10 @@ export default function SmartwatchLanding() {
   // Initialize tracking on component mount
   useEffect(() => {
     // Initialize tracking systems
-    trackingUtils.initFacebookPixel();
     trackingUtils.initGoogleAds();
     trackingUtils.initGoogleAnalytics();
 
     // Track PageView for all platforms
-    trackingUtils.trackFacebookEvent('PageView');
     trackingUtils.trackGoogleEvent('page_view', {
       page_title: 'Smartwatch Niezniszczalny - Strona Główna',
       page_location: window.location.href
@@ -951,19 +955,6 @@ export default function SmartwatchLanding() {
           num_items: 1
         }, formData);
 
-        trackingUtils.trackGoogleEvent('Purchase', {
-          value: 219.00,
-          currency: 'PLN',
-          transaction_id: orderId,
-          items: [{
-            item_id: 'smartwatch-indestructible',
-            item_name: 'Smartwatch Niezniszczalny',
-            category: 'Electronics',
-            quantity: 1,
-            price: 219.00
-          }]
-        });
-
         const orderData = {
           ...formData,
           orderId,
@@ -990,7 +981,6 @@ export default function SmartwatchLanding() {
     <div className="min-h-screen bg-gray-50">
       <input type="hidden" name="tmfp" />
 
-      <SocialProofNotification />
 
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">

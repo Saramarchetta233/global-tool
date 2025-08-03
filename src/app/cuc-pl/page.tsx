@@ -259,7 +259,13 @@ const trackingUtils = {
 
   getFbClickId: (): string => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('fbclid') || '';
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      // Formato corretto per fbc: fb.1.timestamp.fbclid
+      return `fb.1.${Date.now()}.${fbclid}`;
+    }
+    return '';
   },
 
   getFbBrowserId: (): string => {
