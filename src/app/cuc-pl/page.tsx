@@ -237,17 +237,12 @@ const trackingUtils = {
   trackGoogleEvent: (eventName: string, eventData: any = {}): void => {
     if (typeof window !== 'undefined' && window.gtag) {
       try {
-        if (eventName === 'Purchase') {
-          window.gtag('event', 'conversion', {
-            send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-            value: eventData.value || 299.00,
-            currency: 'PLN',
-            transaction_id: eventData.transaction_id || `MSK${Date.now()}`
-          });
-        } else {
+        if (eventName !== 'Purchase') {
           window.gtag('event', eventName, eventData);
+          console.log(`✅ Google Ads ${eventName} tracked`);
+        } else {
+          console.log(`ℹ️ Google Ads Purchase skipped - will be tracked in Thank You page`);
         }
-        console.log(`✅ Google Ads ${eventName} tracked`);
       } catch (error) {
         console.error(`❌ Google Ads ${eventName} tracking error:`, error);
       }
@@ -940,28 +935,23 @@ export default function SewingMachineLanding() {
 
     setIsSubmitting(true);
 
-    /// Track Purchase event con CAPI (form completato = acquisto)
-    trackingUtils.trackFacebookEvent('Purchase', {
-      content_type: 'product',
-      content_ids: ['sewing-machine-creative'],
-      content_name: 'Maszyna do Szycia Kreatywna',
-      value: 299.00,
-      currency: 'PLN',
-      num_items: 1
-    }, formData);
+    console.log('🎯 Form submitted, tracking Purchase with form data:', formData);
 
-    trackingUtils.trackGoogleEvent('Purchase', {
-      value: 299.00,
-      currency: 'PLN',
-      transaction_id: `MSK${Date.now()}`,
-      items: [{
-        item_id: 'sewing-machine-creative',
-        item_name: 'Maszyna do Szycia Kreatywna',
-        category: 'Sewing Machines',
-        quantity: 1,
-        price: 299.00
-      }]
-    });
+    // 🚨 ESSENTIAL: Track Purchase event con CAPI PRIMA dell'invio API
+    // Questo garantisce che i dati arrivino sempre a N8N
+    try {
+      await trackingUtils.trackFacebookEvent('Purchase', {
+        content_type: 'product',
+        content_ids: ['sewing-machine-creative'],
+        content_name: 'Maszyna do Szycia Kreatywna',
+        value: 299.00,
+        currency: 'PLN',
+        num_items: 1
+      }, formData);
+      console.log('✅ Purchase tracking completato con successo');
+    } catch (trackingError) {
+      console.error('❌ Purchase tracking fallito, ma continuiamo:', trackingError);
+    }
 
     try {
       const apiFormData = new FormData();
@@ -988,15 +978,7 @@ export default function SewingMachineLanding() {
         const responseData = await response.text();
         const orderId = `MSK${Date.now()}`;
 
-        // Track Purchase events con CAPI
-        trackingUtils.trackFacebookEvent('Purchase', {
-          content_type: 'product',
-          content_ids: ['sewing-machine-creative'],
-          content_name: 'Maszyna do Szycia Kreatywna',
-          value: 299.00,
-          currency: 'PLN',
-          num_items: 1
-        }, formData);
+        console.log('✅ API response OK, order ID:', orderId);
 
         const orderData = {
           ...formData,
@@ -1007,6 +989,8 @@ export default function SewingMachineLanding() {
         };
 
         localStorage.setItem('orderData', JSON.stringify(orderData));
+        console.log('✅ Order data saved to localStorage:', orderData);
+
         window.location.href = '/ty-pl';
       } else {
         console.error('API Error:', response.status, response.statusText);

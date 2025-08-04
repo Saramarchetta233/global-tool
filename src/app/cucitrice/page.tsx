@@ -73,6 +73,36 @@ const trackingUtils = {
     }
   },
 
+  // Initialize Google Analytics
+  initGoogleAnalytics: () => {
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+      window.gtag('config', 'GA_MEASUREMENT_ID'); // Replace with your GA4 measurement ID
+
+      // Load gtag script for Analytics
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID'; // Replace with your GA4 measurement ID
+      document.head.appendChild(script);
+    }
+  },
+
+  // Get traffic source for N8N
+  getTrafficSource: (): string => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get('utm_source');
+    const fbclid = urlParams.get('fbclid');
+    const gclid = urlParams.get('gclid');
+
+    if (gclid || utmSource === 'google') return 'google_ads';
+    if (fbclid || utmSource === 'facebook') return 'facebook';
+    return utmSource || 'direct';
+  },
+
   // Track Facebook events - CLIENT SIDE + CAPI via N8N
   trackFacebookEvent: async (eventName: string, eventData: any = {}, userFormData: any = null): Promise<void> => {
     const clientEventId = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -89,6 +119,19 @@ const trackingUtils = {
       }
     }
 
+    // Track in Google Analytics
+    if (typeof window !== 'undefined' && window.gtag) {
+      try {
+        window.gtag('event', eventName.toLowerCase(), {
+          event_category: 'Facebook',
+          event_label: eventName,
+          value: eventData.value || 0
+        });
+      } catch (error) {
+        console.error(`❌ Google Analytics ${eventName} tracking error:`, error);
+      }
+    }
+
     // 2. SERVER-SIDE TRACKING (CAPI) via N8N - Always track major events
     const majorEvents = ['InitiateCheckout', 'Purchase', 'Lead', 'CompleteRegistration'];
     if (majorEvents.includes(eventName) || userFormData) {
@@ -101,18 +144,26 @@ const trackingUtils = {
         let hashedLastName = null;
 
         if (userFormData) {
-          hashedPhone = userFormData.telefono ? await trackingUtils.hashData(userFormData.telefono.replace(/\D/g, '')) : null;
-          hashedFirstName = userFormData.nome ? await trackingUtils.hashData(userFormData.nome.split(' ')[0]) : null;
-          hashedLastName = userFormData.nome && userFormData.nome.split(' ').length > 1 ? await trackingUtils.hashData(userFormData.nome.split(' ').slice(1).join(' ')) : null;
+          hashedPhone = userFormData.telefon ? await trackingUtils.hashData(userFormData.telefon.replace(/\D/g, '')) : null;
+          hashedFirstName = userFormData.imie ? await trackingUtils.hashData(userFormData.imie.split(' ')[0]) : null;
+          hashedLastName = userFormData.imie && userFormData.imie.split(' ').length > 1 ? await trackingUtils.hashData(userFormData.imie.split(' ').slice(1).join(' ')) : null;
         }
 
         // Prepara i dati per N8N
+        // Calcola timestamp corretto (non più di 7 giorni fa, non nel futuro)
+        const now = Math.floor(Date.now() / 1000);
+        const maxPastTime = now - (7 * 24 * 60 * 60); // 7 giorni fa
+        const eventTimestamp = Math.max(maxPastTime, now - 10); // Massimo 10 secondi fa
+
         const capiData = {
-          // Event data
-          event_name: eventName,
+          event_name: 'Purchase', // o 'InitiateCheckout'
           event_id: clientEventId,
-          timestamp: Math.floor(Date.now() / 1000),
+          timestamp: eventTimestamp, // <-- TIMESTAMP CORRETTO
           event_source_url: window.location.href,
+
+          // AGGIUNGI ANCHE QUESTO per maggiore precisione
+          action_source: 'website',
+          event_time: eventTimestamp, // Doppio controllo
 
           // Token e Pixel ID dinamici
           token: 'EAAPYtpMdWREBPJH0W7LzwU2MuZA61clyQOfYg5C6E0vo9E5QYgJWl2n5XtO8Ur93YTZANcWYz3qsAbDOadffn10KbQZCOwkRS6DpM8bRjwX25NBn5d1lvVNQhFOCGY9eZARrjyCbJs1OtFk2BOc4ZBbaUjeD7dvkejyxZAZAEQdeb8AQzUKdAQitdhU0jVGywZDZD',
@@ -122,7 +173,10 @@ const trackingUtils = {
           telefono_hash: hashedPhone,
           nome_hash: hashedFirstName,
           cognome_hash: hashedLastName,
-          indirizzo: userFormData?.indirizzo || null,
+          indirizzo: userFormData?.adres || null,
+
+          // Traffic source for analytics
+          traffic_source: trackingUtils.getTrafficSource(),
 
           // Dati tecnici
           user_agent: navigator.userAgent,
@@ -143,12 +197,12 @@ const trackingUtils = {
           screen_resolution: `${screen.width}x${screen.height}`,
 
           // Dati custom per questo prodotto - DINAMICI
-          content_name: 'Macchina da Cucire Creativa',
+          content_name: 'Maszyna do Szycia Kreatywna',
           content_category: 'Sewing Machines',
           content_ids: 'sewing-machine-creative',
           content_type: 'product',
-          value: eventData.value || 62.98,
-          currency: 'EUR', // Currency dinamica
+          value: eventData.value || 299.00,
+          currency: 'PLN', // Currency dinamica
           quantity: eventData.num_items || 1
         };
 
@@ -183,17 +237,12 @@ const trackingUtils = {
   trackGoogleEvent: (eventName: string, eventData: any = {}): void => {
     if (typeof window !== 'undefined' && window.gtag) {
       try {
-        if (eventName === 'Purchase') {
-          window.gtag('event', 'conversion', {
-            send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-            value: eventData.value || 62.98,
-            currency: 'EUR',
-            transaction_id: eventData.transaction_id || `MCU${Date.now()}`
-          });
-        } else {
+        if (eventName !== 'Purchase') {
           window.gtag('event', eventName, eventData);
+          console.log(`✅ Google Ads ${eventName} tracked`);
+        } else {
+          console.log(`ℹ️ Google Ads Purchase skipped - will be tracked in Thank You page`);
         }
-        console.log(`✅ Google Ads ${eventName} tracked`);
       } catch (error) {
         console.error(`❌ Google Ads ${eventName} tracking error:`, error);
       }
@@ -213,7 +262,44 @@ const trackingUtils = {
 
   getFbClickId: (): string => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('fbclid') || '';
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      // Formato corretto per fbc secondo Meta: fb.1.timestamp.fbclid
+      // Il timestamp deve essere in SECONDI, non millisecondi
+      const timestamp = Math.floor(Date.now() / 1000);
+      return `fb.1.${timestamp}.${fbclid}`;
+    }
+
+    // Se non c'è fbclid, prova a recuperare da cookie esistenti
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === '_fbc') {
+        return decodeURIComponent(value);
+      }
+    }
+
+    return '';
+  },
+
+  // AGGIUNGI QUESTA NUOVA FUNZIONE SUBITO DOPO getFbClickId
+  setFbClickId: (): void => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const fbcValue = `fb.1.${timestamp}.${fbclid}`;
+
+      // Salva nei cookie per 90 giorni (standard Facebook)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 90);
+
+      document.cookie = `_fbc=${encodeURIComponent(fbcValue)}; expires=${expirationDate.toUTCString()}; path=/; domain=${window.location.hostname}`;
+
+      console.log('✅ Facebook Click ID salvato:', fbcValue);
+    }
   },
 
   getFbBrowserId: (): string => {
@@ -310,10 +396,10 @@ const SocialProofNotification = () => {
   const [hasStarted, setHasStarted] = useState(false);
 
   const notifications = [
-    { name: "Maria da Milano", action: "ha appena acquistato", time: "2 minuti fa" },
-    { name: "Anna da Roma", action: "ha aggiunto al carrello", time: "4 minuti fa" },
-    { name: "Lucia da Napoli", action: "ha appena acquistato", time: "6 minuti fa" },
-    { name: "Sara da Torino", action: "sta visualizzando", time: "1 minuto fa" },
+    { name: "Anna z Warszawy", action: "właśnie kupiła", time: "2 minuty temu" },
+    { name: "Katarzyna z Krakowa", action: "dodała do koszyka", time: "4 minuty temu" },
+    { name: "Magdalena z Gdańska", action: "właśnie kupiła", time: "6 minut temu" },
+    { name: "Joanna z Wrocławia", action: "przegląda teraz", time: "1 minutę temu" },
   ];
 
   useEffect(() => {
@@ -406,7 +492,7 @@ const StockIndicator = () => {
     <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 p-3 rounded-lg text-center font-bold">
       <div className="flex items-center justify-center space-x-2">
         <AlertCircle className="w-5 h-5" />
-        <span>⚡ Solo {stock} pezzi rimasti in magazzino!</span>
+        <span>⚡ Tylko {stock} sztuk pozostało w magazynie!</span>
       </div>
     </div>
   );
@@ -420,14 +506,14 @@ const ResultsSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <img
-              src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
-              alt="Risultati soddisfacenti"
+              src="/images/Cuc_pl15.jpg"
+              alt="Zadowalające rezultaty"
               className="w-full h-auto rounded-lg shadow-lg"
             />
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Trasforma il Tuo Cucito con Risultati Eccezionali
+              Przekształć Swoje Szycie z Wyjątkowymi Rezultatami
             </h2>
 
             <div className="space-y-8">
@@ -459,7 +545,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">97%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Hanno trovato che il cucito diventa più semplice e veloce!</p>
+                <p className="text-sm font-medium text-gray-700">Stwierdziło, że szycie stało się prostsze i szybsze!</p>
               </div>
 
               {/* Progress bar 2 */}
@@ -490,7 +576,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">98%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Hanno notato un aumento della creatività nei loro progetti!</p>
+                <p className="text-sm font-medium text-gray-700">Zauważyło wzrost kreatywności w swoich projektach!</p>
               </div>
 
               {/* Progress bar 3 */}
@@ -521,7 +607,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">96%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Hanno risparmiato tempo grazie alle funzioni automatiche!</p>
+                <p className="text-sm font-medium text-gray-700">Zaoszczędziło czas dzięki funkcjom automatycznym!</p>
               </div>
             </div>
           </div>
@@ -543,8 +629,8 @@ const DeliveryTracking = () => {
 
   useEffect(() => {
     const formatData = (data: Date): string => {
-      const giorni = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
-      const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+      const giorni = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
+      const mesi = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
       const giornoSettimana = giorni[data.getDay()];
       const giorno = String(data.getDate()).padStart(2, '0');
       const mese = mesi[data.getMonth()];
@@ -557,7 +643,7 @@ const DeliveryTracking = () => {
       while (count < giorni) {
         nuovaData.setDate(nuovaData.getDate() + 1);
         const giorno = nuovaData.getDay();
-        if (giorno !== 0 && giorno !== 6) count++; // 0 = domenica, 6 = sabato
+        if (giorno !== 0 && giorno !== 6) count++; // 0 = niedziela, 6 = sobota
       }
       return nuovaData;
     };
@@ -573,33 +659,105 @@ const DeliveryTracking = () => {
       shipDate: formatData(dataSpedizione),
       deliveryStart: formatData(dataConsegnaInizio),
       deliveryEnd: formatData(dataConsegnaFine),
-      deliveryRange: `${formatData(dataConsegnaInizio)} e ${formatData(dataConsegnaFine)}`
+      deliveryRange: `${formatData(dataConsegnaInizio)} a ${formatData(dataConsegnaFine)}`
     });
   }, []);
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <p className="text-center text-gray-700 mb-4">
-        Ordina <strong>ORA</strong> e riceverai il tuo pacco tra <strong>{deliveryDates.deliveryRange}</strong>
+        Zamów <strong>TERAZ</strong> i otrzymasz swoją paczkę między <strong>{deliveryDates.deliveryRange}</strong>
       </p>
       <div className="flex justify-between items-center text-sm">
         <div className="text-center">
           <div className="text-2xl mb-1">📦</div>
-          <div className="font-medium">Ordinato</div>
+          <div className="font-medium">Zamówione</div>
           <div className="text-gray-500">{deliveryDates.orderDate}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl mb-1">🚚</div>
-          <div className="font-medium">Spedito</div>
+          <div className="font-medium">Wysłane</div>
           <div className="text-gray-500">{deliveryDates.shipDate}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl mb-1">📍</div>
-          <div className="font-medium">Consegnato</div>
+          <div className="font-medium">Dostarczone</div>
           <div className="text-gray-500">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
         </div>
       </div>
     </div>
+  );
+};
+
+// Footer Component - LINK APRONO IN NUOVA SCHEDA
+const Footer = () => {
+  return (
+    <footer className="bg-gray-800 text-white py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <h3 className="text-xl font-bold mb-4">Newheras</h3>
+            <p className="text-gray-300 text-sm">
+              Najwyższej jakości maszyny do szycia dla Twojej kreatywności.
+            </p>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4">Obsługa Klienta</h4>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li><a href="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-white">Kontakt</a></li>
+              <li><a href="#" className="hover:text-white">FAQ</a></li>
+              <li><a href="/returns" target="_blank" rel="noopener noreferrer" className="hover:text-white">Zwroty</a></li>
+              <li><a href="#" className="hover:text-white">Gwarancja</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4">Informacje Prawne</h4>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white">Regulamin</a></li>
+              <li><a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Polityka Prywatności</a></li>
+              <li><a href="/cookies" target="_blank" rel="noopener noreferrer" className="hover:text-white">Polityka Cookies</a></li>
+              <li><a href="/gdpr" target="_blank" rel="noopener noreferrer" className="hover:text-white">Prawa Konsumenta</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold mb-4">Firma</h4>
+            <ul className="space-y-2 text-sm text-gray-300">
+              <li><a href="/about" target="_blank" rel="noopener noreferrer" className="hover:text-white">O Nas</a></li>
+              <li><a href="#" className="hover:text-white">Kariera</a></li>
+              <li><a href="#" className="hover:text-white">Blog</a></li>
+              <li><a href="#" className="hover:text-white">Partnerzy</a></li>
+            </ul>
+          </div>
+        </div>
+
+        <div className="border-t border-gray-700 mt-8 pt-8 text-center">
+          <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p className="text-sm text-gray-400">
+              © 2025 Newheras. Wszystkie prawa zastrzeżone.
+            </p>
+            <div className="flex space-x-6">
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Polityka Prywatności</a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Regulamin</a>
+              <a href="/cookies" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Cookies</a>
+            </div>
+          </div>
+
+          <div className="mt-6 text-xs text-gray-500 max-w-4xl mx-auto">
+            <p className="mb-2">
+              <strong>Informacje prawne:</strong> Wszystkie ceny zawierają podatek VAT. Prawo do odstąpienia od umowy w ciągu 14 dni zgodnie z prawem konsumenckim.
+              Gwarancja 24 miesiące zgodnie z Kodeksem Cywilnym. Sprzedawca: Newheras Sp. z o.o.
+            </p>
+            <p>
+              <strong>Ochrona danych:</strong> Przetwarzamy Twoje dane osobowe zgodnie z RODO. Szczegóły w Polityce Prywatności.
+              Używamy plików cookies w celach analitycznych i marketingowych. Więcej informacji w Polityce Cookies.
+            </p>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 };
 
@@ -610,27 +768,30 @@ export default function SewingMachineLanding() {
   const [showStickyButton, setShowStickyButton] = useState(false);
   const [bounceAnimation, setBounceAnimation] = useState(false);
   const [formData, setFormData] = useState({
-    nome: '',
-    telefono: '',
-    indirizzo: ''
+    imie: '',
+    telefon: '',
+    adres: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formErrors, setFormErrors] = useState({
-    nome: '',
-    telefono: '',
-    indirizzo: ''
+    imie: '',
+    telefon: '',
+    adres: ''
   });
 
   // Initialize tracking on component mount
   useEffect(() => {
+    // AGGIUNGI QUESTA LINEA QUI
+    trackingUtils.setFbClickId();
     // Initialize tracking systems
     trackingUtils.initFacebookPixel();
     trackingUtils.initGoogleAds();
+    trackingUtils.initGoogleAnalytics();
 
-    // Track PageView for both platforms
+    // Track PageView for all platforms
     trackingUtils.trackFacebookEvent('PageView');
     trackingUtils.trackGoogleEvent('page_view', {
-      page_title: 'Macchina da Cucire Creativa - Landing Page',
+      page_title: 'Maszyna do Szycia Kreatywna - Strona Główna',
       page_location: window.location.href
     });
 
@@ -649,7 +810,7 @@ export default function SewingMachineLanding() {
       const scrollPercentage = (scrollY / (documentHeight - windowHeight)) * 100;
 
       // Mostra il pulsante sticky dopo aver scrollato il 20%
-      setShowStickyButton(scrollPercentage > 20);
+      setShowStickyButton(scrollPercentage > 15);
     };
 
     window.addEventListener('scroll', handleScroll);
@@ -694,30 +855,33 @@ export default function SewingMachineLanding() {
   }, [showOrderPopup]);
 
   const handleOrderClick = () => {
-    // Track ViewContent event
-    trackingUtils.trackFacebookEvent('ViewContent', {
+    console.log('🎯 Order button clicked - tracking InitiateCheckout');
+
+    // Track InitiateCheckout event (inizio processo acquisto)
+    trackingUtils.trackFacebookEvent('InitiateCheckout', {
       content_type: 'product',
       content_ids: ['sewing-machine-creative'],
-      content_name: 'Macchina da Cucire Creativa',
-      value: 62.98,
-      currency: 'EUR'
+      content_name: 'Maszyna do Szycia Kreatywna',
+      value: 299.00,
+      currency: 'PLN',
+      num_items: 1
     });
 
     trackingUtils.trackGoogleEvent('view_item', {
-      currency: 'EUR',
-      value: 62.98,
+      currency: 'PLN',
+      value: 299.00,
       items: [{
         item_id: 'sewing-machine-creative',
-        item_name: 'Macchina da Cucire Creativa',
+        item_name: 'Maszyna do Szycia Kreatywna',
         category: 'Sewing Machines',
         quantity: 1,
-        price: 62.98
+        price: 299.00
       }]
     });
 
     setShowOrderPopup(true);
     setReservationTimer({ minutes: 5, seconds: 0 });
-    setFormErrors({ nome: '', telefono: '', indirizzo: '' });
+    setFormErrors({ imie: '', telefon: '', adres: '' });
   };
 
   const handleFormChange = (field: string, value: string) => {
@@ -728,33 +892,33 @@ export default function SewingMachineLanding() {
   };
 
   const validateForm = () => {
-    const errors = { nome: '', telefono: '', indirizzo: '' };
+    const errors = { imie: '', telefon: '', adres: '' };
     let isValid = true;
 
-    if (!formData.nome.trim()) {
-      errors.nome = 'Il nome è obbligatorio';
+    if (!formData.imie.trim()) {
+      errors.imie = 'Imię i nazwisko jest wymagane';
       isValid = false;
-    } else if (formData.nome.trim().length < 2) {
-      errors.nome = 'Il nome deve contenere almeno 2 caratteri';
+    } else if (formData.imie.trim().length < 2) {
+      errors.imie = 'Imię musi zawierać co najmniej 2 znaki';
       isValid = false;
     }
 
-    if (!formData.telefono.trim()) {
-      errors.telefono = 'Il numero di telefono è obbligatorio';
+    if (!formData.telefon.trim()) {
+      errors.telefon = 'Numer telefonu jest wymagany';
       isValid = false;
     } else {
       const phoneRegex = /^[\+]?[0-9\s\-\(\)]{8,15}$/;
-      if (!phoneRegex.test(formData.telefono.trim())) {
-        errors.telefono = 'Inserisci un numero di telefono valido';
+      if (!phoneRegex.test(formData.telefon.trim())) {
+        errors.telefon = 'Wprowadź prawidłowy numer telefonu';
         isValid = false;
       }
     }
 
-    if (!formData.indirizzo.trim()) {
-      errors.indirizzo = 'L\'indirizzo è obbligatorio';
+    if (!formData.adres.trim()) {
+      errors.adres = 'Adres jest wymagany';
       isValid = false;
-    } else if (formData.indirizzo.trim().length < 10) {
-      errors.indirizzo = 'L\'indirizzo deve essere più dettagliato (via, numero, città, CAP)';
+    } else if (formData.adres.trim().length < 10) {
+      errors.adres = 'Adres musi być bardziej szczegółowy (ulica, numer, miasto, kod pocztowy)';
       isValid = false;
     }
 
@@ -771,38 +935,34 @@ export default function SewingMachineLanding() {
 
     setIsSubmitting(true);
 
-    // Track InitiateCheckout event con CAPI
-    trackingUtils.trackFacebookEvent('InitiateCheckout', {
-      content_type: 'product',
-      content_ids: ['sewing-machine-creative'],
-      content_name: 'Macchina da Cucire Creativa',
-      value: 62.98,
-      currency: 'EUR',
-      num_items: 1
-    }, formData);
+    console.log('🎯 Form submitted, tracking Purchase with form data:', formData);
 
-    trackingUtils.trackGoogleEvent('begin_checkout', {
-      currency: 'EUR',
-      value: 62.98,
-      items: [{
-        item_id: 'sewing-machine-creative',
-        item_name: 'Macchina da Cucire Creativa',
-        category: 'Sewing Machines',
-        quantity: 1,
-        price: 62.98
-      }]
-    });
+    // 🚨 ESSENTIAL: Track Purchase event con CAPI PRIMA dell'invio API
+    // Questo garantisce che i dati arrivino sempre a N8N
+    try {
+      await trackingUtils.trackFacebookEvent('Purchase', {
+        content_type: 'product',
+        content_ids: ['sewing-machine-creative'],
+        content_name: 'Maszyna do Szycia Kreatywna',
+        value: 299.00,
+        currency: 'PLN',
+        num_items: 1
+      }, formData);
+      console.log('✅ Purchase tracking completato con successo');
+    } catch (trackingError) {
+      console.error('❌ Purchase tracking fallito, ma continuiamo:', trackingError);
+    }
 
     try {
       const apiFormData = new FormData();
 
       apiFormData.append('uid', '01980825-ae5a-7aca-8796-640a3c5ee3da');
       apiFormData.append('key', 'ad79469b31b0058f6ea72c');
-      apiFormData.append('offer', '236');
-      apiFormData.append('lp', '236');
-      apiFormData.append('name', formData.nome.trim());
-      apiFormData.append('tel', formData.telefono.trim());
-      apiFormData.append('street-address', formData.indirizzo.trim());
+      apiFormData.append('offer', '232');
+      apiFormData.append('lp', '232');
+      apiFormData.append('name', formData.imie.trim());
+      apiFormData.append('tel', formData.telefon.trim());
+      apiFormData.append('street-address', formData.adres.trim());
 
       const tmfpInput = document.querySelector('input[name="tmfp"]') as HTMLInputElement | null;
       if (!tmfpInput || !tmfpInput.value) {
@@ -816,48 +976,29 @@ export default function SewingMachineLanding() {
 
       if (response.ok) {
         const responseData = await response.text();
-        const orderId = `MCU${Date.now()}`;
+        const orderId = `MSK${Date.now()}`;
 
-        // Track Purchase events con CAPI
-        trackingUtils.trackFacebookEvent('Purchase', {
-          content_type: 'product',
-          content_ids: ['sewing-machine-creative'],
-          content_name: 'Macchina da Cucire Creativa',
-          value: 62.98,
-          currency: 'EUR',
-          num_items: 1
-        }, formData);
-
-        trackingUtils.trackGoogleEvent('Purchase', {
-          value: 62.98,
-          currency: 'EUR',
-          transaction_id: orderId,
-          items: [{
-            item_id: 'sewing-machine-creative',
-            item_name: 'Macchina da Cucire Creativa',
-            category: 'Sewing Machines',
-            quantity: 1,
-            price: 62.98
-          }]
-        });
+        console.log('✅ API response OK, order ID:', orderId);
 
         const orderData = {
           ...formData,
           orderId,
-          product: 'Macchina da Cucire Creativa',
-          price: 62.98,
+          product: 'Maszyna do Szycia Kreatywna',
+          price: 299.00,
           apiResponse: responseData
         };
 
         localStorage.setItem('orderData', JSON.stringify(orderData));
+        console.log('✅ Order data saved to localStorage:', orderData);
+
         window.location.href = '/ty-pl';
       } else {
         console.error('API Error:', response.status, response.statusText);
-        alert('Si è verificato un errore durante l\'invio dell\'ordine. Riprova più tardi.');
+        alert('Wystąpił błąd podczas wysyłania zamówienia. Spróbuj ponownie później.');
       }
     } catch (error) {
       console.error('Network Error:', error);
-      alert('Si è verificato un errore di connessione. Controlla la tua connessione internet e riprova.');
+      alert('Wystąpił błąd połączenia. Sprawdź połączenie internetowe i spróbuj ponownie.');
     } finally {
       setIsSubmitting(false);
     }
@@ -867,11 +1008,11 @@ export default function SewingMachineLanding() {
     <div className="min-h-screen bg-gray-50">
       <input type="hidden" name="tmfp" />
 
-      <SocialProofNotification />
+
 
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">
-          <span>🔥 OFFERTA LIMITATA - Solo per oggi a prezzo speciale!</span>
+          <span>🔥 OFERTA LIMITOWANA - Tylko dziś w specjalnej cenie!</span>
         </div>
       </div>
 
@@ -881,12 +1022,12 @@ export default function SewingMachineLanding() {
             <div className="order-1">
               <div className="relative">
                 <img
-                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
-                  alt="Macchina da Cucire Creativa"
+                  src="/images/Cuc_pl20.png"
+                  alt="Maszyna do Szycia Kreatywna"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  -52% OFF
+                  -52% TANIEJ
                 </div>
               </div>
             </div>
@@ -895,37 +1036,37 @@ export default function SewingMachineLanding() {
               <div className="flex items-center space-x-2">
                 <StarRating rating={5} size="w-5 h-5" />
                 <span className="text-yellow-600 font-medium">4.9</span>
-                <span className="text-gray-600">(347 recensioni)</span>
+                <span className="text-gray-600">(347 opinii)</span>
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                🧵 Macchina da Cucire Creativa – Compatta, Potente, Facilissima da Usare
+                🧵 Maszyna do Szycia Kreatywna
               </h1>
 
               <p className="text-lg text-gray-700 font-medium">
-                <strong>Facilita il cucito con opzioni automatiche e risultati precisi per progetti creativi.</strong>
+                <strong>Ułatwia szycie dzięki opcjom automatycznym i precyzyjnym rezultatom dla kreatywnych projektów.</strong>
               </p>
 
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎯 <strong>Migliora precisione</strong> – Cuciture complesse senza errori</span>
+                  <span className="text-base">🎯 <strong>Zwiększa precyzję</strong> – Skomplikowane szwy bez błędów</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🎨 <strong>Aumenta creatività</strong> – Dai vita a progetti divertenti</span>
+                  <span className="text-base">🎨 <strong>Zwiększa kreatywność</strong> – Ożyw zabawne projekty</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>⏱️ <strong>Riduce tempo</strong> – Infilatura automatica in un attimo</span>
+                  <span className="text-base">⏱️ <strong>Oszczędza czas</strong> – Automatyczne nawlekanie w mgnieniu oka</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>🤝 <strong>Supporto continuo</strong> – Assistenza sempre disponibile</span>
+                  <span className="text-base">🤝 <strong>Ciągłe wsparcie</strong> – Pomoc zawsze dostępna</span>
                 </div>
               </div>
 
-              {/* NUOVO BOX OFFERTA CON STILE DELLA SECONDA IMMAGINE */}
+              {/* NOWY BOX OFERTY */}
               <div style={{
                 fontFamily: 'sans-serif',
                 background: '#fff',
@@ -942,7 +1083,7 @@ export default function SewingMachineLanding() {
                   marginBottom: '15px',
                   textAlign: 'center'
                 }}>
-                  🧵 Macchina da Cucire Creativa – Compatta, Potente, Facilissima da Usare
+                  🧵 Maszyna do Szycia Kreatywna – Kompaktowa, Potężna, Bardzo Łatwa w Użyciu
                 </h2>
 
                 <div style={{
@@ -954,13 +1095,13 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>📅 Ampia varietà di punti: 165 programmi inclusi (decorativi, utili e alfanumerici)</span>
+                  <span style={{ flex: '1 1 70%' }}>📅 Szeroka gama ściegów: 165 programów w zestawie (ozdobne, użytkowe i alfanumeryczne)</span>
                   <span style={{
                     color: 'red',
                     textDecoration: 'line-through',
                     fontWeight: 'bold',
                     whiteSpace: 'nowrap'
-                  }}>€129,99</span>
+                  }}>629,99 zł</span>
                 </div>
 
                 <div style={{
@@ -972,12 +1113,12 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>✨ Infila ago automatico: Risparmia tempo e stress</span>
+                  <span style={{ flex: '1 1 70%' }}>✨ Automatyczne nawlekanie igły: Oszczędza czas i stres</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
                     whiteSpace: 'nowrap'
-                  }}>✔ Incluso</span>
+                  }}>✔ W zestawie</span>
                 </div>
 
                 <div style={{
@@ -989,12 +1130,12 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🔢 Display LCD retroilluminato: Tutto sotto controllo</span>
+                  <span style={{ flex: '1 1 70%' }}>🔢 Podświetlany wyświetlacz LCD: Wszystko pod kontrolą</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
                     whiteSpace: 'nowrap'
-                  }}>✔ Incluso</span>
+                  }}>✔ W zestawie</span>
                 </div>
 
                 <div style={{
@@ -1006,12 +1147,12 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🛋 Accessori completi: Tavolo estensibile, piedini, DVD e altro ancora</span>
+                  <span style={{ flex: '1 1 70%' }}>🛋 Kompletne akcesoria: Stół rozkładany, stopki, DVD i wiele więcej</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
                     whiteSpace: 'nowrap'
-                  }}>✔ Incluso</span>
+                  }}>✔ W zestawie</span>
                 </div>
 
                 <div style={{
@@ -1021,7 +1162,7 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  🚚 <strong>Spedizione Gratis</strong> in tutta Italia (consegna in 3-4 giorni lavorativi)
+                  🚚 <strong>Darmowa dostawa</strong> w całej Polsce (dostawa w 3-4 dni robocze)
                 </div>
 
                 <div style={{
@@ -1031,7 +1172,7 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  💶 <strong>Pagamento alla consegna</strong> disponibile
+                  💶 <strong>Płatność przy odbiorze</strong> dostępna
                 </div>
 
                 <div style={{
@@ -1044,9 +1185,9 @@ export default function SewingMachineLanding() {
                   color: '#16a34a',
                   fontWeight: 'bold'
                 }}>
-                  Prezzo di listino: <span style={{ textDecoration: 'line-through', color: 'red' }}>€129,99</span><br />
+                  Cena katalogowa: <span style={{ textDecoration: 'line-through', color: 'red' }}>629,99 zł</span><br />
                   <div style={{ marginTop: '10px' }}>
-                    Oggi solo: <span style={{ fontSize: '26px' }}>€59,99</span>
+                    Dziś tylko: <span style={{ fontSize: '26px' }}>299,00 zł</span>
                   </div>
                 </div>
 
@@ -1060,8 +1201,8 @@ export default function SewingMachineLanding() {
                   marginBottom: '10px',
                   fontSize: '14px'
                 }}>
-                  ⏳ <strong>Offerta valida solo per pochi giorni!</strong><br />
-                  Approfitta prima che torni a prezzo pieno.
+                  ⏳ <strong>Oferta ważna tylko przez kilka dni!</strong><br />
+                  Skorzystaj zanim wróci do pełnej ceny.
                 </div>
 
                 <div style={{
@@ -1084,22 +1225,54 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  ⚡ Ultimi pezzi disponibili in magazzino
+                  ⚡ Ostatnie sztuki dostępne w magazynie
                 </div>
 
                 <p style={{ textAlign: 'center', fontSize: '14px', color: '#555' }}>
-                  📦 Spedito in 24/48h – Consegna garantita in 3-4 giorni
+                  📦 Wysyłka w 24/48h – Dostawa gwarantowana w 3-4 dni
                 </p>
               </div>
 
               <button
                 onClick={handleOrderClick}
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg"
+                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg animate-pulse-button"
               >
-                🛒 ORDINA ORA - Pagamento alla Consegna
+                🔥 ZAMÓW TERAZ - Płatność przy Odbiorze
               </button>
 
               <DeliveryTracking />
+
+              {/* Recensione evidenziata */}
+              <div className="mt-8 bg-white p-6 rounded-lg shadow-lg border border-gray-200">
+                {/* Layout con foto centrata verticalmente rispetto al testo */}
+                <div className="flex items-center space-x-4">
+                  <img
+                    src="images/testim2.jpg"
+                    alt="Katarzyna M."
+                    className="w-14 h-14 rounded-full object-cover flex-shrink-0"
+                  />
+
+                  <div className="flex-1">
+                    {/* Stelle sopra il testo, allineate a sinistra */}
+                    <div className="mb-3">
+                      <StarRating rating={5} size="w-4 h-4" />
+                    </div>
+
+                    <p className="text-gray-800 text-sm leading-relaxed mb-3">
+                      "Kupiłam tę maszynę 3 tygodnie temu i jestem zachwycona! 🌟 Automatyczne nawlekanie to prawdziwy game-changer - oszczędza mi tyle czasu! Uszyłam już kilka sukienek i pokrowców na poduszki. Jakość ściegów jest niesamowita, a obsługa przez LCD jest bardzo intuicyjna. Najlepszy zakup tego roku!"
+                    </p>
+
+                    {/* Nome con checkmark blu */}
+                    <div className="flex items-center space-x-2">
+                      <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">✓</span>
+                      </div>
+                      <span className="font-bold text-gray-900 text-sm">Katarzyna M.</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
@@ -1110,19 +1283,19 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                ✨ Scopri la Macchina da Cucire Creativa – La Tua Compagna Ideale per Ogni Progetto!
+                ✨ Odkryj Maszynę do Szycia Kreatywną – Twoją Idealną Towarzyszkę dla Każdego Projektu!
               </h2>
               <p className="text-lg text-gray-700 mb-6">
-                La <strong>Macchina da Cucire Creativa</strong> è progettata per liberare la tua creatività e semplificare ogni fase del cucito.
+                <strong>Maszyna do Szycia Kreatywna</strong> została zaprojektowana, aby uwolnić Twoją kreatywność i uprościć każdy etap szycia.
               </p>
               <p className="text-lg text-gray-700">
-                Con <strong>165 punti incorporati</strong>, inclusi punti utili, decorativi e alfabetici, potrai realizzare qualsiasi progetto, dai capi d'abbigliamento alle decorazioni per la casa.
+                Z <strong>165 wbudowanymi ściegami</strong>, w tym ściegami użytkowymi, ozdobnymi i alfabetycznymi, będziesz mogła zrealizować każdy projekt, od odzieży po dekoracje do domu.
               </p>
             </div>
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/18_f4cbe1da-c323-46aa-b30d-bec97a0bddf7.jpg?v=1749044582&width=600"
-                alt="Macchina da Cucire in uso"
+                src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
+                alt="Maszyna do szycia w użyciu"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
@@ -1135,44 +1308,44 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <img
-                src="https://cosedicase.com/cdn/shop/files/15_54387e19-bea6-45d3-b0d0-ce597a350b7e.jpg?v=1749044582&width=600"
-                alt="Caratteristiche della macchina"
+                src="/images/Cuc_pl19.png"
+                alt="Cechy maszyny"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
             <div className="order-1 lg:order-2">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Caratteristiche principali
+                Główne cechy
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Ampia varietà di punti:</strong> 165 punti incorporati, tra cui 110 punti utili e decorativi, 8 stili di asole automatiche e 55 caratteri alfanumerici.
+                  <div className="text-lg">
+                    <strong>Szeroka gama ściegów:</strong> 165 wbudowanych ściegów, w tym 110 ściegów użytkowych i ozdobnych, 8 stylów automatycznych dziurek na guziki i 55 znaków alfanumerycznych.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Infila ago automatico:</strong> Risparmia tempo e fatica grazie al sistema di infilatura automatica dell'ago.
+                  <div className="text-lg">
+                    <strong>Automatyczne nawlekanie igły:</strong> Oszczędza czas i wysiłek dzięki systemowi automatycznego nawlekania igły.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Display LCD intuitivo:</strong> Seleziona facilmente i punti e le impostazioni tramite il display retroilluminato.
+                  <div className="text-lg">
+                    <strong>Intuicyjny wyświetlacz LCD:</strong> Łatwo wybieraj ściegi i ustawienia przez podświetlany wyświetlacz.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Accessori inclusi:</strong> Viene fornita con una copertura rigida protettiva, tavolo estensibile, 8 piedini per cucito e quilting, DVD istruttivo e altro ancora.
+                  <div className="text-lg">
+                    <strong>Akcesoria w zestawie:</strong> Dostarczana z twardą pokrywą ochronną, stołem rozkładanym, 8 stopkami do szycia i pikowania, instruktażowym DVD i wieloma innymi.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <div>
-                    <strong>Supporto dedicato:</strong> Assistenza tecnica gratuita online, via chat o telefono per tutta la durata della macchina.
+                  <div className="text-lg">
+                    <strong>Dedykowane wsparcie:</strong> Bezpłatna pomoc techniczna online, przez czat lub telefon przez cały okres użytkowania maszyny.
                   </div>
                 </div>
               </div>
@@ -1185,18 +1358,18 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Cucito Semplice e Creativo
+              Szycie Proste i Kreatywne
             </h2>
             <p className="text-lg text-gray-700">
-              Scopri come questa macchina semplifica il cucito, migliorando la precisione e la creatività nei tuoi progetti.
+              Odkryj, jak ta maszyna upraszcza szycie, poprawiając precyzję i kreatywność w Twoich projektach.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/12.jpg?v=1749030210&width=600"
-                alt="Macchina da cucire in azione"
+                src="/images/Cuc_pl18.png"
+                alt="Maszyna do szycia w akcji"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
@@ -1204,23 +1377,23 @@ export default function SewingMachineLanding() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">📏</div>
-                  <h3 className="font-bold text-lg mb-2">Precisione</h3>
-                  <p className="text-gray-600">Ottieni cuciture precise e uniformi facilmente.</p>
+                  <h3 className="font-bold text-lg mb-2">Precyzja</h3>
+                  <p className="text-gray-600">Uzyskaj precyzyjne i równe szwy z łatwością.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">🧵</div>
-                  <h3 className="font-bold text-lg mb-2">Versatilità</h3>
-                  <p className="text-gray-600">Scegli tra tanti punti decorativi e utili.</p>
+                  <h3 className="font-bold text-lg mb-2">Wszechstronność</h3>
+                  <p className="text-gray-600">Wybierz spośród wielu ściegów ozdobnych i użytkowych.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">🕒</div>
-                  <h3 className="font-bold text-lg mb-2">Risparmio Tempo</h3>
-                  <p className="text-gray-600">Infilatura automatica per iniziare subito.</p>
+                  <h3 className="font-bold text-lg mb-2">Oszczędność Czasu</h3>
+                  <p className="text-gray-600">Automatyczne nawlekanie dla natychmiastowego rozpoczęcia.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">📚</div>
-                  <h3 className="font-bold text-lg mb-2">Supporto</h3>
-                  <p className="text-gray-600">Assistenza tecnica a vita per la tua tranquillità.</p>
+                  <h3 className="font-bold text-lg mb-2">Wsparcie</h3>
+                  <p className="text-gray-600">Pomoc techniczna na całe życie dla Twojego spokoju.</p>
                 </div>
               </div>
             </div>
@@ -1232,10 +1405,10 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Cosa Rende Unica la Macchina da Cucire Creativa
+              Co Czyni Maszynę do Szycia Kreatywną Wyjątkową
             </h2>
             <p className="text-lg text-gray-700">
-              A differenza di altri, offre funzioni automatiche, un ampio tavolo e supporto tecnico a vita, migliorando l'esperienza di cucito e creatività.
+              W przeciwieństwie do innych, oferuje funkcje automatyczne, szeroki stół i dożywotnie wsparcie techniczne, poprawiając doświadczenie szycia i kreatywność.
             </p>
           </div>
 
@@ -1243,27 +1416,27 @@ export default function SewingMachineLanding() {
             <div className="min-w-full">
               <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
                 <div></div>
-                <div className="font-bold text-lg">Macchina da Cucire Creativa</div>
-                <div className="font-bold text-lg">Altri</div>
+                <div className="font-bold text-lg">Maszyna do Szycia Kreatywna</div>
+                <div className="font-bold text-lg">Inne</div>
               </div>
 
               {[
-                'Precisione',
-                'Versatilità',
-                'Automazione',
-                'Supporto',
-                'Conveniente'
+                'Precyzja',
+                'Wszechstronność',
+                'Automatyzacja',
+                'Wsparcie',
+                'Opłacalność'
               ].map((feature, index) => (
                 <div key={index} className="border-b border-gray-200 py-4">
                   <div className="md:hidden">
                     <div className="font-medium text-lg mb-3">{feature}</div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-white p-3 rounded-lg text-center">
-                        <div className="font-medium text-green-600 mb-1">Noi</div>
+                        <div className="font-medium text-green-600 mb-1">My</div>
                         <Check className="w-6 h-6 text-green-600 mx-auto" />
                       </div>
                       <div className="bg-white p-3 rounded-lg text-center">
-                        <div className="font-medium text-red-600 mb-1">Altri</div>
+                        <div className="font-medium text-red-600 mb-1">Inne</div>
                         <span className="text-red-600 text-xl">✗</span>
                       </div>
                     </div>
@@ -1291,33 +1464,33 @@ export default function SewingMachineLanding() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Risposte alle Tue Domande Frequenti
+              Odpowiedzi na Twoje Najczęściej Zadawane Pytania
             </h2>
             <p className="text-lg text-gray-700">
-              Chiarezza e supporto per un acquisto sicuro.
+              Jasność i wsparcie dla bezpiecznego zakupu.
             </p>
           </div>
 
           <div className="space-y-4">
             <FAQ
-              question="Come facilita il cucito automatico?"
-              answer="La macchina dispone di selezione automatica dei punti e infilatura per un cucito semplice e veloce."
+              question="Jak ułatwia automatyczne szycie?"
+              answer="Maszyna posiada automatyczny wybór ściegów i nawlekanie dla prostego i szybkiego szycia."
             />
             <FAQ
-              question="Quali accessori sono inclusi?"
-              answer="Include tavolo ampio, copertura dura, piedi per cucito e un DVD istruttivo."
+              question="Jakie akcesoria są w zestawie?"
+              answer="Zawiera szeroki stół, twardą pokrywę, stopki do szycia i instruktażowe DVD."
             />
             <FAQ
-              question="È adatta per progetti di quilt?"
-              answer="Sì, grazie al tavolo ampio e ai punti decorativi, è perfetta per quilt grandi."
+              question="Czy nadaje się do projektów pikowania?"
+              answer="Tak, dzięki szerokiemu stołowi i ściegom ozdobnym jest idealna do dużych pikowanych projektów."
             />
             <FAQ
-              question="Come funziona il supporto tecnico?"
-              answer="Offriamo supporto online e telefonico per la vita del prodotto, garantendo assistenza continua."
+              question="Jak działa wsparcie techniczne?"
+              answer="Oferujemy wsparcie online i telefoniczne na całe życie produktu, gwarantując ciągłą pomoc."
             />
             <FAQ
-              question="La macchina è facile da usare per i principianti?"
-              answer="Assolutamente, con funzioni intuitive e un display LCD, è ideale anche per chi è alle prime armi."
+              question="Czy maszyna jest łatwa w użyciu dla początkujących?"
+              answer="Absolutnie, z intuicyjnymi funkcjami i wyświetlaczem LCD, jest idealna nawet dla osób zaczynających."
             />
           </div>
         </div>
@@ -1331,65 +1504,65 @@ export default function SewingMachineLanding() {
               <span className="text-2xl font-bold">4.9/5</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Le opinioni dei clienti sulla macchina da cucire
+              Opinie klientów o maszynie do szycia
             </h2>
             <p className="text-lg text-gray-700">
-              Feedback autentici e affidabili
+              Autentyczne i wiarygodne opinie
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                name: "Sara V.",
+                name: "Anna K.",
                 rating: 5,
-                review: "Questa macchina da cucire ha cambiato il mio modo di cucire! 😍 Le opzioni di punti sono incredibili e mi permettono di creare capolavori. Amo la facilità d'uso e il supporto tecnico è sempre disponibile."
+                review: "Ta maszyna do szycia zmieniła mój sposób szycia! 😍 Opcje ściegów są niesamowite i pozwalają mi tworzyć arcydzieła. Uwielbiam łatwość użytkowania, a wsparcie techniczne jest zawsze dostępne."
               },
               {
-                name: "Caterina D.",
+                name: "Katarzyna D.",
                 rating: 4,
-                review: "Facile da usare, anche se alcune funzioni richiedono pratica. Nel complesso molto soddisfatta dell'acquisto."
+                review: "Łatwa w użyciu, chociaż niektóre funkcje wymagają praktyki. Ogólnie bardzo zadowolona z zakupu."
               },
               {
-                name: "Anna S.",
+                name: "Magdalena S.",
                 rating: 5,
-                review: "Perfetta per cucire! Non posso credere a quanto sia semplice creare abiti con questa macchina!"
+                review: "Idealna do szycia! Nie mogę uwierzyć, jak proste jest tworzenie ubrań tą maszyną!"
               },
               {
-                name: "Martina F.",
+                name: "Martyna F.",
                 rating: 4,
-                review: "Le funzioni di questa macchina mi hanno permesso di esplorare nuovi orizzonti nel cucito. Consigliatissima!"
+                review: "Funkcje tej maszyny pozwoliły mi odkrywać nowe horyzonty w szyciu. Gorąco polecam!"
               },
               {
-                name: "Valentina J.",
+                name: "Wiktoria J.",
                 rating: 5,
-                review: "La macchina è fantastica ma il servizio clienti è ancora meglio. Mi hanno aiutato con ogni domanda."
+                review: "Maszyna jest fantastyczna, ale obsługa klienta jest jeszcze lepsza. Pomogli mi z każdym pytaniem."
               },
               {
                 name: "Federica O.",
                 rating: 5,
-                review: "Un ottimo acquisto per chi cerca versatilità e qualità. La varietà di punti è perfetta per ogni progetto creativo!"
+                review: "Doskonały zakup dla osób szukających wszechstronności i jakości. Różnorodność ściegów jest idealna dla każdego kreatywnego projektu!"
               },
               {
                 name: "Chiara N.",
                 rating: 4,
-                review: "Veramente utile! Ho cucito tende, abiti e persino un quilt gigante! La tabella larga è indispensabile."
+                review: "Naprawdę przydatna! Uszyłam zasłony, ubrania, a nawet gigantyczną kołdrę! Szeroki stół jest niezbędny."
               },
               {
                 name: "Laura P.",
                 rating: 5,
-                review: "Non posso fare a meno della funzione di infilatura automatica, un vero salvavita!"
+                review: "Nie mogę się obyć bez funkcji automatycznego nawlekania, to prawdziwy wybawca!"
               },
               {
-                name: "Beatrice H.",
+                name: "Beata H.",
                 rating: 5,
-                review: "Ideale per chi ama cucire e creare capolavori unici. Dopo settimane di uso intenso, continua a funzionare perfettamente."
+                review: "Idealna dla osób, które kochają szyć i tworzyć unikalne arcydzieła. Po tygodniach intensywnego użytkowania nadal działa perfekcyjnie."
               }
             ].map((review, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex items-center space-x-2 mb-3">
                   <StarRating rating={review.rating} />
-                  <span className="text-sm text-gray-600">Acquirente Verificato</span>
+                  <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
                 </div>
                 <p className="text-gray-700 mb-3">{review.review}</p>
                 <p className="font-medium text-gray-900">- {review.name}</p>
@@ -1401,17 +1574,17 @@ export default function SewingMachineLanding() {
             <div className="flex items-start space-x-4">
               <img
                 src="https://cosedicase.com/cdn/shop/files/e76d708b-f0b3-4c06-a0db-d2f9f235e260.webp?v=1749027133&width=70"
-                alt="Sara V."
+                alt="Anna K."
                 className="w-16 h-16 rounded-full"
               />
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <StarRating rating={5} />
-                  <span className="font-medium">Sara V.</span>
-                  <span className="text-sm text-gray-600">Acquirente Verificato</span>
+                  <span className="font-medium">Anna K.</span>
+                  <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
                 </div>
                 <p className="text-gray-700">
-                  "Questa macchina da cucire ha cambiato il mio modo di cucire! 😍 Le opzioni di punti sono incredibili e mi permettono di creare capolavori. Amo la facilità d'uso e il supporto tecnico è sempre disponibile. Non potrei essere più felice con il mio acquisto!"
+                  "Ta maszyna do szycia zmieniła mój sposób szycia! 😍 Opcje ściegów są niesamowite i pozwalają mi tworzyć arcydzieła. Uwielbiam łatwość użytkowania, a wsparcie techniczne jest zawsze dostępne. Nie mogłabym być bardziej szczęśliwa z mojego zakupu!"
                 </p>
               </div>
             </div>
@@ -1424,13 +1597,13 @@ export default function SewingMachineLanding() {
           <div className="bg-green-50 border border-green-200 rounded-lg p-8">
             <Shield className="w-16 h-16 text-green-600 mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Garanzia di Rimborso di 30 Giorni
+              30-Dniowa Gwarancja Zwrotu Pieniędzy
             </h2>
             <p className="text-lg text-gray-700 mb-6">
-              Prova la macchina da cucire in tutta sicurezza con la nostra garanzia di rimborso di 30 giorni. Sperimenta la facilità e la precisione del cucito senza rischi, e scopri come può trasformare la tua creatività.
+              Wypróbuj maszynę do szycia z całkowitym bezpieczeństwem dzięki naszej 30-dniowej gwarancji zwrotu pieniędzy. Doświadcz łatwości i precyzji szycia bez ryzyka i odkryj, jak może przekształcić Twoją kreatywność.
             </p>
             <p className="text-xl font-bold text-green-600">
-              Se non sei completamente soddisfatta, ti rimborsiamo l'intero importo.
+              Jeśli nie jesteś całkowicie zadowolona, zwrócimy Ci całą kwotę.
             </p>
           </div>
         </div>
@@ -1440,7 +1613,7 @@ export default function SewingMachineLanding() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Perché acquistare da noi?
+              Dlaczego kupować od nas?
             </h2>
           </div>
 
@@ -1448,39 +1621,39 @@ export default function SewingMachineLanding() {
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Numero di tracciabilità per ogni ordine</span>
+                <span>Numer śledzenia dla każdego zamówienia</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Pagamenti direttamente alla consegna</span>
+                <span>Płatności bezpośrednio przy odbiorze</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Assistenza 24 ore su 24, 7 giorni su 7</span>
+                <span>Pomoc 24 godziny na dobę, 7 dni w tygodniu</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Nessun costo nascosto!</span>
+                <span>Brak ukrytych kosztów!</span>
               </div>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-lg mb-4">SPEDIZIONE</h3>
+              <h3 className="font-bold text-lg mb-4">DOSTAWA</h3>
               <p className="text-gray-700 mb-4">
-                Spediamo in tutta Italia e se l'ordine viene effettuato prima delle 21:59, l'ordine verrà spedito entro il giorno lavorativo successivo.
+                Wysyłamy w całej Polsce, a jeśli zamówienie zostanie złożone przed 21:59, zostanie wysłane następnego dnia roboczego.
               </p>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">Consegnato in 3-4 giorni lavorativi</span>
+                  <span className="text-sm">Dostarczone w 3-4 dni robocze</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">Compreso il numero di tracciabilità</span>
+                  <span className="text-sm">W zestawie numer śledzenia</span>
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-4">
-                Venduto esclusivamente da <strong>LECOSEDICASE.COM</strong>
+                Sprzedawane wyłącznie przez <strong>NEWHERAS</strong>
               </p>
             </div>
           </div>
@@ -1490,10 +1663,10 @@ export default function SewingMachineLanding() {
       <section className="py-16 bg-orange-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">
-            🔥 Non Perdere Questa Offerta Speciale!
+            🔥 Nie Przegap Tej Specjalnej Oferty!
           </h2>
           <p className="text-xl mb-8">
-            Solo per oggi: <span className="line-through opacity-75">€129,99</span> <span className="text-5xl font-bold">€62,98</span>
+            Tylko na dziś: <span className="line-through opacity-75">629,99 zł</span> <span className="text-5xl font-bold">299,00 zł</span>
           </p>
 
           <div className="bg-white/10 backdrop-blur rounded-lg p-6 mb-8">
@@ -1501,17 +1674,17 @@ export default function SewingMachineLanding() {
               <div>
                 <Users className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">2,847+</div>
-                <div className="text-sm opacity-90">Clienti Soddisfatti</div>
+                <div className="text-sm opacity-90">Zadowolonych Klientów</div>
               </div>
               <div>
                 <Package className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">98.7%</div>
-                <div className="text-sm opacity-90">Tasso di Soddisfazione</div>
+                <div className="text-sm opacity-90">Wskaźnik Zadowolenia</div>
               </div>
               <div>
                 <Clock className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">24/7</div>
-                <div className="text-sm opacity-90">Supporto Clienti</div>
+                <div className="text-sm opacity-90">Obsługa Klientów</div>
               </div>
             </div>
           </div>
@@ -1520,11 +1693,11 @@ export default function SewingMachineLanding() {
             onClick={handleOrderClick}
             className="bg-white text-orange-600 hover:bg-gray-100 font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-200 shadow-lg mb-4 w-full md:w-auto"
           >
-            🛒 ORDINA ORA - ULTIMI PEZZI DISPONIBILI
+            🛒 ZAMÓW TERAZ - OSTATNIE SZTUKI DOSTĘPNE
           </button>
 
           <p className="text-sm opacity-90">
-            ⚡ Offerta limitata nel tempo • 🚚 Spedizione gratuita • 💯 Garanzia 30 giorni
+            ⚡ Oferta ograniczona w czasie • 🚚 Darmowa dostawa • 💯 Gwarancja 30 dni
           </p>
         </div>
       </section>
@@ -1538,7 +1711,7 @@ export default function SewingMachineLanding() {
           className={`w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-200 shadow-lg ${bounceAnimation ? 'animate-bounce' : ''
             }`}
         >
-          🛒 ORDINA ORA - Pagamento alla Consegna
+          🔥 ZAMÓW TERAZ - Płatność przy Odbiorze
         </button>
       </div>
 
@@ -1552,96 +1725,96 @@ export default function SewingMachineLanding() {
               ×
             </button>
 
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Compila per ordinare</h3>
-            <p className="text-gray-600 mb-4 md:mb-6">Pagamento alla consegna</p>
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Wypełnij aby zamówić</h3>
+            <p className="text-gray-600 mb-4 md:mb-6">Płatność przy odbiorze</p>
 
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
-              <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Riepilogo ordine</h4>
+              <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Podsumowanie zamówienia</h4>
               <div className="flex items-center gap-3">
                 <img
-                  src="https://cosedicase.com/cdn/shop/files/12_7c7dad15-e9f3-458a-a4b4-4ee69d6424dc.jpg?v=1749044582&width=1000"
-                  alt="Macchina da Cucire"
+                  src="/images/Cuc_pl20.png"
+                  alt="Maszyna do Szycia"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 text-sm md:text-base">Macchina da Cucire Creativa</div>
-                  <div className="text-xs md:text-sm text-gray-600">Compatta, Potente, Facilissima da Usare</div>
-                  <div className="text-xs md:text-sm text-green-600">✅ Spedizione gratuita</div>
+                  <div className="font-medium text-gray-900 text-sm md:text-base">Maszyna do Szycia Kreatywna</div>
+                  <div className="text-xs md:text-sm text-gray-600">Kompaktowa, Potężna, Bardzo Łatwa w Użyciu</div>
+                  <div className="text-xs md:text-sm text-green-600">✅ Darmowa dostawa</div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-lg md:text-xl text-gray-900">€62,98</div>
-                  <div className="text-xs text-gray-500 line-through">€129,99</div>
+                  <div className="font-bold text-lg md:text-xl text-gray-900">299,00 zł</div>
+                  <div className="text-xs text-gray-500 line-through">629,99 zł</div>
                 </div>
               </div>
             </div>
 
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 md:mb-6">
               <div className="text-center">
-                <div className="text-xs text-red-600 mb-1">🔒 Stiamo riservando il tuo ordine</div>
+                <div className="text-xs text-red-600 mb-1">🔒 Rezerwujemy Twoje zamówienie</div>
                 <div className="text-xl md:text-2xl font-mono font-bold text-red-700">
                   {reservationTimer.minutes.toString().padStart(2, '0')}:{reservationTimer.seconds.toString().padStart(2, '0')}
                 </div>
                 <div className="text-xs text-red-600 mt-1">
-                  Tempo rimanente per completare l'ordine
+                  Pozostały czas na sfinalizowanie zamówienia
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 md:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nome e Cognome *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Imię i Nazwisko *</label>
                 <input
                   type="text"
-                  value={formData.nome}
-                  onChange={(e) => handleFormChange('nome', e.target.value)}
-                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.nome
+                  value={formData.imie}
+                  onChange={(e) => handleFormChange('imie', e.target.value)}
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.imie
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Il tuo nome completo"
+                  placeholder="Twoje pełne imię i nazwisko"
                 />
-                {formErrors.nome && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.nome}</p>
+                {formErrors.imie && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.imie}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Numero di Telefono *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Numer Telefonu *</label>
                 <input
                   type="tel"
-                  value={formData.telefono}
-                  onChange={(e) => handleFormChange('telefono', e.target.value)}
-                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.telefono
+                  value={formData.telefon}
+                  onChange={(e) => handleFormChange('telefon', e.target.value)}
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 text-base ${formErrors.telefon
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Il tuo numero di telefono"
+                  placeholder="Twój numer telefonu"
                 />
-                {formErrors.telefono && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.telefono}</p>
+                {formErrors.telefon && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.telefon}</p>
                 )}
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Indirizzo Completo *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Pełny Adres *</label>
                 <textarea
-                  value={formData.indirizzo}
-                  onChange={(e) => handleFormChange('indirizzo', e.target.value)}
-                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 h-20 md:h-20 text-base resize-none ${formErrors.indirizzo
+                  value={formData.adres}
+                  onChange={(e) => handleFormChange('adres', e.target.value)}
+                  className={`w-full px-3 py-3 md:py-2 border rounded-md focus:outline-none focus:ring-2 h-20 md:h-20 text-base resize-none ${formErrors.adres
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Via, numero civico, città, CAP"
+                  placeholder="Ulica, numer domu, miasto, kod pocztowy"
                 />
-                {formErrors.indirizzo && (
-                  <p className="mt-1 text-sm text-red-600">{formErrors.indirizzo}</p>
+                {formErrors.adres && (
+                  <p className="mt-1 text-sm text-red-600">{formErrors.adres}</p>
                 )}
               </div>
             </div>
 
             <div className="flex items-center justify-center gap-2 mb-4 mt-4 text-gray-700">
               <Shield className="w-5 h-5" />
-              <span className="font-medium text-sm md:text-base">Pagamento alla consegna</span>
+              <span className="font-medium text-sm md:text-base">Płatność przy odbiorze</span>
             </div>
 
             <button
@@ -1649,27 +1822,41 @@ export default function SewingMachineLanding() {
               disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
             >
-              {isSubmitting ? 'ELABORANDO...' : 'CONFERMA ORDINE - €62,98'}
+              {isSubmitting ? 'PRZETWARZANIE...' : 'POTWIERDŹ ZAMÓWIENIE - 299,00 zł'}
             </button>
           </div>
         </div>
       )}
 
+      <Footer />
+
       <style jsx>{`
-        @keyframes slide-up {
-          from {
-            transform: translateY(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateY(0);
-            opacity: 1;
-          }
-        }
-        .animate-slide-up {
-          animation: slide-up 0.3s ease-out;
-        }
-      `}</style>
+  @keyframes slide-up {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+  .animate-slide-up {
+    animation: slide-up 0.3s ease-out;
+  }
+  
+  @keyframes pulse-button {
+    0%, 100% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+  }
+  .animate-pulse-button {
+    animation: pulse-button 2s ease-in-out infinite;
+  }
+`}</style>
     </div>
   );
 }

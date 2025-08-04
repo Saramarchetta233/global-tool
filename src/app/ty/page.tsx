@@ -59,6 +59,36 @@ const advancedTrackingUtils = {
     }
   },
 
+  // Initialize Google Analytics
+  initGoogleAnalytics: () => {
+    if (typeof window !== 'undefined') {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function () {
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+      window.gtag('config', 'GA_MEASUREMENT_ID'); // Replace with your GA4 measurement ID
+
+      // Load gtag script for Analytics
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=GA_MEASUREMENT_ID'; // Replace with your GA4 measurement ID
+      document.head.appendChild(script);
+    }
+  },
+
+  // Get traffic source for N8N
+  getTrafficSource: (): string => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get('utm_source');
+    const fbclid = urlParams.get('fbclid');
+    const gclid = urlParams.get('gclid');
+
+    if (gclid || utmSource === 'google') return 'google_ads';
+    if (fbclid || utmSource === 'facebook') return 'facebook';
+    return utmSource || 'direct';
+  },
+
   // Enhanced Purchase tracking with CAPI via N8N
   trackPurchaseEvent: async (orderData: any): Promise<boolean> => {
     const clientEventId = `purchase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -86,8 +116,8 @@ const advancedTrackingUtils = {
       content_type: 'product',
       content_ids: ['product-order'],
       content_name: 'Product Order',
-      value: 1,
-      currency: 'EUR',
+      value: 299.00,
+      currency: 'PLN',
       num_items: 1
     };
 
@@ -103,21 +133,43 @@ const advancedTrackingUtils = {
       }
     }
 
+    // Google Analytics tracking
+    if (typeof window !== 'undefined' && window.gtag) {
+      try {
+        window.gtag('event', 'purchase', {
+          event_category: 'Facebook',
+          event_label: 'Purchase',
+          value: 299.00
+        });
+      } catch (error) {
+        console.error('❌ Google Analytics Purchase tracking error:', error);
+      }
+    }
+
     // CAPI tracking via N8N
     if (orderData) {
       try {
         console.log(`📡 Sending Purchase to N8N webhook...`);
 
         // Hash dei dati sensibili
-        const hashedPhone = orderData.telefono ? await advancedTrackingUtils.hashData(orderData.telefono.replace(/\D/g, '')) : null;
-        const hashedFirstName = orderData.nome ? await advancedTrackingUtils.hashData(orderData.nome.split(' ')[0]) : null;
-        const hashedLastName = orderData.nome && orderData.nome.split(' ').length > 1 ? await advancedTrackingUtils.hashData(orderData.nome.split(' ').slice(1).join(' ')) : null;
+        const hashedPhone = orderData.telefon ? await advancedTrackingUtils.hashData(orderData.telefon.replace(/\D/g, '')) : null;
+        const hashedFirstName = orderData.imie ? await advancedTrackingUtils.hashData(orderData.imie.split(' ')[0]) : null;
+        const hashedLastName = orderData.imie && orderData.imie.split(' ').length > 1 ? await advancedTrackingUtils.hashData(orderData.imie.split(' ').slice(1).join(' ')) : null;
+
+        // Calcola timestamp corretto (non più di 7 giorni fa, non nel futuro)
+        const now = Math.floor(Date.now() / 1000);
+        const maxPastTime = now - (7 * 24 * 60 * 60); // 7 giorni fa
+        const eventTimestamp = Math.max(maxPastTime, now - 10); // Massimo 10 secondi fa
 
         const capiData = {
-          event_name: 'Purchase',
+          event_name: 'Purchase', // o eventName per la landing
           event_id: clientEventId,
-          timestamp: Math.floor(Date.now() / 1000),
+          timestamp: eventTimestamp, // <-- TIMESTAMP CORRETTO
           event_source_url: window.location.href,
+
+          // AGGIUNGI ANCHE QUESTO
+          action_source: 'website',
+          event_time: eventTimestamp,
 
           // Token e Pixel ID dinamici
           token: 'EAAPYtpMdWREBPJH0W7LzwU2MuZA61clyQOfYg5C6E0vo9E5QYgJWl2n5XtO8Ur93YTZANcWYz3qsAbDOadffn10KbQZCOwkRS6DpM8bRjwX25NBn5d1lvVNQhFOCGY9eZARrjyCbJs1OtFk2BOc4ZBbaUjeD7dvkejyxZAZAEQdeb8AQzUKdAQitdhU0jVGywZDZD',
@@ -127,7 +179,10 @@ const advancedTrackingUtils = {
           telefono_hash: hashedPhone,
           nome_hash: hashedFirstName,
           cognome_hash: hashedLastName,
-          indirizzo: orderData.indirizzo || null,
+          indirizzo: orderData.adres || null,
+
+          // Traffic source for analytics
+          traffic_source: advancedTrackingUtils.getTrafficSource(),
 
           // Dati tecnici
           user_agent: navigator.userAgent,
@@ -145,8 +200,8 @@ const advancedTrackingUtils = {
           content_category: 'Products',
           content_ids: 'product-order',
           content_type: 'product',
-          value: 1,
-          currency: 'EUR', // Currency dinamica
+          value: 299.00,
+          currency: 'PLN', // Currency dinamica
           quantity: 1
         };
 
@@ -172,43 +227,83 @@ const advancedTrackingUtils = {
     }
   },
 
-  // Google Ads Purchase tracking
   trackGooglePurchase: async (orderData: any): Promise<void> => {
     if (typeof window !== 'undefined' && window.gtag) {
       try {
-        // Enhanced ecommerce tracking
+        const transactionId = orderData?.orderId || `TY${Date.now()}`;
+
+        // Track Google Ads conversion
+        window.gtag('event', 'conversion', {
+          send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
+          value: 299.00,
+          currency: 'PLN',
+          transaction_id: transactionId
+        });
+
+        // Track Google Analytics purchase
         window.gtag('event', 'purchase', {
-          transaction_id: orderData?.orderId || `ORD${Date.now()}`,
-          value: 1,
-          currency: 'EUR',
+          transaction_id: transactionId,
+          value: 299.00,
+          currency: 'PLN',
           items: [{
-            item_id: 'product-order',
-            item_name: 'Product Order',
-            category: 'Products',
+            item_id: 'sewing-machine-creative',
+            item_name: 'Maszyna do Szycia Kreatywna',
+            category: 'Sewing Machines',
             quantity: 1,
-            price: 1
+            price: 299.00
           }]
         });
 
-        // Conversion tracking
-        window.gtag('event', 'conversion', {
-          send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-          value: 1,
-          currency: 'EUR',
-          transaction_id: orderData?.orderId || `ORD${Date.now()}`
-        });
-
-        console.log('✅ Google Ads Purchase & Conversion tracked');
+        console.log(`✅ Google Ads Purchase tracked in Thank You page with transaction ID: ${transactionId}`);
       } catch (error) {
-        console.error('❌ Google Ads tracking error:', error);
+        console.error(`❌ Google Ads Purchase tracking error:`, error);
       }
+    } else {
+      console.log(`❌ Google gtag not available for Purchase tracking`);
     }
   },
 
   // Utility functions
   getFbClickId: (): string => {
     const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('fbclid') || '';
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      // Formato corretto per fbc secondo Meta: fb.1.timestamp.fbclid
+      // Il timestamp deve essere in SECONDI, non millisecondi
+      const timestamp = Math.floor(Date.now() / 1000);
+      return `fb.1.${timestamp}.${fbclid}`;
+    }
+
+    // Se non c'è fbclid, prova a recuperare da cookie esistenti
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+      const [name, value] = cookie.trim().split('=');
+      if (name === '_fbc') {
+        return decodeURIComponent(value);
+      }
+    }
+
+    return '';
+  },
+
+  // AGGIUNGI QUESTA NUOVA FUNZIONE SUBITO DOPO getFbClickId
+  setFbClickId: (): void => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const fbclid = urlParams.get('fbclid');
+
+    if (fbclid) {
+      const timestamp = Math.floor(Date.now() / 1000);
+      const fbcValue = `fb.1.${timestamp}.${fbclid}`;
+
+      // Salva nei cookie per 90 giorni (standard Facebook)
+      const expirationDate = new Date();
+      expirationDate.setDate(expirationDate.getDate() + 90);
+
+      document.cookie = `_fbc=${encodeURIComponent(fbcValue)}; expires=${expirationDate.toUTCString()}; path=/; domain=${window.location.hostname}`;
+
+      console.log('✅ Facebook Click ID salvato (Thank You):', fbcValue);
+    }
   },
 
   getFbBrowserId: (): string => {
@@ -253,10 +348,10 @@ const ThankYouPage = () => {
   });
 
   const steps = [
-    "Ordine Ricevuto",
-    "Verifica Dati",
-    "Preparazione",
-    "Spedizione"
+    "Zamówienie Otrzymane",
+    "Weryfikacja Danych",
+    "Przygotowanie",
+    "Wysyłka"
   ];
 
   // Fix hydration by ensuring component is mounted
@@ -269,8 +364,8 @@ const ThankYouPage = () => {
     if (!mounted) return;
 
     const formatData = (data: Date): string => {
-      const giorni = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
-      const mesi = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+      const giorni = ['nd', 'pn', 'wt', 'śr', 'cz', 'pt', 'sb'];
+      const mesi = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
       const giornoSettimana = giorni[data.getDay()];
       const giorno = String(data.getDate()).padStart(2, '0');
       const mese = mesi[data.getMonth()];
@@ -299,7 +394,7 @@ const ThankYouPage = () => {
       shipDate: formatData(dataSpedizione),
       deliveryStart: formatData(dataConsegnaInizio),
       deliveryEnd: formatData(dataConsegnaFine),
-      deliveryRange: `${formatData(dataConsegnaInizio)} e ${formatData(dataConsegnaFine)}`
+      deliveryRange: `${formatData(dataConsegnaInizio)} a ${formatData(dataConsegnaFine)}`
     });
   }, [mounted]);
 
@@ -323,8 +418,24 @@ const ThankYouPage = () => {
     if (!mounted) return;
 
     console.log('🎯 Thank You Page Tracking Initialized');
+
+    // AGGIUNGI QUESTA LINEA QUI
+    advancedTrackingUtils.setFbClickId();
+
+    // Inizializzazione forzata del pixel
     advancedTrackingUtils.initFacebookPixel();
     advancedTrackingUtils.initGoogleAds();
+    advancedTrackingUtils.initGoogleAnalytics();
+
+    // FORZARE PageView dopo inizializzazione
+    setTimeout(() => {
+      if (typeof window !== 'undefined' && window.fbq) {
+        window.fbq('track', 'PageView');
+        console.log('✅ Thank You PageView tracked');
+      } else {
+        console.log('❌ Pixel not loaded for PageView');
+      }
+    }, 500);
 
     // Timer for step animation
     const timer = setInterval(() => {
@@ -338,13 +449,28 @@ const ThankYouPage = () => {
 
   // Purchase tracking
   useEffect(() => {
-    if (!mounted || pixelFired || !orderData) return;
+    if (!mounted || pixelFired) return;
 
     console.log('🎯 Starting purchase tracking...');
 
     const trackPurchase = async () => {
       try {
-        await advancedTrackingUtils.trackPurchaseEvent(orderData);
+        // FORZARE L'INIZIALIZZAZIONE del pixel se non è ancora caricato
+        if (!window.fbq) {
+          console.log('⚠️ Pixel not loaded, initializing...');
+          advancedTrackingUtils.initFacebookPixel();
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        // Usare dati di default se orderData manca
+        const trackingData = orderData || {
+          orderId: `TY${Date.now()}`,
+          imie: 'Guest User',
+          telefon: '',
+          adres: ''
+        };
+
+        await advancedTrackingUtils.trackPurchaseEvent(trackingData);
         setPixelFired(true);
         console.log('🎉 Purchase tracking completed!');
       } catch (error) {
@@ -352,9 +478,9 @@ const ThankYouPage = () => {
       }
     };
 
-    const trackingTimeout = setTimeout(trackPurchase, 1000);
+    const trackingTimeout = setTimeout(trackPurchase, 2000);
     return () => clearTimeout(trackingTimeout);
-  }, [mounted, orderData, pixelFired]);
+  }, [mounted, pixelFired]);
 
   // Don't render until mounted to prevent hydration issues
   if (!mounted) {
@@ -364,39 +490,39 @@ const ThankYouPage = () => {
   const benefits = [
     {
       icon: <Shield className="w-6 h-6" />,
-      title: "Garanzia 30 Giorni",
-      description: "Soddisfatti o rimborsati al 100%"
+      title: "Gwarancja 30 Dni",
+      description: "Zadowoleni lub 100% zwrot pieniędzy"
     },
     {
       icon: <Package className="w-6 h-6" />,
-      title: "Spedizione Tracciata",
-      description: "Riceverai il tracking via SMS"
+      title: "Śledzona Wysyłka",
+      description: "Otrzymasz numer śledzenia SMS-em"
     },
     {
       icon: <Heart className="w-6 h-6" />,
-      title: "Supporto Clienti",
-      description: "Assistenza dedicata per ogni tua esigenza"
+      title: "Obsługa Klientów",
+      description: "Dedykowana pomoc dla każdej Twojej potrzeby"
     }
   ];
 
   const nextSteps = [
     {
       step: "1",
-      title: "Chiamata di Verifica",
-      description: "Un nostro operatore ti contatterà entro 2 ore per confermare i dati dell'ordine",
-      time: "Entro 2 ore"
+      title: "Połączenie Weryfikacyjne",
+      description: "Nasz operator skontaktuje się z Tobą w najbliższych godzinach, aby potwierdzić dane zamówienia",
+      time: "Wkrótce"
     },
     {
       step: "2",
-      title: "Preparazione Ordine",
-      description: "Il tuo prodotto verrà preparato e imballato con cura nel nostro magazzino",
-      time: "24 ore"
+      title: "Przygotowanie Zamówienia",
+      description: "Twój produkt zostanie starannie przygotowany i zapakowany w naszym magazynie",
+      time: "24 godziny"
     },
     {
       step: "3",
-      title: "Spedizione Express",
-      description: "Spedizione gratuita con corriere espresso e numero di tracking incluso",
-      time: "24-48 ore"
+      title: "Ekspresowa Wysyłka",
+      description: "Darmowa wysyłka kurierem ekspresowym z numerem śledzenia w zestawie",
+      time: "24-48 godzin"
     }
   ];
 
@@ -409,14 +535,14 @@ const ThankYouPage = () => {
             <CheckCircle className="w-20 h-20 mx-auto text-green-100" />
           </div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            🎉 Ordine Confermato!
+            🎉 Zamówienie Potwierdzone!
           </h1>
           <p className="text-xl md:text-2xl opacity-90">
-            Grazie per aver scelto i nostri prodotti
+            Dziękujemy za wybór naszych produktów
           </p>
           {orderData?.orderId && (
             <p className="text-lg mt-2 opacity-80">
-              Numero Ordine: <strong>{orderData.orderId}</strong>
+              Numer Zamówienia: <strong>{orderData.orderId}</strong>
             </p>
           )}
         </div>
@@ -427,7 +553,7 @@ const ThankYouPage = () => {
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-green-200">
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-800 mb-4">
-              Il Tuo Ordine è Stato Ricevuto
+              Twoje Zamówienie Zostało Otrzymane
             </h2>
 
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 mb-6 border-2 border-green-200">
@@ -435,30 +561,28 @@ const ThankYouPage = () => {
                 <Phone className="w-8 h-8 text-green-600" />
                 <div className="text-left">
                   <h3 className="text-xl font-bold text-green-700">
-                    Chiamata di Verifica in Arrivo
+                    Nadchodzi Połączenie Weryfikacyjne
                   </h3>
                   <p className="text-green-600">
-                    Un nostro operatore ti contatterà entro 2 ore
+                    Nasz operator skontaktuje się z Tobą w najbliższych godzinach
                   </p>
                 </div>
               </div>
 
               <div className="bg-white rounded-lg p-4 border border-green-300">
                 <p className="text-gray-700 text-center">
-                  <strong className="text-green-600">📞 Tieni il telefono a portata di mano!</strong><br />
-                  L'operatore verificherà i tuoi dati e confermerà la spedizione per garantire una consegna perfetta.
+                  <strong className="text-green-600">📞 Miej telefon pod ręką!</strong><br />
+                  Operator zweryfikuje Twoje dane i potwierdzi wysyłkę, aby zagwarantować idealną dostawę.
                 </p>
               </div>
             </div>
           </div>
-
-
         </div>
 
         {/* Process Steps */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-gray-200">
           <h2 className="text-3xl font-bold text-center text-gray-800 mb-8">
-            Cosa Succede Ora?
+            Co Dzieje Się Teraz?
           </h2>
 
           <div className="space-y-6">
@@ -484,7 +608,7 @@ const ThankYouPage = () => {
         {/* Benefits Reminder */}
         <div className="bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 rounded-2xl text-white p-8 mb-8">
           <h2 className="text-3xl font-bold text-center mb-8 drop-shadow-lg">
-            Le Tue Garanzie
+            Twoje Gwarancje
           </h2>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -503,19 +627,19 @@ const ThankYouPage = () => {
         {/* Progress Animation */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-gray-200">
           <h3 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            Stato del Tuo Ordine
+            Status Twojego Zamówienia
           </h3>
 
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-4 overflow-x-auto">
             {steps.map((step, index) => (
-              <div key={index} className="flex flex-col items-center">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold text-sm transition-all duration-500 shadow-lg ${index <= currentStep
+              <div key={index} className="flex flex-col items-center min-w-0 flex-1 px-1">
+                <div className={`w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center font-bold text-xs md:text-sm transition-all duration-500 shadow-lg ${index <= currentStep
                   ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                   : 'bg-gray-300 text-gray-600'
                   }`}>
                   {index + 1}
                 </div>
-                <p className={`text-sm mt-2 font-semibold transition-all duration-500 ${index <= currentStep ? 'text-green-600' : 'text-gray-500'
+                <p className={`text-xs md:text-sm mt-1 md:mt-2 font-semibold transition-all duration-500 text-center leading-tight ${index <= currentStep ? 'text-green-600' : 'text-gray-500'
                   }`}>
                   {step}
                 </p>
@@ -534,27 +658,27 @@ const ThankYouPage = () => {
         {/* Delivery Timeline */}
         <div className="bg-white rounded-2xl shadow-xl p-8 mb-8 border-2 border-blue-200">
           <h3 className="text-2xl font-bold text-center text-gray-800 mb-6">
-            📅 Timeline di Consegna
+            📅 Harmonogram Dostawy
           </h3>
 
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-6">
             <p className="text-center text-gray-700 mb-6 text-lg">
-              Ordinato <strong>OGGI</strong> e consegnato tra <strong>{deliveryDates.deliveryRange}</strong>
+              Zamówione <strong>DZIŚ</strong> i dostarczone między <strong>{deliveryDates.deliveryRange}</strong>
             </p>
             <div className="flex justify-between items-center">
               <div className="text-center flex-1">
                 <div className="text-4xl mb-2">📦</div>
-                <div className="font-medium text-gray-800">Ordinato</div>
+                <div className="font-medium text-gray-800">Zamówione</div>
                 <div className="text-gray-500 text-sm">{deliveryDates.orderDate}</div>
               </div>
               <div className="text-center flex-1">
                 <div className="text-4xl mb-2">🚚</div>
-                <div className="font-medium text-gray-800">Spedito</div>
+                <div className="font-medium text-gray-800">Wysłane</div>
                 <div className="text-gray-500 text-sm">{deliveryDates.shipDate}</div>
               </div>
               <div className="text-center flex-1">
                 <div className="text-4xl mb-2">📍</div>
-                <div className="font-medium text-gray-800">Consegnato</div>
+                <div className="font-medium text-gray-800">Dostarczone</div>
                 <div className="text-gray-500 text-sm">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
               </div>
             </div>
@@ -567,14 +691,14 @@ const ThankYouPage = () => {
             <Clock className="w-8 h-8 text-yellow-600 mt-1 flex-shrink-0" />
             <div>
               <h3 className="text-xl font-bold text-yellow-700 mb-2">
-                ⚠️ Informazioni Importanti
+                ⚠️ Ważne Informacje
               </h3>
               <ul className="space-y-2 text-yellow-700">
-                <li>• <strong>Mantieni il telefono acceso</strong> - Ti chiameremo entro 2 ore</li>
-                <li>• <strong>Verifica i tuoi dati</strong> - L'operatore confermerà nome, telefono e indirizzo</li>
-                <li>• <strong>Nessun pagamento ora</strong> - Pagherai alla consegna</li>
-                <li>• <strong>Spedizione gratuita</strong> - Nessun costo aggiuntivo</li>
-                <li>• <strong>Garanzia inclusa</strong> - 30 giorni soddisfatti o rimborsati</li>
+                <li>• <strong>Trzymaj telefon włączony</strong> - Zadzwonimy do Ciebie w najbliższych godzinach</li>
+                <li>• <strong>Zweryfikuj swoje dane</strong> - Operator potwierdzi imię, telefon i adres</li>
+                <li>• <strong>Brak płatności teraz</strong> - Zapłacisz przy odbiorze</li>
+                <li>• <strong>Darmowa wysyłka</strong> - Bez dodatkowych kosztów</li>
+                <li>• <strong>Gwarancja w zestawie</strong> - 30 dni zadowoleni lub zwrot pieniędzy</li>
               </ul>
             </div>
           </div>
@@ -590,27 +714,27 @@ const ThankYouPage = () => {
             </div>
 
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Ti Sei Unito a Oltre 10.000 Clienti Soddisfatti
+              Dołączyłeś do Ponad 10.000 Zadowolonych Klientów
             </h3>
 
             <p className="text-gray-600 text-lg mb-6">
-              Hai fatto la scelta giusta per la qualità e l'affidabilità dei nostri prodotti.
+              Dokonałeś właściwego wyboru jakości i niezawodności naszych produktów.
             </p>
 
             <div className="grid md:grid-cols-3 gap-4">
               <div className="bg-gradient-to-br from-green-100 to-emerald-100 rounded-lg p-4 border-2 border-green-200">
                 <div className="text-2xl font-bold text-green-600">98%</div>
-                <p className="text-green-700 text-sm">Clienti soddisfatti</p>
+                <p className="text-green-700 text-sm">Zadowolonych klientów</p>
               </div>
 
               <div className="bg-gradient-to-br from-blue-100 to-indigo-100 rounded-lg p-4 border-2 border-blue-200">
                 <div className="text-2xl font-bold text-blue-600">97%</div>
-                <p className="text-blue-700 text-sm">Consegne puntuali</p>
+                <p className="text-blue-700 text-sm">Dostaw na czas</p>
               </div>
 
               <div className="bg-gradient-to-br from-purple-100 to-pink-100 rounded-lg p-4 border-2 border-purple-200">
                 <div className="text-2xl font-bold text-purple-600">96%</div>
-                <p className="text-purple-700 text-sm">Lo consiglierebbe ad un amico</p>
+                <p className="text-purple-700 text-sm">Poleciłoby znajomemu</p>
               </div>
             </div>
           </div>
