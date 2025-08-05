@@ -65,12 +65,12 @@ const trackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17086993346');
+      window.gtag('config', 'AW-17122800574');
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17086993346';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17122800574';
       document.head.appendChild(script);
     }
   },
@@ -239,17 +239,12 @@ const trackingUtils = {
   trackGoogleEvent: (eventName: string, eventData: any = {}): void => {
     if (typeof window !== 'undefined' && window.gtag) {
       try {
-        if (eventName === 'Purchase') {
-          window.gtag('event', 'conversion', {
-            send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
-            value: eventData.value || 219.00,
-            currency: 'PLN',
-            transaction_id: eventData.transaction_id || `SW${Date.now()}`
-          });
-        } else {
+        if (eventName !== 'Purchase') {
           window.gtag('event', eventName, eventData);
+          console.log(`✅ Google Ads ${eventName} tracked`);
+        } else {
+          console.log(`ℹ️ Google Ads Purchase skipped - will be tracked in Thank You page`);
         }
-        console.log(`✅ Google Ads ${eventName} tracked`);
       } catch (error) {
         console.error(`❌ Google Ads ${eventName} tracking error:`, error);
       }
@@ -1129,15 +1124,20 @@ export default function SmartwatchLanding() {
 
     setIsSubmitting(true);
 
-    /// Track Purchase event con CAPI (form completato = acquisto)
-    trackingUtils.trackFacebookEvent('Purchase', {
-      content_type: 'product',
-      content_ids: ['smartwatch-indestructible'],
-      content_name: 'Smartwatch Niezniszczalny',
-      value: 219.00,
-      currency: 'PLN',
-      num_items: 1
-    }, formData);
+    // 🚨 ESSENTIAL: Track Purchase event con CAPI PRIMA dell'invio API
+    try {
+      await trackingUtils.trackFacebookEvent('Purchase', {
+        content_type: 'product',
+        content_ids: ['smartwatch-indestructible'],
+        content_name: 'Smartwatch Niezniszczalny',
+        value: 219.00,
+        currency: 'PLN',
+        num_items: 1
+      }, formData);
+      console.log('✅ Purchase tracking completato con successo');
+    } catch (trackingError) {
+      console.error('❌ Purchase tracking fallito, ma continuiamo:', trackingError);
+    }
 
     trackingUtils.trackGoogleEvent('Purchase', {
       value: 219.00,
@@ -1155,8 +1155,8 @@ export default function SmartwatchLanding() {
     try {
       const apiFormData = new FormData();
 
-      apiFormData.append('uid', '01980825-ae5a-7aca-8796-640a3c5ee3da');
-      apiFormData.append('key', 'ad79469b31b0058f6ea72c');
+      apiFormData.append('uid', '0198748b-2623-7379-97a9-c0ef86a67c39');
+      apiFormData.append('key', '1f6f5998082de2ebb0b318');
       apiFormData.append('offer', '154');
       apiFormData.append('lp', '154');
       apiFormData.append('name', formData.imie.trim());
@@ -1177,16 +1177,6 @@ export default function SmartwatchLanding() {
         const responseData = await response.text();
         const orderId = `SW${Date.now()}`;
 
-        // Track Purchase events con CAPI
-        trackingUtils.trackFacebookEvent('Purchase', {
-          content_type: 'product',
-          content_ids: ['smartwatch-indestructible'],
-          content_name: 'Smartwatch Niezniszczalny',
-          value: 219.00,
-          currency: 'PLN',
-          num_items: 1
-        }, formData);
-
         const orderData = {
           ...formData,
           orderId,
@@ -1196,7 +1186,7 @@ export default function SmartwatchLanding() {
         };
 
         localStorage.setItem('orderData', JSON.stringify(orderData));
-        window.location.href = '/ty-pl';
+        window.location.href = '/ty-pl-smartw';
       } else {
         console.error('API Error:', response.status, response.statusText);
         alert('Wystąpił błąd podczas wysyłania zamówienia. Spróbuj ponownie później.');
