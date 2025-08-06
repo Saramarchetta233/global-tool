@@ -197,12 +197,12 @@ const trackingUtils = {
           screen_resolution: `${screen.width}x${screen.height}`,
 
           // Dati custom per questo prodotto - DINAMICI
-          content_name: 'Kreatív Varrógép',
+          content_name: 'Kreativni Šivalni Stroj',
           content_category: 'Sewing Machines',
           content_ids: 'sewing-machine-creative',
           content_type: 'product',
-          value: eventData.value || 32399.00,
-          currency: 'HUF', // Currency dinamica
+          value: eventData.value || 69.99,
+          currency: 'EUR', // Currency dinamica
           quantity: eventData.num_items || 1
         };
 
@@ -396,10 +396,10 @@ const SocialProofNotification = () => {
   const [hasStarted, setHasStarted] = useState(false);
 
   const notifications = [
-    { name: "Anna Budapestről", action: "most vásárolt", time: "2 perce" },
-    { name: "Kata Debrecenből", action: "kosárba tette", time: "4 perce" },
-    { name: "Magda Szegedről", action: "most vásárolt", time: "6 perce" },
-    { name: "Judit Pécsről", action: "most nézi", time: "1 perce" },
+    { name: "Ana iz Ljubljane", action: "ravnokar kupila", time: "pred 2 min" },
+    { name: "Maja iz Maribora", action: "dodala v košarico", time: "pred 4 min" },
+    { name: "Petra iz Kranja", action: "ravnokar kupila", time: "pred 6 min" },
+    { name: "Nina iz Celja", action: "trenutno gleda", time: "pred 1 min" },
   ];
 
   useEffect(() => {
@@ -492,7 +492,7 @@ const StockIndicator = () => {
     <div className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-gray-900 p-3 rounded-lg text-center font-bold">
       <div className="flex items-center justify-center space-x-2">
         <AlertCircle className="w-5 h-5" />
-        <span>⚡ Csak {stock} darab maradt raktáron!</span>
+        <span>⚡ Na zalogi je samo še {stock} kosov!</span>
       </div>
     </div>
   );
@@ -506,14 +506,14 @@ const ResultsSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <img
-              src="/images/cuc-hu/Cuc_pl15.jpg"
-              alt="Kielégítő eredmények"
+              src="/images/Cuc_pl15.jpg"
+              alt="Zadovoljivi rezultati"
               className="w-full h-auto rounded-lg shadow-lg"
             />
           </div>
           <div>
             <h2 className="text-3xl font-bold text-gray-900 mb-8">
-              Alakítsa át varrását kivételes eredményekkel
+              Spremenite svoje šivanje z izjemnimi rezultati
             </h2>
 
             <div className="space-y-8">
@@ -545,7 +545,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">97%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Megállapította, hogy a varrás egyszerűbbé és gyorsabbá vált!</p>
+                <p className="text-sm font-medium text-gray-700">Ugotovili ste, da je šivanje postalo enostavnejše in hitrejše!</p>
               </div>
 
               {/* Progress bar 2 */}
@@ -576,7 +576,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">98%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Kreativitás növekedését tapasztalta projektjeiben!</p>
+                <p className="text-sm font-medium text-gray-700">Opazili ste rast kreativnosti pri svojih projektih!</p>
               </div>
 
               {/* Progress bar 3 */}
@@ -607,7 +607,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">96%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Időt takarított meg az automatikus funkcióknak köszönhetően!</p>
+                <p className="text-sm font-medium text-gray-700">Prihranili ste čas zahvaljujoč avtomatskim funkcijam!</p>
               </div>
             </div>
           </div>
@@ -629,8 +629,8 @@ const DeliveryTracking = () => {
 
   useEffect(() => {
     const formatData = (data: Date): string => {
-      const giorni = ['vas', 'hé', 'ke', 'sze', 'cs', 'pé', 'szo'];
-      const mesi = ['jan', 'feb', 'már', 'ápr', 'máj', 'jún', 'júl', 'aug', 'szep', 'okt', 'nov', 'dec'];
+      const giorni = ['ned', 'pon', 'tor', 'sre', 'čet', 'pet', 'sob'];
+      const mesi = ['jan', 'feb', 'mar', 'apr', 'maj', 'jun', 'jul', 'avg', 'sep', 'okt', 'nov', 'dec'];
       const giornoSettimana = giorni[data.getDay()];
       const giorno = String(data.getDate()).padStart(2, '0');
       const mese = mesi[data.getMonth()];
@@ -643,7 +643,7 @@ const DeliveryTracking = () => {
       while (count < giorni) {
         nuovaData.setDate(nuovaData.getDate() + 1);
         const giorno = nuovaData.getDay();
-        if (giorno !== 0 && giorno !== 6) count++; // 0 = vasárnap, 6 = szombat
+        if (giorno !== 0 && giorno !== 6) count++; // 0 = nedelja, 6 = sobota
       }
       return nuovaData;
     };
@@ -666,22 +666,22 @@ const DeliveryTracking = () => {
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <p className="text-center text-gray-700 mb-4">
-        Rendelje meg <strong>MOST</strong> és megkapja csomagját <strong>{deliveryDates.deliveryRange}</strong> között
+        Naročite <strong>ZDAJ</strong> in prejeli boste paket med <strong>{deliveryDates.deliveryRange}</strong>
       </p>
       <div className="flex justify-between items-center text-sm">
         <div className="text-center">
           <div className="text-2xl mb-1">📦</div>
-          <div className="font-medium">Megrendelve</div>
+          <div className="font-medium">Naročeno</div>
           <div className="text-gray-500">{deliveryDates.orderDate}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl mb-1">🚚</div>
-          <div className="font-medium">Elküldve</div>
+          <div className="font-medium">Poslano</div>
           <div className="text-gray-500">{deliveryDates.shipDate}</div>
         </div>
         <div className="text-center">
           <div className="text-2xl mb-1">📍</div>
-          <div className="font-medium">Kézbesítve</div>
+          <div className="font-medium">Dostavljeno</div>
           <div className="text-gray-500">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
         </div>
       </div>
@@ -698,37 +698,37 @@ const Footer = () => {
           <div>
             <h3 className="text-xl font-bold mb-4">Newheras</h3>
             <p className="text-gray-300 text-sm">
-              A legmagasabb minőségű varrógépek az Ön kreativitásához.
+              Najkvalitetnejši šivalni stroji za vašo ustvarjalnost.
             </p>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Ügyfélszolgálat</h4>
+            <h4 className="font-semibold mb-4">Služba za stranke</h4>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-white">Kapcsolat</a></li>
-              <li><a href="#" className="hover:text-white">FAQ</a></li>
-              <li><a href="/returns" target="_blank" rel="noopener noreferrer" className="hover:text-white">Visszatérítés</a></li>
-              <li><a href="#" className="hover:text-white">Garancia</a></li>
+              <li><a href="/contact" target="_blank" rel="noopener noreferrer" className="hover:text-white">Kontakt</a></li>
+              <li><a href="#" className="hover:text-white">Pogosta vprašanja</a></li>
+              <li><a href="/returns" target="_blank" rel="noopener noreferrer" className="hover:text-white">Vračilo</a></li>
+              <li><a href="#" className="hover:text-white">Garancija</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Jogi információk</h4>
+            <h4 className="font-semibold mb-4">Pravne informacije</h4>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white">Szabályzat</a></li>
-              <li><a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Adatvédelmi irányelvek</a></li>
-              <li><a href="/cookies" target="_blank" rel="noopener noreferrer" className="hover:text-white">Cookie irányelvek</a></li>
-              <li><a href="/gdpr" target="_blank" rel="noopener noreferrer" className="hover:text-white">Fogyasztói jogok</a></li>
+              <li><a href="/terms" target="_blank" rel="noopener noreferrer" className="hover:text-white">Pogoji poslovanja</a></li>
+              <li><a href="/privacy" target="_blank" rel="noopener noreferrer" className="hover:text-white">Varstvo zasebnosti</a></li>
+              <li><a href="/cookies" target="_blank" rel="noopener noreferrer" className="hover:text-white">Piškotki</a></li>
+              <li><a href="/gdpr" target="_blank" rel="noopener noreferrer" className="hover:text-white">Potrošniške pravice</a></li>
             </ul>
           </div>
 
           <div>
-            <h4 className="font-semibold mb-4">Cég</h4>
+            <h4 className="font-semibold mb-4">Podjetje</h4>
             <ul className="space-y-2 text-sm text-gray-300">
-              <li><a href="/about" target="_blank" rel="noopener noreferrer" className="hover:text-white">Rólunk</a></li>
-              <li><a href="#" className="hover:text-white">Karrier</a></li>
+              <li><a href="/about" target="_blank" rel="noopener noreferrer" className="hover:text-white">O nas</a></li>
+              <li><a href="#" className="hover:text-white">Kariera</a></li>
               <li><a href="#" className="hover:text-white">Blog</a></li>
-              <li><a href="#" className="hover:text-white">Partnerek</a></li>
+              <li><a href="#" className="hover:text-white">Partnerji</a></li>
             </ul>
           </div>
         </div>
@@ -736,23 +736,23 @@ const Footer = () => {
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-sm text-gray-400">
-              © 2025 Newheras. Minden jog fenntartva.
+              © 2025 Newheras. Vse pravice pridržane.
             </p>
             <div className="flex space-x-6">
-              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Adatvédelmi irányelvek</a>
-              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Szabályzat</a>
-              <a href="/cookies" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Cookies</a>
+              <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Varstvo zasebnosti</a>
+              <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Pogoji</a>
+              <a href="/cookies" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Piškotki</a>
             </div>
           </div>
 
           <div className="mt-6 text-xs text-gray-500 max-w-4xl mx-auto">
             <p className="mb-2">
-              <strong>Jogi információk:</strong> Minden ár tartalmazza az ÁFÁ-t. Jog van a szerződéstől való elstállásra 14 napon belül a fogyasztóvédelmi jogszabályok szerint.
-              24 hónapos garancia a Polgári Törvénykönyv szerint. Értékesítő: Newheras Kft.
+              <strong>Pravne informacije:</strong> Vse cene vključujejo DDV. Pravica do odstopa od pogodbe v 14 dneh v skladu z zakonodajo o varstvu potrošnikov.
+              24-mesečna garancija v skladu z Obligacijskim zakonikom. Prodajalec: Newheras d.o.o.
             </p>
             <p>
-              <strong>Adatvédelem:</strong> Személyes adatait a GDPR-nak megfelelően dolgozzuk fel. Részletek az Adatvédelmi irányelvekben.
-              Sütiket használunk elemzési és marketing célokra. További információk a Cookie irányelvekben.
+              <strong>Varstvo podatkov:</strong> Vaše osebne podatke obdelujemo v skladu z GDPR. Podrobnosti v Pravilih o varstvu zasebnosti.
+              Uporabljamo piškotke za analitične in trženjske namene. Več informacij v Pravilih o piškotkih.
             </p>
           </div>
         </div>
@@ -791,7 +791,7 @@ export default function SewingMachineLanding() {
     // Track PageView for all platforms
     trackingUtils.trackFacebookEvent('PageView');
     trackingUtils.trackGoogleEvent('page_view', {
-      page_title: 'Kreatív Varrógép - Főoldal',
+      page_title: 'Kreativni Šivalni Stroj - Glavna stran',
       page_location: window.location.href
     });
 
@@ -861,21 +861,21 @@ export default function SewingMachineLanding() {
     trackingUtils.trackFacebookEvent('InitiateCheckout', {
       content_type: 'product',
       content_ids: ['sewing-machine-creative'],
-      content_name: 'Kreatív Varrógép',
-      value: 32399.00,
-      currency: 'HUF',
+      content_name: 'Kreativni Šivalni Stroj',
+      value: 69.99,
+      currency: 'EUR',
       num_items: 1
     });
 
     trackingUtils.trackGoogleEvent('view_item', {
-      currency: 'HUF',
-      value: 32399.00,
+      currency: 'EUR',
+      value: 69.99,
       items: [{
         item_id: 'sewing-machine-creative',
-        item_name: 'Kreatív Varrógép',
+        item_name: 'Kreativni Šivalni Stroj',
         category: 'Sewing Machines',
         quantity: 1,
-        price: 32399.00
+        price: 69.99
       }]
     });
 
@@ -896,29 +896,29 @@ export default function SewingMachineLanding() {
     let isValid = true;
 
     if (!formData.imie.trim()) {
-      errors.imie = 'A név és vezetéknév kötelező';
+      errors.imie = 'Ime in priimek sta obvezna';
       isValid = false;
     } else if (formData.imie.trim().length < 2) {
-      errors.imie = 'A névnek legalább 2 karaktert kell tartalmaznia';
+      errors.imie = 'Ime mora vsebovati vsaj 2 znaka';
       isValid = false;
     }
 
     if (!formData.telefon.trim()) {
-      errors.telefon = 'A telefonszám kötelező';
+      errors.telefon = 'Telefonska številka je obvezna';
       isValid = false;
     } else {
       const phoneRegex = /^[\+]?[0-9\s\-\(\)]{8,15}$/;
       if (!phoneRegex.test(formData.telefon.trim())) {
-        errors.telefon = 'Kérjük, adjon meg érvényes telefonszámot';
+        errors.telefon = 'Prosimo, vnesite veljavno telefonsko številko';
         isValid = false;
       }
     }
 
     if (!formData.adres.trim()) {
-      errors.adres = 'A cím kötelező';
+      errors.adres = 'Naslov je obvezen';
       isValid = false;
     } else if (formData.adres.trim().length < 10) {
-      errors.adres = 'A címnek részletesebbnek kell lennie (utca, házszám, város, irányítószám)';
+      errors.adres = 'Naslov mora biti podrobnejši (ulica, hišna številka, mesto, poštna številka)';
       isValid = false;
     }
 
@@ -943,9 +943,9 @@ export default function SewingMachineLanding() {
       await trackingUtils.trackFacebookEvent('Purchase', {
         content_type: 'product',
         content_ids: ['sewing-machine-creative'],
-        content_name: 'Kreatív Varrógép',
-        value: 32399.00,
-        currency: 'HUF',
+        content_name: 'Kreativni Šivalni Stroj',
+        value: 69.99,
+        currency: 'EUR',
         num_items: 1
       }, formData);
       console.log('✅ Purchase tracking completato con successo');
@@ -958,8 +958,8 @@ export default function SewingMachineLanding() {
 
       apiFormData.append('uid', '01980825-ae5a-7aca-8796-640a3c5ee3da');
       apiFormData.append('key', 'ad79469b31b0058f6ea72c');
-      apiFormData.append('offer', '233');
-      apiFormData.append('lp', '233');
+      apiFormData.append('offer', '236');
+      apiFormData.append('lp', '236');
       apiFormData.append('name', formData.imie.trim());
       apiFormData.append('tel', formData.telefon.trim());
       apiFormData.append('street-address', formData.adres.trim());
@@ -983,22 +983,22 @@ export default function SewingMachineLanding() {
         const orderData = {
           ...formData,
           orderId,
-          product: 'Kreatív Varrógép',
-          price: 32399.00,
+          product: 'Kreativni Šivalni Stroj',
+          price: 69.99,
           apiResponse: responseData
         };
 
         localStorage.setItem('orderData', JSON.stringify(orderData));
         console.log('✅ Order data saved to localStorage:', orderData);
 
-        window.location.href = '/ty-cuc-hu';
+        window.location.href = '/ty-cuc-sl';
       } else {
         console.error('API Error:', response.status, response.statusText);
-        alert('Hiba történt a rendelés elküldése során. Kérjük, próbálja újra később.');
+        alert('Pri pošiljanju naročila je prišlo do napake. Prosimo, poskusite znova pozneje.');
       }
     } catch (error) {
       console.error('Network Error:', error);
-      alert('Kapcsolati hiba történt. Ellenőrizze az internetkapcsolatot és próbálja újra.');
+      alert('Prišlo je do napake pri povezavi. Preverite internetno povezavo in poskusite znova.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1012,7 +1012,7 @@ export default function SewingMachineLanding() {
 
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">
-          <span>🔥 KORLÁTOZOTT AJÁNLAT - Csak ma speciális áron!</span>
+          <span>🔥 OMEJENA PONUDBA - Samo danes po posebni ceni!</span>
         </div>
       </div>
 
@@ -1022,12 +1022,12 @@ export default function SewingMachineLanding() {
             <div className="order-1">
               <div className="relative">
                 <img
-                  src="/images/cuc-hu/Cuc_pl20.jpg"
-                  alt="Kreatív Varrógép"
+                  src="/images/cuc-sl/Cuc_pl20.jpg"
+                  alt="Kreativni Šivalni Stroj"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  -60% OLCSÓBB
+                  -60% CENEJE
                 </div>
               </div>
             </div>
@@ -1036,33 +1036,33 @@ export default function SewingMachineLanding() {
               <div className="flex items-center space-x-2">
                 <StarRating rating={5} size="w-5 h-5" />
                 <span className="text-yellow-600 font-medium">4.9</span>
-                <span className="text-gray-600">(347 vélemény)</span>
+                <span className="text-gray-600">(347 mnenj)</span>
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                🧵 Kreatív Varrógép
+                🧵 Kreativni Šivalni Stroj
               </h1>
 
               <p className="text-lg text-gray-700 font-medium">
-                <strong>Megkönnyíti a varrást automatikus funkciókkal és precíz eredményekkel a kreatív projektekhez.</strong>
+                <strong>Olajša šivanje z avtomatskimi funkcijami in natančnimi rezultati za kreativne projekte.</strong>
               </p>
 
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">🎯 <strong>Növeli a pontosságot</strong> – Bonyolult varratok hibák nélkül</span>
+                  <span className="text-base">🎯 <strong>Poveča natančnost</strong> – Zapleteni šivi brez napak</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">🎨 <strong>Növeli a kreativitást</strong> – Keltsen életre szórakoztató projekteket</span>
+                  <span className="text-base">🎨 <strong>Spodbuja kreativnost</strong> – Oživite zabavne projekte</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">⏱️ <strong>Időt takarít meg</strong> – Automatikus cérnafűzés egy pillanat alatt</span>
+                  <span className="text-base">⏱️ <strong>Prihrani čas</strong> – Avtomatsko navlekanje niti v trenutku</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">🤝 <strong>Folyamatos támogatás</strong> – Segítség mindig elérhető</span>
+                  <span className="text-base">🤝 <strong>Stalna podpora</strong> – Pomoč je vedno na voljo</span>
                 </div>
               </div>
 
@@ -1083,7 +1083,7 @@ export default function SewingMachineLanding() {
                   marginBottom: '15px',
                   textAlign: 'center'
                 }}>
-                  🧵 Kreatív Varrógép – Kompakt, Erős, Nagyon Könnyű Használni
+                  🧵 Kreativni Šivalni Stroj – Kompakten, Močden, Zelo Enostaven za Uporabo
                 </h2>
 
                 <div style={{
@@ -1095,13 +1095,13 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>📅 Széles varrásválaszték: 165 program a csomagban (díszítő, használati és alfanumerikus)</span>
+                  <span style={{ flex: '1 1 70%' }}>📅 Širok izbor šivov: 165 programov v paketu (okrasni, uporabni in alfanumerični)</span>
                   <span style={{
                     color: 'red',
                     textDecoration: 'line-through',
                     fontWeight: 'bold',
                     whiteSpace: 'nowrap'
-                  }}>80 998 Ft</span>
+                  }}>174,98 €</span>
                 </div>
 
                 <div style={{
@@ -1113,7 +1113,7 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>✨ Automatikus cérnafűzés: Időt és stresszt takarít meg</span>
+                  <span style={{ flex: '1 1 70%' }}>✨ Avtomatsko navlekanje niti: Prihrani čas in stres</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1130,7 +1130,7 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🔢 Világító LCD kijelző: Minden ellenőrzés alatt</span>
+                  <span style={{ flex: '1 1 70%' }}>🔢 Osvetljen LCD zaslon: Vse pod nadzorom</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1147,7 +1147,7 @@ export default function SewingMachineLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🛋 Teljes kiegészítők: Kinyitható asztal, talpak, DVD és sok más</span>
+                  <span style={{ flex: '1 1 70%' }}>🛋 Popolna oprema: Razširljiva miza, stopala, DVD in še veliko več</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1162,7 +1162,7 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  🚚 <strong>Ingyenes szállítás</strong> egész Magyarországon (szállítás 3-4 munkanap)
+                  🚚 <strong>Brezplačna dostava</strong> po celotni Sloveniji (dostava 3-4 delovni dnevi)
                 </div>
 
                 <div style={{
@@ -1172,7 +1172,7 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  💶 <strong>Utánvétes fizetés</strong> elérhető
+                  💶 <strong>Plačilo ob prevzemu</strong> na voljo
                 </div>
 
                 <div style={{
@@ -1185,9 +1185,9 @@ export default function SewingMachineLanding() {
                   color: '#16a34a',
                   fontWeight: 'bold'
                 }}>
-                  Katalogár: <span style={{ textDecoration: 'line-through', color: 'red' }}>80 998 Ft</span><br />
+                  Kataložna cena: <span style={{ textDecoration: 'line-through', color: 'red' }}>174,98 €</span><br />
                   <div style={{ marginTop: '10px' }}>
-                    Ma csak: <span style={{ fontSize: '26px' }}>32 399 Ft</span>
+                    Danes samo: <span style={{ fontSize: '26px' }}>69,99 €</span>
                   </div>
                 </div>
 
@@ -1201,8 +1201,8 @@ export default function SewingMachineLanding() {
                   marginBottom: '10px',
                   fontSize: '14px'
                 }}>
-                  ⏳ <strong>Az ajánlat csak néhány napig érvényes!</strong><br />
-                  Használja ki, mielőtt visszatér a teljes árra.
+                  ⏳ <strong>Ponudba velja le nekaj dni!</strong><br />
+                  Izkoristite, preden se cena vrne na polno vrednost.
                 </div>
 
                 <div style={{
@@ -1225,11 +1225,11 @@ export default function SewingMachineLanding() {
                   margin: '10px 0',
                   fontSize: '15px'
                 }}>
-                  ⚡ Utolsó darabok elérhetők a raktárban
+                  ⚡ Zadnji kosi na voljo na zalogi
                 </div>
 
                 <p style={{ textAlign: 'center', fontSize: '14px', color: '#555' }}>
-                  📦 Szállítás 24/48 órán belül – Szállítás garantaltan 3-4 nap alatt
+                  📦 Dostava v 24/48 urah – Dostava zagotovljena v 3-4 dneh
                 </p>
               </div>
 
@@ -1237,7 +1237,7 @@ export default function SewingMachineLanding() {
                 onClick={handleOrderClick}
                 className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg animate-pulse-button"
               >
-                🔥 RENDELÉS MOST - Utánvétes Fizetés
+                🔥 NAROČITE ZDAJ - Plačilo ob prevzemu
               </button>
 
               <DeliveryTracking />
@@ -1259,7 +1259,7 @@ export default function SewingMachineLanding() {
                     </div>
 
                     <p className="text-gray-800 text-sm leading-relaxed mb-3">
-                      "3 hete vettem ezt a gépet és el vagyok ragadtatva! 🌟 Az automatikus cérnafűzés igazi áttörés - annyi időt megéspárol! Már varörtam néhány ruhát és párnahuzatot. A varratok minősége hihetetlen, az LCD kezelése pedig nagyon intuitív. Az év legjobb vásárlása!"
+                      "Pred 3 tedni sem kupila ta stroj in sem očarana! 🌟 Avtomatsko navlekanje niti je pravi preboj - prihrani toliko časa! Že sem šila nekaj oblačil in vzglavnikov. Kakovost šivov je neverjeten a, upravljanje z LCD pa zelo intuitivno. Najboljnji nakup leta!"
                     </p>
 
                     {/* Nome con checkmark blu */}
@@ -1267,7 +1267,7 @@ export default function SewingMachineLanding() {
                       <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">✓</span>
                       </div>
-                      <span className="font-bold text-gray-900 text-sm">Katalin M.</span>
+                      <span className="font-bold text-gray-900 text-sm">Maja K. - Ljubljana</span>
                     </div>
                   </div>
                 </div>
@@ -1283,19 +1283,19 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                ✨ Fedezze Fel a Kreatív Varrógépet – Tökéletes Társat Minden Projekthez!
+                ✨ Odkrijte Kreativni Šivalni Stroj – Popolnega Partnerja za Vse Projekte!
               </h2>
               <p className="text-lg text-gray-700 mb-6">
-                A <strong>Kreatív Varrógép</strong> úgy lett tervezve, hogy felszabadítsa kreativitását és egyszerűsítse a varrás minden lépését.
+                <strong>Kreativni Šivalni Stroj</strong> je zasnovan tako, da osvobodi vašo kreativnost in poenostavi vsak korak šivanja.
               </p>
               <p className="text-lg text-gray-700">
-                <strong>165 beépített varrattal</strong>, beleértve a használati, díszítő és alfanumerikus varratokat, minden projektet megvalósíthat, a ruházattól a lakberendezésig.
+                S <strong>165 vgrajenimi šivi</strong>, vključno s koristnimi, okrasnimi in alfanumeričnimi šivi, lahko uresničite kateri koli projekt, od oblačil do opreme za dom.
               </p>
             </div>
             <div>
               <img
                 src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
-                alt="Varrógép használatban"
+                alt="Šivalni stroj v uporabi"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
@@ -1308,44 +1308,44 @@ export default function SewingMachineLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <img
-                src="/images/cuc-hu/Cuc_pl19.jpg"
+                src="/images/cuc-sl/Cuc_pl19.jpg"
                 alt="Cechy maszyny"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
             </div>
             <div className="order-1 lg:order-2">
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                Fő jellemzők
+                Glavne značilnosti
               </h2>
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-lg">
-                    <strong>Széles varratválaszték:</strong> 165 beépített varrat, beleértve 110 használati és díszítő varratot, 8 automatikus gomblyuk stílust és 55 alfanumerikus karaktert.
+                    <strong>Širok izbor šivov:</strong> 165 vgrajenih šivov, vključno s 110 koristnimi in okrasnimi šivi, 8 avtomatskimi slogi za gumbne luknje in 55 alfanumeričnimi znaki.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-lg">
-                    <strong>Automatikus cérnafűzés:</strong> Időt és erőfeszítést takarít meg az automatikus cérnafűző rendszerrel.
+                    <strong>Avtomatsko navlekanje niti:</strong> Prihrani čas in trud z avtomatskim sistemom za navlekanje niti.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-lg">
-                    <strong>Intuitív LCD kijelző:</strong> Könnyen választhat öltéseket és beállításokat a világító kijelzőn.
+                    <strong>Intuitiven LCD zaslon:</strong> Enostavno izbiranje šivov in nastavitev na osvetljenem zaslonu.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-lg">
-                    <strong>Kiegészítők a csomagban:</strong> Kemény védőfedővel, kinyitható asztallal, 8 varró és quilt talppal, oktató DVD-vel és sok mással szállítva.
+                    <strong>Dodatki v paketu:</strong> Dostava s trdo zaščitno pokrovom, razširljivo mizo, 8 šivalnimi in quilt stopali, učnim DVD-jem in še veliko več.
                   </div>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                   <div className="text-lg">
-                    <strong>Dedikált támogatás:</strong> Ingyenes technikai segítség online, chaten vagy telefonon a gép teljes használati ideje alatt.
+                    <strong>Namenjena podpora:</strong> Brezplačna tehnična pomoč online, v klepetalnici ali po telefonu skozi celotno življenjsko dobo stroja.
                   </div>
                 </div>
               </div>
@@ -1358,17 +1358,17 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Egyszerű és kreatív varrás
+              Enostavno in kreativno šivanje
             </h2>
             <p className="text-lg text-gray-700">
-              Fedezze fel, hogyan egyszerűsíti ez a gép a varrást, javítva a pontosságot és kreativitást projektjeiben.
+              Odkrijte, kako ta stroj poenostavi šivanje, izboljša natančnost in kreativnost pri vaših projektih.
             </p>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="/images/cuc-hu/Cuc_pl18.jpg"
+                src="/images/cuc-sl/Cuc_pl18.jpg"
                 alt="Maszyna do szycia w akcji"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -1377,23 +1377,23 @@ export default function SewingMachineLanding() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">📏</div>
-                  <h3 className="font-bold text-lg mb-2">Pontosság</h3>
-                  <p className="text-gray-600">Pontos és egyenletes varrásokat érhet el könnyedén.</p>
+                  <h3 className="font-bold text-lg mb-2">Natančnost</h3>
+                  <p className="text-gray-600">Enostavno doseganje natančnih in enakomern ih šivov.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">🧵</div>
-                  <h3 className="font-bold text-lg mb-2">Sokoldaluság</h3>
-                  <p className="text-gray-600">Választhat számos díszítő és használati öltés közül.</p>
+                  <h3 className="font-bold text-lg mb-2">Vsestranstvo</h3>
+                  <p className="text-gray-600">Izbira med številnimi okrasnimi in koristnimi šivi.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">🕒</div>
-                  <h3 className="font-bold text-lg mb-2">Időmegtakarítás</h3>
-                  <p className="text-gray-600">Automatikus cérnafűzés az azonnali indításhoz.</p>
+                  <h3 className="font-bold text-lg mb-2">Prihranek časa</h3>
+                  <p className="text-gray-600">Avtomatsko navlekanje niti za takojnjen začetek.</p>
                 </div>
                 <div className="text-center p-6 bg-white rounded-lg shadow-md">
                   <div className="text-4xl mb-4">📚</div>
-                  <h3 className="font-bold text-lg mb-2">Támogatás</h3>
-                  <p className="text-gray-600">Technikai segítség életünkben a nyugalmáért.</p>
+                  <h3 className="font-bold text-lg mb-2">Podpora</h3>
+                  <p className="text-gray-600">Tehnična pomoč življenjsko za vaš mir.</p>
                 </div>
               </div>
             </div>
@@ -1405,10 +1405,10 @@ export default function SewingMachineLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Mi teszi különlegessé a Kreatív Varrógépet
+              Kaj dela Kreativni Šivalni Stroj posebnega
             </h2>
             <p className="text-lg text-gray-700">
-              Másokkal ellentétben automatikus funkciókat, széles asztalt és élethoszszá szóló technikai támogatást kínál, javítva a varrási tapasztalatot és kreativitást.
+              Za razliko od drugih ponuja avtomatske funkcije, široko mizo in doživljenjsko tehnično podporo, kar izboljša izkušnjo šivanja in kreativnost.
             </p>
           </div>
 
@@ -1416,16 +1416,16 @@ export default function SewingMachineLanding() {
             <div className="min-w-full">
               <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
                 <div></div>
-                <div className="font-bold text-lg">Kreatív Varrógép</div>
+                <div className="font-bold text-lg">Kreativni Šivalni Stroj</div>
                 <div className="font-bold text-lg">Inne</div>
               </div>
 
               {[
-                'Pontosság',
-                'Sokoldaluság',
-                'Automatizálás',
-                'Támogatás',
-                'Megéri'
+                'Natančnost',
+                'Vsestranstvo',
+                'Avtomatizacija',
+                'Podpora',
+                'Vrednost za denar'
               ].map((feature, index) => (
                 <div key={index} className="border-b border-gray-200 py-4">
                   <div className="md:hidden">
@@ -1464,33 +1464,33 @@ export default function SewingMachineLanding() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Válaszok a leggyakrabban feltett kérdéseire
+              Odgovori na pogosto zastavljena vprašanja
             </h2>
             <p className="text-lg text-gray-700">
-              Átláthatóság és támogatás a biztonságos vásárláshoz.
+              Transparentnost in podpora za varno nakupovanje.
             </p>
           </div>
 
           <div className="space-y-4">
             <FAQ
-              question="Hogyan könnyíti meg az automatikus varrást?"
-              answer="A gép automatikus öltésválasztással és cérnafűzéssel rendelkezik az egyszerű és gyors varráshoz."
+              question="Kako olajša avtomatsko šivanje?"
+              answer="Stroj ima avtomatsko izbiro šivov in navlekanje niti za enostavno in hitro šivanje."
             />
             <FAQ
-              question="Milyen kiegészítők vannak a csomagban?"
-              answer="Tartalmaz széles asztalt, kemény fedőt, varrótalpakat és oktató DVD-t."
+              question="Kateri dodatki so vključeni v paket?"
+              answer="Vsebuje široko mizo, trdo pokrivalo, šivalna stopala in učni DVD."
             />
             <FAQ
-              question="Alkalmas-e quilting projektekhez?"
-              answer="Igen, a széles asztalnak és díszítő öltéseknek köszönhetően ideális nagy quilting projektekhez."
+              question="Je primeren za quilting projekte?"
+              answer="Da, zahvaljujoč široki mizi in okrasnim šivom je idealen za velike quilting projekte."
             />
             <FAQ
-              question="Hogyan működik a technikai támogatás?"
-              answer="Online és telefonos támogatást kínálunk a termék teljes élettartama alatt, garantálva a folyamatos segítséget."
+              question="Kako deluje tehnična podpora?"
+              answer="Ponujamo spletno in telefonsko podporo skozi celotno življenjsko dobo izdelka, kar zagotavlja neprekinjeno pomoč."
             />
             <FAQ
-              question="A gép könnyen használható kezdők számára?"
-              answer="Abszolút igen, intuitív funkciókkal és LCD kijelzővel ideális még a kezdők számára is."
+              question="Je stroj enostaven za uporabo za začetnike?"
+              answer="Absolutno da, z intuitivnimi funkcijami in LCD zaslonom je idealen tudi za začetnike."
             />
           </div>
         </div>
@@ -1504,65 +1504,65 @@ export default function SewingMachineLanding() {
               <span className="text-2xl font-bold">4.9/5</span>
             </div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Ügyfelek véleménye a varrógépről
+              Mnenja strank o šivalnem stroju
             </h2>
             <p className="text-lg text-gray-700">
-              Hiteles és megbízható vélemények
+              Pristna in zanesljiva mnenja
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                name: "Anna B.",
+                name: "Ana M. - Ljubljana",
                 rating: 5,
-                review: "Ez a varrógép megváltoztatta a varrási stílusomat! 😍 Az öltésválaszték hiánytalanul megy és lehetővé teszi, hogy remékműveket alkossak. Imom az egyszerű használatát, és a technikai támogatás mindig elérhető."
+                review: "Ta šivalni stroj je spremenil moj način šivanja! 😍 Izbor šivov je popoln in mi omogoča ustvarjanje um etniških del. Obožujem njegovo enostavno uporabo, tehnična podpora pa je vedno na voljo."
               },
               {
-                name: "Katalin D.",
+                name: "Katja R. - Maribor",
                 rating: 4,
-                review: "Könnyű használni, bár néhány funkció gyakorlást igényel. Általában nagyon elégedett vagyok a vásárlással."
+                review: "Enostaven za uporabo, čeprav nekatere funkcije zahtevajo vajo. Na splošno sem z nakupom zelo zadovoljna."
               },
               {
-                name: "Magda S.",
+                name: "Maja S. - Kranj",
                 rating: 5,
-                review: "Tökéletes varráshoz! Nem hiszem el, milyen egyszerű ruhákat készíteni ezzel a géppel!"
+                review: "Popoln za šivanje! Ne morem verjeti, kako enostavno je šiti oblačila s tem strojem!"
               },
               {
-                name: "Judit F.",
+                name: "Judita F. - Celje",
                 rating: 4,
-                review: "Ennek a gépnek a funkciói lehetővé tették számomra új horizontok felfedeezését a varrásban. Melegén ajánlom!"
+                review: "Funkcije tega stroja so mi omogočile odkrivanje novih obzorij pri šivanju. Toplo priporočam!"
               },
               {
-                name: "Éva J.",
+                name: "Eva J. - Koper",
                 rating: 5,
-                review: "A gép fantasztikus, de az ügyfélszolgálat még jobb. Minden kérdésemben segítettek."
+                review: "Stroj je fantastičen, vendar je služba za stranke še boljša. Pomagali so mi pri vseh vprašanjih."
               },
               {
-                name: "Zsófia O.",
+                name: "Žofija O. - Novo mesto",
                 rating: 5,
-                review: "Tökéletes vásárlás azoknak, akik sokoldaluságot és minőséget keresnek. Az öltésválaszték tökéletes minden kreatív projekthez!"
+                review: "Popoln nakup za tiste, ki iščejo vsestranstvo in kakovost. Izbor šivov je popoln za vse kreativne projekte!"
               },
               {
-                name: "Boglarka N.",
+                name: "Barbara N. - Ptuj",
                 rating: 4,
-                review: "Igazán hasznos! Függönyöket, ruhákat, sőt még gigantikus párnát is varrtam! A széles asztal elengedhetetlen."
+                review: "Resnično koristen! Šila sem zavese, oblačila, celo ogromno blazino! Široka miza je nepogreljiva."
               },
               {
-                name: "Laura P.",
+                name: "Lara P. - Velenje",
                 rating: 5,
-                review: "Nem tudnok meglenni az automatikus cérnafűzés funkció nélkül, igazi életmentő!"
+                review: "Ne morem živeti brez funkcije avtomatskega navlekanja niti, resniti prihranjić življenja!"
               },
               {
-                name: "Beata H.",
+                name: "Beata H. - Domžale",
                 rating: 5,
-                review: "Ideális azoknak, akik szeretnek varrni és egyedi remékműveket alkoti. Hétekig tarkó intenzív használat után is tökéletesen működik."
+                review: "Idealen za tiste, ki radi šijejo in ustvarjajo edinstvena umetnila. Tudi po tednih intenzivne uporabe še vedno popolno deluje."
               }
             ].map((review, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
                 <div className="flex items-center space-x-2 mb-3">
                   <StarRating rating={review.rating} />
-                  <span className="text-sm text-gray-600">Ellenőrzött vásárló</span>
+                  <span className="text-sm text-gray-600">Preverjeni kupec</span>
                 </div>
                 <p className="text-gray-700 mb-3">{review.review}</p>
                 <p className="font-medium text-gray-900">- {review.name}</p>
@@ -1574,17 +1574,17 @@ export default function SewingMachineLanding() {
             <div className="flex items-start space-x-4">
               <img
                 src="https://cosedicase.com/cdn/shop/files/e76d708b-f0b3-4c06-a0db-d2f9f235e260.webp?v=1749027133&width=70"
-                alt="Anna K."
+                alt="Ana K."
                 className="w-16 h-16 rounded-full"
               />
               <div className="flex-1">
                 <div className="flex items-center space-x-2 mb-2">
                   <StarRating rating={5} />
-                  <span className="font-medium">Anna K.</span>
-                  <span className="text-sm text-gray-600">Ellenőrzött vásárló</span>
+                  <span className="font-medium">Ana K. - Ljubljana</span>
+                  <span className="text-sm text-gray-600">Preverjeni kupec</span>
                 </div>
                 <p className="text-gray-700">
-                  "Ez a varrógép megváltoztatta a varrási stílusomat! 😍 Az öltésválaszték hiánytalanul megy és lehetővé teszi, hogy remekműveket alkossak. Imádom az egyszerű használatát, és a technikai támogatás mindig elérhető. Nem lehetek boldogabb a vásárlásommal!"
+                  "Ta šivalni stroj je spremenil moj način šivanja! 😍 Izbor šivov je popoln in mi omogoča ustvarjanje umetniških del. Obožujem njegovo enostavno uporabo, tehnična podpora pa je vedno na voljo. Ne morem biti bolj zadovoljna s svojim nakupom!"
                 </p>
               </div>
             </div>
@@ -1597,13 +1597,13 @@ export default function SewingMachineLanding() {
           <div className="bg-green-50 border border-green-200 rounded-lg p-8">
             <Shield className="w-16 h-16 text-green-600 mx-auto mb-6" />
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              30 napos pénzvisszatérítési garancia
+              30-dnevna garancija vračila denarja
             </h2>
             <p className="text-lg text-gray-700 mb-6">
-              Próbálja ki a varrógépet teljes biztonságban 30 napos pénzvisszatérítési garanciánk segítségével. Tapasztalja meg a varrás könnyedségét és pontosságát kockázat nélkül, és fedezze fel, hogyan alakíthatja át kreativitását.
+              Preizkusite šivalni stroj popolnoma varno z našo 30-dnevno garancijo vračila denarja. Doživite enostavnost in natančnost šivanja brez tveganja ter odkrijte, kako lahko spremenite svojo kreativnost.
             </p>
             <p className="text-xl font-bold text-green-600">
-              Ha nem teljesen elégedett, visszatérítjük a teljes összeget.
+              Če niste popolnoma zadovoljni, vrnemo celoten znesek.
             </p>
           </div>
         </div>
@@ -1613,7 +1613,7 @@ export default function SewingMachineLanding() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Miért vásároljon tőlünk?
+              Zakaj kupiti pri nas?
             </h2>
           </div>
 
@@ -1621,39 +1621,39 @@ export default function SewingMachineLanding() {
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Követési szám minden rendeléshez</span>
+                <span>Številka za sledenje za vsako naročilo</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Fizetés közvetlenül átvételkor</span>
+                <span>Plačilo neposredno ob prevzemu</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Segítség 24 órában, a hét 7 napján</span>
+                <span>Pomoč 24 ur na dan, 7 dni v tednu</span>
               </div>
               <div className="flex items-start space-x-3">
                 <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                <span>Nincsenek rejtett költségek!</span>
+                <span>Brez skritih stroškov!</span>
               </div>
             </div>
 
             <div className="bg-white p-6 rounded-lg shadow-md">
-              <h3 className="font-bold text-lg mb-4">SZÁLLÍTÁS</h3>
+              <h3 className="font-bold text-lg mb-4">DOSTAVA</h3>
               <p className="text-gray-700 mb-4">
-                Egész Magyarországon szállítunk, és ha a rendelni 21:59 előtt kerül leadni, a következő munkanapon elküldjük.
+                Dostavljamo po celotni Sloveniji, in če je naročilo oddano pred 21:59, ga pošljemo naslednji delovni dan.
               </p>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">Kézbesítve 3-4 munkanapon belül</span>
+                  <span className="text-sm">Dostavljeno v 3-4 delovnih dneh</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Check className="w-4 h-4 text-green-600" />
-                  <span className="text-sm">Követési szám mellékelve</span>
+                  <span className="text-sm">Številka za sledenje priložena</span>
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-4">
-                Kizárólag a <strong>NEWHERAS</strong> által értékesítve
+                Izključno prodaja <strong>NEWHERAS</strong>
               </p>
             </div>
           </div>
@@ -1663,10 +1663,10 @@ export default function SewingMachineLanding() {
       <section className="py-16 bg-orange-600 text-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold mb-6">
-            🔥 Ne hagyja ki ezt a speciális ajánlatot!
+            🔥 Ne zamudite te posebne ponudbe!
           </h2>
           <p className="text-xl mb-8">
-            Csak ma: <span className="line-through opacity-75">80 998 Ft</span> <span className="text-5xl font-bold">32 399 Ft</span>
+            Samo danes: <span className="line-through opacity-75">174,98 €</span> <span className="text-5xl font-bold">69,99 €</span>
           </p>
 
           <div className="bg-white/10 backdrop-blur rounded-lg p-6 mb-8">
@@ -1674,17 +1674,17 @@ export default function SewingMachineLanding() {
               <div>
                 <Users className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">2,847+</div>
-                <div className="text-sm opacity-90">Elégedett ügyfél</div>
+                <div className="text-sm opacity-90">Zadovoljna stranka</div>
               </div>
               <div>
                 <Package className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">98.7%</div>
-                <div className="text-sm opacity-90">Elégedettségi mutato</div>
+                <div className="text-sm opacity-90">Stopnja zadovoljstva</div>
               </div>
               <div>
                 <Clock className="w-8 h-8 mx-auto mb-2" />
                 <div className="font-bold">24/7</div>
-                <div className="text-sm opacity-90">Ügyfélszolgálat</div>
+                <div className="text-sm opacity-90">Služba za stranke</div>
               </div>
             </div>
           </div>
@@ -1693,11 +1693,11 @@ export default function SewingMachineLanding() {
             onClick={handleOrderClick}
             className="bg-white text-orange-600 hover:bg-gray-100 font-bold py-4 px-8 rounded-lg text-xl transition-colors duration-200 shadow-lg mb-4 w-full md:w-auto"
           >
-            🛒 RENDELJE MEG MOST - UTOLSÓ DARABOK ELÉRHETŐK
+            🛒 NAROČITE ZDAJ - NA VOLJO SO ZADNJI KOSI
           </button>
 
           <p className="text-sm opacity-90">
-            ⚡ Időben korlátozott ajánlat • 🚚 Ingyenes szállítás • 💯 30 napos garancia
+            ⚡ Časovno omejena ponudba • 🚚 Brezplačna dostava • 💯 30-dnevna garancija
           </p>
         </div>
       </section>
@@ -1711,7 +1711,7 @@ export default function SewingMachineLanding() {
           className={`w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-200 shadow-lg ${bounceAnimation ? 'animate-bounce' : ''
             }`}
         >
-          🔥 RENDELJE MEG MOST - Fizetés Átvételkor
+          🔥 NAROČITE ZDAJ - Plačilo ob prevzemu
         </button>
       </div>
 
@@ -1725,44 +1725,44 @@ export default function SewingMachineLanding() {
               ×
             </button>
 
-            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Töltse ki a megrendeléshez</h3>
-            <p className="text-gray-600 mb-4 md:mb-6">Fizetés átvételkor</p>
+            <h3 className="text-xl md:text-2xl font-bold text-gray-900 mb-2 pr-8">Izpolnite za naročilo</h3>
+            <p className="text-gray-600 mb-4 md:mb-6">Plačilo ob prevzemu</p>
 
             <div className="bg-gray-50 rounded-lg p-3 md:p-4 mb-4">
-              <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Rendelés összefoglalás</h4>
+              <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Povzetek naročila</h4>
               <div className="flex items-center gap-3">
                 <img
-                  src="/images//cuc-hu/Cuc_pl20.jpg"
-                  alt="Varrógép"
+                  src="/images/cuc-sl/Cuc_pl20.jpg"
+                  alt="Šivalni stroj"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 text-sm md:text-base">Kreatív Varrógép</div>
-                  <div className="text-xs md:text-sm text-gray-600">Kompakt, Erső, Nagyon Könnyű Használni</div>
-                  <div className="text-xs md:text-sm text-green-600">✅ Ingyenes szállítás</div>
+                  <div className="font-medium text-gray-900 text-sm md:text-base">Kreativni Šivalni Stroj</div>
+                  <div className="text-xs md:text-sm text-gray-600">Kompakten, Močen, Zelo Enostaven za Uporabo</div>
+                  <div className="text-xs md:text-sm text-green-600">✅ Brezplačna dostava</div>
                 </div>
                 <div className="text-right flex-shrink-0">
-                  <div className="font-bold text-lg md:text-xl text-gray-900">32 399 Ft</div>
-                  <div className="text-xs text-gray-500 line-through">80 998 Ft</div>
+                  <div className="font-bold text-lg md:text-xl text-gray-900">69,99 €</div>
+                  <div className="text-xs text-gray-500 line-through">174,98 €</div>
                 </div>
               </div>
             </div>
 
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 md:mb-6">
               <div className="text-center">
-                <div className="text-xs text-red-600 mb-1">🔒 Lefoglaljuk az Ön rendelését</div>
+                <div className="text-xs text-red-600 mb-1">🔒 Rezerviramo vaše naročilo</div>
                 <div className="text-xl md:text-2xl font-mono font-bold text-red-700">
                   {reservationTimer.minutes.toString().padStart(2, '0')}:{reservationTimer.seconds.toString().padStart(2, '0')}
                 </div>
                 <div className="text-xs text-red-600 mt-1">
-                  Hátralévő idő a rendelés véglegesítéséhez
+                  Preostali čas za potrditev naročila
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 md:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Név és vezetéknév *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Ime in priimek *</label>
                 <input
                   type="text"
                   value={formData.imie}
@@ -1771,7 +1771,7 @@ export default function SewingMachineLanding() {
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Az Ön teljes neve"
+                  placeholder="Vaše polno ime"
                 />
                 {formErrors.imie && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.imie}</p>
@@ -1779,7 +1779,7 @@ export default function SewingMachineLanding() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Telefonszám *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Telefonska številka *</label>
                 <input
                   type="tel"
                   value={formData.telefon}
@@ -1788,7 +1788,7 @@ export default function SewingMachineLanding() {
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Az Ön telefonszáma"
+                  placeholder="Vaša telefonska številka"
                 />
                 {formErrors.telefon && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.telefon}</p>
@@ -1796,7 +1796,7 @@ export default function SewingMachineLanding() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Teljes cím *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Popoln naslov *</label>
                 <textarea
                   value={formData.adres}
                   onChange={(e) => handleFormChange('adres', e.target.value)}
@@ -1804,7 +1804,7 @@ export default function SewingMachineLanding() {
                     ? 'border-red-300 focus:ring-red-500'
                     : 'border-gray-300 focus:ring-green-500'
                     }`}
-                  placeholder="Utca, házszám, város, irányítószám"
+                  placeholder="Ulica, hišna številka, mesto, poštna številka"
                 />
                 {formErrors.adres && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.adres}</p>
@@ -1814,7 +1814,7 @@ export default function SewingMachineLanding() {
 
             <div className="flex items-center justify-center gap-2 mb-4 mt-4 text-gray-700">
               <Shield className="w-5 h-5" />
-              <span className="font-medium text-sm md:text-base">Fizetés átvételkor</span>
+              <span className="font-medium text-sm md:text-base">Plačilo ob prevzemu</span>
             </div>
 
             <button
@@ -1822,7 +1822,7 @@ export default function SewingMachineLanding() {
               disabled={isSubmitting}
               className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
             >
-              {isSubmitting ? 'FELDOLGOZÁS...' : 'RENDELÉS MEGĖRÍTÉSE - 32.399 Ft'}
+              {isSubmitting ? 'OBDELAVA...' : 'POTRDI NAROČILO - 69,99 €'}
             </button>
           </div>
         </div>
