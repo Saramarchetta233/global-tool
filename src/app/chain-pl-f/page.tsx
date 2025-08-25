@@ -449,7 +449,7 @@ const ResultsSection = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div>
             <img
-              src="https://m.media-amazon.com/images/I/61H8L+sKgpL._AC_UF894,1000_QL80_.jpg"
+              src="/images/Chain/1.png"
               alt="Zadowalające rezultaty"
               className="w-full h-auto rounded-lg shadow-lg"
             />
@@ -964,7 +964,7 @@ export default function ChainsawLanding() {
             <div className="order-1">
               <div className="relative">
                 <img
-                  src="https://m.media-amazon.com/images/I/71dU1YL8kzL._AC_UF350,350_QL50_.jpg"
+                  src="/images/Chain/1.png"
                   alt="Motosega Akumulatorowa"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
@@ -1236,7 +1236,7 @@ export default function ChainsawLanding() {
             </div>
             <div>
               <img
-                src="https://m.media-amazon.com/images/I/61H8L+sKgpL._AC_UF894,1000_QL80_.jpg"
+                src="/images/Chain/2.gif"
                 alt="Motosega w użyciu"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -1250,7 +1250,7 @@ export default function ChainsawLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div className="order-2 lg:order-1">
               <img
-                src="https://m.media-amazon.com/images/I/71gJvOCgEzL._AC_UF894,1000_QL80_.jpg"
+                src="/images/Chain/3.png"
                 alt="Cechy motosegi"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -1310,7 +1310,7 @@ export default function ChainsawLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <img
-                src="https://m.media-amazon.com/images/I/61TLXJu1ZbL._AC_UF894,1000_QL80_.jpg"
+                src="/images/Chain/4.png"
                 alt="Motosega w akcji"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -1674,7 +1674,7 @@ export default function ChainsawLanding() {
               <h4 className="font-semibold text-gray-800 mb-3 text-sm md:text-base">Podsumowanie zamówienia</h4>
               <div className="flex items-center gap-3">
                 <img
-                  src="https://m.media-amazon.com/images/I/71dU1YL8kzL._AC_UF350,350_QL50_.jpg"
+                  src="/images/Chain/1.png"
                   alt="Motosega"
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                 />
