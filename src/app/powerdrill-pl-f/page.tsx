@@ -114,7 +114,7 @@ const trackingUtils = {
           eventID: clientEventId
         });
         console.log(`✅ Facebook ${eventName} tracked (client-side)`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Facebook ${eventName} client tracking error:`, error);
       }
     }
@@ -127,7 +127,7 @@ const trackingUtils = {
           event_label: eventName,
           value: eventData.value || 0
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Google Analytics ${eventName} tracking error:`, error);
       }
     }
@@ -225,7 +225,7 @@ const trackingUtils = {
         } else {
           console.error(`❌ Facebook ${eventName} CAPI error:`, response.status, responseText);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Facebook ${eventName} CAPI tracking error:`, error);
       }
     } else {
@@ -243,7 +243,7 @@ const trackingUtils = {
         } else {
           console.log(`ℹ️ Google Ads Purchase skipped - will be tracked in Thank You page`);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Google Ads ${eventName} tracking error:`, error);
       }
     }
@@ -327,7 +327,7 @@ const trackingUtils = {
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
       return hashHex;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error hashing data:', error);
       return '';
     }
@@ -891,7 +891,7 @@ export default function PowerDrillLanding() {
         num_items: 1
       }, formData);
       console.log('✅ Purchase tracking completato con successo');
-    } catch (trackingError) {
+    } catch (trackingError: unknown) {
       console.error('❌ Purchase tracking fallito, ma continuiamo:', trackingError);
     }
 
@@ -961,13 +961,15 @@ export default function PowerDrillLanding() {
         console.error('❌ API Error:', response.status, response.statusText, errorText);
         alert(`Wystąpił błąd podczas wysyłania zamówienia (${response.status}). Spróbuj ponownie później.`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('❌ Network Error details:', error);
       console.error('❌ Error type:', error instanceof TypeError ? 'TypeError' : typeof error);
-      console.error('❌ Error message:', error.message);
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message);
+      }
       
       // Verifica se è un errore CORS
-      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+      if (error instanceof TypeError && error instanceof Error && error.message.includes('Failed to fetch')) {
         console.error('❌ Likely CORS or network issue with endpoint');
         alert('Problemi di connessione con il server. Riprova tra qualche momento.');
       } else {
