@@ -138,7 +138,7 @@ const trackingUtils = {
       try {
         console.log(`📡 Sending ${eventName} to N8N webhook...`);
 
-        // Hash dei dati sensibili se abbiamo form data
+        // Hash dei dati sensibili se abbiamo form data i
         let hashedPhone = null;
         let hashedFirstName = null;
         let hashedLastName = null;
