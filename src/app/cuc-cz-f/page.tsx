@@ -1294,7 +1294,7 @@ export default function SewingMachineLanding() {
             </div>
             <div>
               <img
-                src="images/Cuc-gif"
+                src="images/Cuc.gif"
                 alt="Šivalni stroj v uporabi"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
