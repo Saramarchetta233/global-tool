@@ -922,16 +922,27 @@ export default function PowerDrillLanding() {
         apiFormData.append('ua', navigator.userAgent);
       }
 
+      console.log('📡 Sending data to endpoint:', 'https://leads-ingest.hidden-rain-9c8e.workers.dev/');
+      console.log('📤 Form data being sent:', Object.fromEntries(apiFormData));
+
       const response = await fetch('https://leads-ingest.hidden-rain-9c8e.workers.dev/', {
         method: 'POST',
+        mode: 'cors',
+        headers: {
+          'Accept': '*/*',
+        },
         body: apiFormData,
       });
+
+      console.log('📥 Response status:', response.status);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const responseData = await response.text();
         const orderId = `WPE${Date.now()}`;
 
         console.log('✅ API response OK, order ID:', orderId);
+        console.log('📝 Response data:', responseData);
 
         const orderData = {
           ...formData,
@@ -946,12 +957,22 @@ export default function PowerDrillLanding() {
 
         window.location.href = '/ty-powerdrill-pl';
       } else {
-        console.error('API Error:', response.status, response.statusText);
-        alert('Wystąpił błąd podczas wysyłania zamówienia. Spróbuj ponownie później.');
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, response.statusText, errorText);
+        alert(`Wystąpił błąd podczas wysyłania zamówienia (${response.status}). Spróbuj ponownie później.`);
       }
     } catch (error) {
-      console.error('Network Error:', error);
-      alert('Wystąpił błąd połączenia. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      console.error('❌ Network Error details:', error);
+      console.error('❌ Error type:', error instanceof TypeError ? 'TypeError' : typeof error);
+      console.error('❌ Error message:', error.message);
+      
+      // Verifica se è un errore CORS
+      if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+        console.error('❌ Likely CORS or network issue with endpoint');
+        alert('Problemi di connessione con il server. Riprova tra qualche momento.');
+      } else {
+        alert('Wystąpił błąd połączenia. Sprawdź połączenie internetowe i spróbuj ponownie.');
+      }
     } finally {
       setIsSubmitting(false);
     }

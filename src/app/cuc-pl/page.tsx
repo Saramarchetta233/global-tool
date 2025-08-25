@@ -1294,7 +1294,7 @@ export default function SewingMachineLanding() {
             </div>
             <div>
               <img
-                src="https://cosedicase.com/cdn/shop/files/download_17_a3b5a2ba-dfd7-48bd-9cf6-cbaa230ed97c.gif?v=1749034197&width=600"
+                src="images/Cuc.gif"
                 alt="Maszyna do szycia w użyciu"
                 className="w-full h-auto rounded-lg shadow-lg"
               />
@@ -1573,7 +1573,7 @@ export default function SewingMachineLanding() {
           <div className="mt-12 bg-white p-8 rounded-lg shadow-lg border-l-4 border-yellow-400">
             <div className="flex items-start space-x-4">
               <img
-                src="https://cosedicase.com/cdn/shop/files/e76d708b-f0b3-4c06-a0db-d2f9f235e260.webp?v=1749027133&width=70"
+                src="images/anna.jpg"
                 alt="Anna K."
                 className="w-16 h-16 rounded-full"
               />

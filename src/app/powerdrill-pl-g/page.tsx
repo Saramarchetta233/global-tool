@@ -114,7 +114,7 @@ const trackingUtils = {
           eventID: clientEventId
         });
         console.log(`✅ Facebook ${eventName} tracked (client-side)`);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Facebook ${eventName} client tracking error:`, error);
       }
     }
@@ -127,7 +127,7 @@ const trackingUtils = {
           event_label: eventName,
           value: eventData.value || 0
         });
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Google Analytics ${eventName} tracking error:`, error);
       }
     }
@@ -225,7 +225,7 @@ const trackingUtils = {
         } else {
           console.error(`❌ Facebook ${eventName} CAPI error:`, response.status, responseText);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Facebook ${eventName} CAPI tracking error:`, error);
       }
     } else {
@@ -243,7 +243,7 @@ const trackingUtils = {
         } else {
           console.log(`ℹ️ Google Ads Purchase skipped - will be tracked in Thank You page`);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(`❌ Google Ads ${eventName} tracking error:`, error);
       }
     }
@@ -327,7 +327,7 @@ const trackingUtils = {
       const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
       return hashHex;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Error hashing data:', error);
       return '';
     }
@@ -891,65 +891,114 @@ export default function PowerDrillLanding() {
         num_items: 1
       }, formData);
       console.log('✅ Purchase tracking completato con successo');
-    } catch (trackingError) {
+    } catch (trackingError: unknown) {
       console.error('❌ Purchase tracking fallito, ma continuiamo:', trackingError);
     }
 
     try {
-      const apiFormData = new FormData();
-
-      apiFormData.append('uid', '01980825-ae5a-7aca-8796-640a3c5ee3da');
-      apiFormData.append('key', 'ad79469b31b0058f6ea72c');
-      apiFormData.append('offer', '53');
-      apiFormData.append('lp', '53');
-      apiFormData.append('name', formData.imie.trim());
-      apiFormData.append('tel', formData.telefon.trim());
-      apiFormData.append('street-address', formData.adres.trim());
-
-      // Aggiungi i nuovi parametri richiesti
-      apiFormData.append('network_type', 'traffic');
-      apiFormData.append('url_network', 'https://offers.supertrendaffiliateprogram.com/forms/api/');
-
-      // Ottieni click_id dai parametri URL
+      // Ottieni parametri URL per tracking
       const urlParams = new URLSearchParams(window.location.search);
       const clickId = urlParams.get('click_id');
-      if (clickId) {
-        apiFormData.append('click_id', clickId);
-      }
 
+      // Ottieni il fingerprint TMFP se disponibile
       const tmfpInput = document.querySelector('input[name="tmfp"]') as HTMLInputElement | null;
-      if (!tmfpInput || !tmfpInput.value) {
-        apiFormData.append('ua', navigator.userAgent);
-      }
+      const tmfpValue = tmfpInput?.value || '';
+
+      // Prepara i dati per il Cloudflare Worker
+      const leadData = {
+        // Campi richiesti
+        uid: '01980825-ae5a-7aca-8796-640a3c5ee3da',
+        key: 'ad79469b31b0058f6ea72c',
+        offer: '53',
+        lp: '53',
+        name: formData.imie.trim(),
+        tel: formData.telefon.trim(),
+        'street-address': formData.adres.trim(),
+        tmfp: tmfpValue,
+
+        // Dati del form (duplicati per compatibilità)
+        phone: formData.telefon.trim(),
+        address: formData.adres.trim(),
+
+        // Dati del prodotto
+        product: 'Wiertarka ProMax Elite',
+        price: 339.00,
+        currency: 'PLN',
+
+        // Dati richiesti
+        network_type: 'traffic',
+        url_network: 'https://offers.supertrendaffiliateprogram.com/forms/api/',
+        click_id: clickId,
+
+        // Dati di tracking
+        page_url: window.location.href,
+        referrer: document.referrer,
+        user_agent: navigator.userAgent,
+
+        // Parametri UTM
+        utm_source: urlParams.get('utm_source'),
+        utm_medium: urlParams.get('utm_medium'),
+        utm_campaign: urlParams.get('utm_campaign'),
+        utm_content: urlParams.get('utm_content'),
+        utm_term: urlParams.get('utm_term'),
+
+        // Timestamp
+        timestamp: new Date().toISOString(),
+
+        // Identificatori Facebook
+        fbp: trackingUtils.getFbBrowserId(),
+        fbc: trackingUtils.getFbClickId(),
+
+        // Altri dati utili
+        language: navigator.language,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        page_title: document.title
+      };
+
+      console.log('📡 Sending data to Cloudflare Worker:', leadData);
 
       const response = await fetch('https://leads-ingest.hidden-rain-9c8e.workers.dev/', {
         method: 'POST',
-        body: apiFormData,
+        headers: {
+          'Authorization': 'Bearer Y60kgTRvJUTTVEsMytKhcFAo1dxDl6Iom2oL8QqxaRVb7RM1O6jx9D3gJsx1l0A1',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(leadData)
       });
 
-      if (response.ok) {
-        const responseData = await response.text();
+      console.log('📥 Response status:', response.status);
+
+      if (response.status === 202) {
+        // Successo - il worker ha accettato i dati
+        const result = await response.json();
         const orderId = `WPE${Date.now()}`;
 
-        console.log('✅ API response OK, order ID:', orderId);
+        console.log('✅ Lead successfully sent to Cloudflare Worker:', result);
 
         const orderData = {
           ...formData,
           orderId,
           product: 'Wiertarka ProMax Elite',
           price: 339.00,
-          apiResponse: responseData
+          apiResponse: result
         };
 
         localStorage.setItem('orderData', JSON.stringify(orderData));
         console.log('✅ Order data saved to localStorage:', orderData);
 
         window.location.href = '/ty-powerdrill-pl';
+      } else if (response.status === 401) {
+        console.error('❌ Unauthorized: Invalid token');
+        alert('Błąd autoryzacji. Skontaktuj się z obsługą klienta.');
+      } else if (response.status === 429) {
+        console.error('❌ Rate limit exceeded');
+        alert('Zbyt wiele żądań. Spróbuj ponownie za chwilę.');
       } else {
-        console.error('API Error:', response.status, response.statusText);
-        alert('Wystąpił błąd podczas wysyłania zamówienia. Spróbuj ponownie później.');
+        const errorText = await response.text();
+        console.error('❌ API Error:', response.status, response.statusText, errorText);
+        alert(`Wystąpił błąd podczas wysyłania zamówienia (${response.status}). Spróbuj ponownie później.`);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Network Error:', error);
       alert('Wystąpił błąd połączenia. Sprawdź połączenie internetowe i spróbuj ponownie.');
     } finally {
