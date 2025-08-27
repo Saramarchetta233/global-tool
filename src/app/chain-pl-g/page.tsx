@@ -1011,7 +1011,7 @@ export default function ChainsawLanding() {
 
       <div className="bg-red-600 text-white text-center py-2 px-4">
         <div className="flex items-center justify-center space-x-4 text-sm font-medium">
-          <span>🔥 OFERTA LIMITOWANA - Sconto -60% solo oggi!</span>
+          <span>🔥 OFERTA LIMITOWANA – Zniżka -60% tylko dziś!</span>
         </div>
       </div>
 
@@ -1026,7 +1026,7 @@ export default function ChainsawLanding() {
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-                  -60% SCONTO
+                  -60% ZNIŻKI
                 </div>
               </div>
             </div>
