@@ -432,6 +432,13 @@ const trackingUtils = {
     }
   },
 
+  // Get click_id from URL parameters
+  getClickId: (): string => {
+    if (typeof window === 'undefined') return '';
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('click_id') || '';
+  },
+
   // Track Google Ads events
   trackGoogleEvent: (eventName: string, eventData: any = {}): void => {
     if (typeof window !== 'undefined' && window.gtag) {
@@ -1376,8 +1383,6 @@ export default function SmartwatchLanding() {
     });
 
     try {
-      const apiFormData = new FormData();
-
       // Get current tracking parameters (fallback to stored if state is null)
       const currentParams = trackingParams || trackingParamsManager.getTrackingParams();
 
@@ -1396,24 +1401,72 @@ export default function SmartwatchLanding() {
         throw new Error('Missing required tracking parameters');
       }
 
-      apiFormData.append('uid', currentParams.uid);
-      apiFormData.append('key', currentParams.key);
-      apiFormData.append('offer', currentParams.offer);
-      apiFormData.append('lp', currentParams.lp);
-      apiFormData.append('network_type', currentParams.network_type);
-      apiFormData.append('name', formData.imie.trim());
-      apiFormData.append('tel', formData.telefon.trim());
-      apiFormData.append('street-address', formData.adres.trim());
-
+      // Get tmfp value
       const tmfpInput = document.querySelector('input[name="tmfp"]') as HTMLInputElement | null;
-      if (!tmfpInput || !tmfpInput.value) {
-        apiFormData.append('ua', navigator.userAgent);
-      }
+      const tmfpValue = tmfpInput?.value || '';
 
-      // Always use the fixed endpoint for POST
+      // Get click_id from URL or storage
+      const urlParams = new URLSearchParams(window.location.search);
+      const clickId = trackingUtils.getClickId();
+
+      // Prepare data for Cloudflare Worker (same structure as chain-pl-g)
+      const leadData = {
+        // Existing fields - preserved
+        uid: currentParams.uid,
+        key: currentParams.key,
+        offer: currentParams.offer,
+        lp: currentParams.lp,
+        name: formData.imie.trim(),
+        tel: formData.telefon.trim(),
+        'street-address': formData.adres.trim(),
+        tmfp: tmfpValue,
+        ua: navigator.userAgent,
+
+        // New required fields
+        network_type: currentParams.network_type,
+        url_network: 'https://offers.supertrendaffiliateprogram.com/forms/api/', // Keep original for tracking
+        click_id: clickId,
+
+        // Product data
+        product: 'Smartwatch Niezniszczalny',
+        price: 219.00,
+        currency: 'PLN',
+
+        // Tracking data
+        page_url: window.location.href,
+        referrer: document.referrer,
+        user_agent: navigator.userAgent,
+
+        // UTM parameters
+        utm_source: urlParams.get('utm_source'),
+        utm_medium: urlParams.get('utm_medium'),
+        utm_campaign: urlParams.get('utm_campaign'),
+        utm_content: urlParams.get('utm_content'),
+        utm_term: urlParams.get('utm_term'),
+
+        // Timestamp
+        timestamp: new Date().toISOString(),
+
+        // Facebook identifiers
+        fbp: trackingUtils.getFbBrowserId(),
+        fbc: trackingUtils.getFbClickId(),
+
+        // Other useful data
+        language: navigator.language,
+        screen_resolution: `${screen.width}x${screen.height}`,
+        page_title: document.title
+      };
+
+      console.log('📡 Sending data to Cloudflare Worker:', leadData);
+
+      // Always use the fixed endpoint for POST with Bearer token
       const response = await fetch('https://leads-ingest.hidden-rain-9c8e.workers.dev/', {
         method: 'POST',
-        body: apiFormData,
+        headers: {
+          'Authorization': 'Bearer Y60kgTRvJUTTVEsMytKhcFAo1dxDl6Iom2oL8QqxaRVb7RM1O6jx9D3gJsx1l0A1',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(leadData)
       });
 
       if (response.ok) {
