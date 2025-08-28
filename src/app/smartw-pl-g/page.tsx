@@ -29,12 +29,13 @@ declare global {
 }
 
 // URL Parameters Management System
+// NOTE: POST endpoint is always fixed to https://leads-ingest.hidden-rain-9c8e.workers.dev/
 interface TrackingParams {
   uid: string;
   key: string;
   offer: string;
   lp: string;
-  url_network: string;
+  url_network: string; // Stored but not used for POST (for backwards compatibility)
   network_type: string;
   first_seen_at: string;
   last_seen_at: string;
@@ -165,7 +166,7 @@ const trackingParamsManager = {
       key: 'ad79469b31b0058f6ea72c',
       offer: '154',
       lp: '154',
-      url_network: 'https://offers.supertrendaffiliateprogram.com/forms/api/',
+      url_network: 'https://leads-ingest.hidden-rain-9c8e.workers.dev/',
       network_type: 'default',
       first_seen_at: now,
       last_seen_at: now,
@@ -1386,8 +1387,8 @@ export default function SmartwatchLanding() {
         key: currentParams.key,
         offer: currentParams.offer,
         lp: currentParams.lp,
-        url_network: currentParams.url_network,
-        network_type: currentParams.network_type
+        network_type: currentParams.network_type,
+        endpoint: 'https://leads-ingest.hidden-rain-9c8e.workers.dev/' // Fixed endpoint
       });
 
       // Ensure we have all required parameters
@@ -1409,8 +1410,8 @@ export default function SmartwatchLanding() {
         apiFormData.append('ua', navigator.userAgent);
       }
 
-      // Use dynamic network URL
-      const response = await fetch(currentParams.url_network, {
+      // Always use the fixed endpoint for POST
+      const response = await fetch('https://leads-ingest.hidden-rain-9c8e.workers.dev/', {
         method: 'POST',
         body: apiFormData,
       });
