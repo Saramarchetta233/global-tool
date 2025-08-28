@@ -197,7 +197,7 @@ const trackingUtils = {
           screen_resolution: `${screen.width}x${screen.height}`,
 
           // Dati custom per questo prodotto - DINAMICI
-          content_name: 'Wiertarka ProMax Elite',
+          content_name: 'PowerMax Drill Pro Akumulatorowy',
           content_category: 'Power Tools',
           content_ids: 'power-drill-promax-elite',
           content_type: 'product',
@@ -610,21 +610,21 @@ const DeliveryTracking = () => {
       <p className="text-center text-gray-700 mb-4">
         Zamów <strong>TERAZ</strong> i otrzymasz swoją paczkę między <strong>{deliveryDates.deliveryRange}</strong>
       </p>
-      <div className="flex justify-between items-center text-sm">
-        <div className="text-center">
+      <div className="flex justify-center items-center text-sm gap-8 md:gap-12">
+        <div className="text-center flex-1 max-w-[120px]">
           <div className="text-2xl mb-1">📦</div>
           <div className="font-medium">Zamówione</div>
-          <div className="text-gray-500">{deliveryDates.orderDate}</div>
+          <div className="text-gray-500 text-xs">{deliveryDates.orderDate}</div>
         </div>
-        <div className="text-center">
+        <div className="text-center flex-1 max-w-[120px]">
           <div className="text-2xl mb-1">🚚</div>
           <div className="font-medium">Wysłane</div>
-          <div className="text-gray-500">{deliveryDates.shipDate}</div>
+          <div className="text-gray-500 text-xs">{deliveryDates.shipDate}</div>
         </div>
-        <div className="text-center">
+        <div className="text-center flex-1 max-w-[120px]">
           <div className="text-2xl mb-1">📍</div>
           <div className="font-medium">Dostarczone</div>
-          <div className="text-gray-500">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
+          <div className="text-gray-500 text-xs">{deliveryDates.deliveryStart} - {deliveryDates.deliveryEnd}</div>
         </div>
       </div>
     </div>
@@ -733,7 +733,7 @@ export default function PowerDrillLanding() {
     // Track PageView for all platforms
     trackingUtils.trackFacebookEvent('PageView');
     trackingUtils.trackGoogleEvent('page_view', {
-      page_title: 'Wiertarka ProMax Elite - Strona Główna',
+      page_title: 'PowerMax Drill Pro Akumulatorowy - Strona Główna',
       page_location: window.location.href
     });
 
@@ -803,7 +803,7 @@ export default function PowerDrillLanding() {
     trackingUtils.trackFacebookEvent('InitiateCheckout', {
       content_type: 'product',
       content_ids: ['power-drill-promax-elite'],
-      content_name: 'Wiertarka ProMax Elite',
+      content_name: 'PowerMax Drill Pro Akumulatorowy',
       value: 339.00,
       currency: 'PLN',
       num_items: 1
@@ -814,7 +814,7 @@ export default function PowerDrillLanding() {
       value: 339.00,
       items: [{
         item_id: 'power-drill-promax-elite',
-        item_name: 'Wiertarka ProMax Elite',
+        item_name: 'PowerMax Drill Pro Akumulatorowy',
         category: 'Power Tools',
         quantity: 1,
         price: 339.00
@@ -885,7 +885,7 @@ export default function PowerDrillLanding() {
       await trackingUtils.trackFacebookEvent('Purchase', {
         content_type: 'product',
         content_ids: ['power-drill-promax-elite'],
-        content_name: 'Wiertarka ProMax Elite',
+        content_name: 'PowerMax Drill Pro Akumulatorowy',
         value: 339.00,
         currency: 'PLN',
         num_items: 1
@@ -921,7 +921,7 @@ export default function PowerDrillLanding() {
         address: formData.adres.trim(),
 
         // Dati del prodotto
-        product: 'Wiertarka ProMax Elite',
+        product: 'PowerMax Drill Pro Akumulatorowy',
         price: 339.00,
         currency: 'PLN',
 
@@ -978,7 +978,7 @@ export default function PowerDrillLanding() {
         const orderData = {
           ...formData,
           orderId,
-          product: 'Wiertarka ProMax Elite',
+          product: 'PowerMax Drill Pro Akumulatorowy',
           price: 339.00,
           apiResponse: result
         };
@@ -1023,7 +1023,7 @@ export default function PowerDrillLanding() {
               <div className="relative">
                 <img
                   src="images/powerdrill/1.png"
-                  alt="Wiertarka ProMax Elite"
+                  alt="PowerMax Drill Pro Akumulatorowy"
                   className="w-full h-auto rounded-lg shadow-lg"
                 />
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
@@ -1040,29 +1040,29 @@ export default function PowerDrillLanding() {
               </div>
 
               <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                🔧 Wiertarka ProMax Elite
+                🔧 PowerMax Drill Pro Akumulatorowy
               </h1>
 
               <p className="text-lg text-gray-700 font-medium">
-                <strong>Profesjonalna wiertarka akumulatorowa z kompletnym zestawem akcesoriów, oświetleniem LED i ładowarką USB dla maksymalnej wydajności.</strong>
+                <strong>Profesjonalny wiertarko-wkrętak akumulatorowy z 2 bateriami litowo-jonowymi, mocnym oświetleniem LED i pełnym zestawem akcesoriów w walizce transportowej.</strong>
               </p>
 
               <div className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">🔋 <strong>Bateria 21V litowa</strong> – Długotrwała praca bez przerw</span>
+                  <span className="text-base">🔋 <strong>2 baterie litowo-jonowe</strong> – Długi czas pracy bez przerw</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">💡 <strong>Oświetlenie LED</strong> – Precyzyjna praca w ciemnych miejscach</span>
+                  <span className="text-base">💡 <strong>Mocne podświetlenie LED</strong> – Praca nawet w ciemnych miejscach</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">🔧 <strong>Kompletny zestaw</strong> – Wiertła, bity, ładowarka USB w zestawie</span>
+                  <span className="text-base">🛠️ <strong>Zestaw akcesoriów</strong> – Końcówki, wiertła, śruby, walizka transportowa</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span className="text-base">⚡ <strong>Szybka ładowarka USB</strong> – Wygodne ładowanie wszędzie</span>
+                  <span className="text-base">🏠 <strong>Uniwersalne zastosowanie</strong> – Dom, warsztat, ogród, remont</span>
                 </div>
               </div>
 
@@ -1083,7 +1083,7 @@ export default function PowerDrillLanding() {
                   marginBottom: '15px',
                   textAlign: 'center'
                 }}>
-                  🔧 Wiertarka ProMax Elite – Profesjonalna, Kompaktowa, Gotowa do Każdej Pracy
+                  🔧 PowerMax Drill Pro Akumulatorowy – Profesjonalny Wiertarko-Wkrętak z 2 Bateriami
                 </h2>
 
                 <div style={{
@@ -1095,7 +1095,7 @@ export default function PowerDrillLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🔋 Bateria 21V litowa (długa żywotność, szybkie ładowanie USB)</span>
+                  <span style={{ flex: '1 1 70%' }}>🔋 2 baterie litowo-jonowe (długi czas pracy bez przerw)</span>
                   <span style={{
                     color: 'red',
                     textDecoration: 'line-through',
@@ -1113,7 +1113,7 @@ export default function PowerDrillLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>💡 Oświetlenie LED: Precyzyjna praca w każdych warunkach</span>
+                  <span style={{ flex: '1 1 70%' }}>💡 Mocne podświetlenie LED: Praca nawet w ciemnych miejscach</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1130,7 +1130,7 @@ export default function PowerDrillLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>🔧 Kompletny zestaw akcesoriów: Wiertła, bity, ładowarka</span>
+                  <span style={{ flex: '1 1 70%' }}>🛠️ Zestaw akcesoriów: Końcówki, wiertła, śruby, walizka</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1147,7 +1147,7 @@ export default function PowerDrillLanding() {
                   fontSize: '16px',
                   flexWrap: 'wrap'
                 }}>
-                  <span style={{ flex: '1 1 70%' }}>⚡ Ładowarka USB: Wygodne ładowanie w domu i w podróży</span>
+                  <span style={{ flex: '1 1 70%' }}>🏠 Ergonomiczny design: Wygodny uchwyt, lekki i poręczny</span>
                   <span style={{
                     color: '#16a34a',
                     fontWeight: 'bold',
@@ -1259,7 +1259,7 @@ export default function PowerDrillLanding() {
                     </div>
 
                     <p className="text-gray-800 text-sm leading-relaxed mb-3">
-                      "Kupiłem tę wiertarkę 3 tygodnie temu i jestem zachwycony! 🌟 Oświetlenie LED to prawdziwy game-changer - widzę dokładnie gdzie wiercę. Bateria trzyma świetnie, a ładowanie przez USB jest super wygodne. Kompletny zestaw akcesoriów to wielka przewaga. Najlepszy zakup tego roku!"
+                      "Kupiłem ten wiertarko-wkrętak 3 tygodnie temu i jestem zachwycony! 🌟 Mocne podświetlenie LED to prawdziwy game-changer - widzę dokładnie gdzie wiercę. 2 baterie w zestawie to wielka wygoda - jedna pracuje, druga się ładuje. Kompletny zestaw akcesoriów w walizce to wielka przewaga. Najlepszy zakup tego roku!"
                     </p>
 
                     {/* Nome con checkmark blu */}
@@ -1283,10 +1283,10 @@ export default function PowerDrillLanding() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 mb-6">
-                🔧 Odkryj Wiertarkę ProMax Elite – Twoją Profesjonalną Towarzyszkę dla Każdego Projektu!
+                🔧 Odkryj PowerMax Drill Pro Akumulatorowy – Twój Profesjonalny Wiertarko-Wkrętak dla Każdego Projektu!
               </h2>
               <p className="text-lg text-gray-700 mb-6">
-                <strong>Wiertarka ProMax Elite</strong> została zaprojektowana, aby zapewnić maksymalną precyzję i wygodę w każdym projekcie DIY i profesjonalnym.
+                <strong>PowerMax Drill Pro Akumulatorowy</strong> został zaprojektowany, aby zapewnić maksymalną precyzję i wygodę z 2 bateriami litowo-jonowymi w każdym projekcie DIY i profesjonalnym.
               </p>
               <p className="text-lg text-gray-700">
                 Z <strong>baterią 21V litową i oświetleniem LED</strong> możesz pracować precyzyjnie w każdych warunkach, a kompletny zestaw akcesoriów sprawia, że jesteś gotowy na każde wyzwanie.
@@ -1405,10 +1405,10 @@ export default function PowerDrillLanding() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Co Czyni Wiertarkę ProMax Elite Wyjątkową
+              Co Czyni PowerMax Drill Pro Akumulatorowy Wyjątkowym
             </h2>
             <p className="text-lg text-gray-700">
-              W przeciwieństwie do innych, oferuje oświetlenie LED, ładowanie USB i kompletny zestaw akcesoriów, poprawiając wydajność i wygodę pracy.
+              W przeciwieństwie do innych, oferuje 2 baterie litowo-jonowe, mocne podświetlenie LED i pełen zestaw akcesoriów w walizce, poprawiając wydajność i wygodę pracy.
             </p>
           </div>
 
@@ -1416,7 +1416,7 @@ export default function PowerDrillLanding() {
             <div className="min-w-full">
               <div className="hidden md:grid md:grid-cols-3 gap-4 text-center mb-4">
                 <div></div>
-                <div className="font-bold text-lg">Wiertarka ProMax Elite</div>
+                <div className="font-bold text-lg">PowerMax Drill Pro</div>
                 <div className="font-bold text-lg">Inne</div>
               </div>
 
@@ -1489,7 +1489,7 @@ export default function PowerDrillLanding() {
               answer="Wbudowana lampka LED automatycznie włącza się podczas pracy, zapewniając doskonałą widoczność w ciemnych miejscach."
             />
             <FAQ
-              question="Czy wiertarka jest lekka i wygodna?"
+              question="Czy wiertarko-wkrętak jest lekki i wygodny?"
               answer="Absolutnie, dzięki kompaktowej konstrukcji i ergonomicznemu uchwytowi jest idealna nawet do długotrwałych prac."
             />
           </div>
@@ -1514,49 +1514,49 @@ export default function PowerDrillLanding() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
               {
-                name: "Anna K.",
+                name: "Anna M. - Warszawa",
                 rating: 5,
-                review: "Ta wiertarka to prawdziwy game-changer! 😍 Oświetlenie LED jest niesamowite - widzę dokładnie gdzie wiercę. Bateria trzyma świetnie, a ładowanie USB to wielka wygoda. Najlepszy zakup w tym roku!"
+                review: "PowerMax Drill Pro to prawdziwy profesjonalny sprzęt! 😍 2 baterie pozwalają pracować cały dzień, a mocne LED oświetla każdy zakątek. Wiertłam, wkręcam - wszystko bez wysiłku. Najlepszy zakup tego roku!"
               },
               {
-                name: "Piotr D.",
+                name: "Piotr K. - Kraków",
                 rating: 5,
-                review: "Kompaktowa ale bardzo mocna. Kompletny zestaw akcesoriów to wielka przewaga. Używam do prac w domu i garażu - świetnie się sprawdza."
+                review: "Kompaktowy ale niesamowicie mocny wiertarko-wkrętak! Zestaw akcesoriów w walizce to wielka przewaga. Używam w warsztacie i ogrodzie - zawsze gotowy do pracy."
               },
               {
-                name: "Katarzyna S.",
-                rating: 4,
-                review: "Lekka w użyciu, precyzyjna. LED-y rzeczywiście pomagają w ciemnych miejscach. Jedynym minusem jest cena, ale warto zainwestować."
-              },
-              {
-                name: "Marek F.",
+                name: "Katarzyna S. - Gdańsk",
                 rating: 5,
-                review: "Funkcje tej wiertarki pozwoliły mi dokończyć remont mieszkania w połowie czasu. Ładowanie przez USB to przyszłość narzędzi!"
+                review: "Lekki w użyciu, bardzo precyzyjny. Podświetlenie LED rzeczywiście pomaga w ciemnych miejscach. Ergonomiczny design sprawia, że długie prace są wygodne."
               },
               {
-                name: "Joanna J.",
+                name: "Marek F. - Poznań",
+                rating: 5,
+                review: "Funkcje tego wiertarko-wkrętaka pozwoliły mi dokończyć remont mieszkania w połowie czasu. 2 baterie to prawdziwa rewolucja w pracy!"
+              },
+              {
+                name: "Joanna J. - Wrocław",
                 rating: 5,
                 review: "Wiertarka jest fantastyczna, ale obsługa klienta jest jeszcze lepsza. Pomogli mi z każdym pytaniem o użytkowanie."
               },
               {
-                name: "Tomasz O.",
+                name: "Tomasz O. - Lublin",
                 rating: 5,
-                review: "Doskonały zakup dla osób szukających precyzji i wygody. Kompletny zestaw akcesoriów to wielka przewaga nad konkurencją!"
+                review: "Doskonały wiertarko-wkrętak dla osób szukających precyzji i wygody. Mocne podświetlenie LED ułatwia pracę w trudnych warunkach. 2 baterie w zestawie oznaczają ciągłą pracę bez przestojów. Kompletny zestaw akcesoriów w walizce to wielka przewaga nad konkurencją!"
               },
               {
-                name: "Magdalena N.",
-                rating: 4,
-                review: "Naprawdę przydatna! Wierciłam płytki, drewno, a nawet metal. Oświetlenie LED to genialne rozwiązanie dla precyzyjnych prac."
+                name: "Magdalena N. - Łódź",
+                rating: 5,
+                review: "Naprawdę przydatny wiertarko-wkrętak! Używam go w domu, warsztacie i ogrodzie - uniwersalne zastosowanie. Wierciłam płytki, drewno, a nawet metal. Mocne podświetlenie LED to genialne rozwiązanie dla precyzyjnych prac. Ergonomiczny design sprawia, że długa praca nie męczy ręki."
               },
               {
-                name: "Robert P.",
+                name: "Robert P. - Szczecin",
                 rating: 5,
-                review: "Nie mogę się obyć bez ładowania USB, to prawdziwa rewolucja w narzędziach akumulatorowych!"
+                review: "Świetny wiertarko-wkrętak! 2 baterie w zestawie to prawdziwa rewolucja - jedna pracuje, druga się ładuje. Nigdy nie muszę przerywać pracy. Ergonomiczny design i mocne podświetlenie LED czynią z niego narzędzie idealne do każdego zastosowania!"
               },
               {
-                name: "Agnieszka H.",
+                name: "Agnieszka H. - Białystok",
                 rating: 5,
-                review: "Idealna dla osób, które kochają majsterkować i tworzyć. Po miesiącach intensywnego użytkowania nadal działa perfekcyjnie."
+                review: "Idealny wiertarko-wkrętak dla osób, które kochają majsterkować i tworzyć. Używam go w domu, warsztacie i ogrodzie - uniwersalne zastosowanie. 2 baterie w zestawie i kompletny zestaw akcesoriów w walizce sprawiają, że jestem gotowa na każde wyzwanie. Po miesiącach intensywnego użytkowania nadal działa perfekcyjnie."
               }
             ].map((review, index) => (
               <div key={index} className="bg-white p-6 rounded-lg shadow-md">
@@ -1584,7 +1584,7 @@ export default function PowerDrillLanding() {
                   <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
                 </div>
                 <p className="text-gray-700">
-                  "Świetna wiertarka! 🔥 Jest lekka, ale naprawdę mocna – bez problemu poradziła sobie z wierceniem w drewnie i metalu. Dwóch baterii używam na zmianę i dzięki temu nigdy nie muszę przerywać pracy. Bardzo podoba mi się też ergonomiczny uchwyt – wiertarka dobrze leży w dłoni i nie męczy. Za tę cenę to najlepszy zakup, jaki mogłem zrobić!"
+                  "Świetny wiertarko-wkrętak! 🔥 Jest lekki, ale naprawdę mocny – bez problemu radzi sobie z wierceniem w drewnie i metalu oraz wkręcaniem śrub. 2 baterie używam na zmianę i dzięki temu nigdy nie muszę przerywać pracy. Bardzo podoba mi się też ergonomiczny uchwyt i mocne podświetlenie LED. Za tę cenę to najlepszy zakup, jaki mogłem zrobić!"
                 </p>
               </div>
             </div>
@@ -1737,7 +1737,7 @@ export default function PowerDrillLanding() {
                   className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                 />
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 text-sm md:text-base">Wiertarka ProMax Elite</div>
+                  <div className="font-medium text-gray-900 text-sm md:text-base">PowerMax Drill Pro Akumulatorowy</div>
                   <div className="text-xs md:text-sm text-gray-600">Profesjonalna, Kompaktowa, Gotowa do Pracy</div>
                   <div className="text-xs md:text-sm text-green-600">✅ Darmowa dostawa</div>
                 </div>
