@@ -1168,6 +1168,7 @@ export default function SmartwatchLanding() {
 
   // State for tracking parameters
   const [trackingParams, setTrackingParams] = useState<TrackingParams | null>(null);
+  const [isDebugMode, setIsDebugMode] = useState(false);
 
   // Initialize tracking on component mount
   useEffect(() => {
@@ -1179,6 +1180,8 @@ export default function SmartwatchLanding() {
 
     // Debug: Add URL params to console for testing
     const urlParams = new URLSearchParams(window.location.search);
+    setIsDebugMode(urlParams.get('debug') === '1');
+    
     console.log('URL parameters detected:', {
       uid: urlParams.get('uid'),
       key: urlParams.get('key'),
@@ -1443,7 +1446,7 @@ export default function SmartwatchLanding() {
       <input type="hidden" name="tmfp" />
 
       {/* Debug panel - only show if debug=1 in URL */}
-      {new URLSearchParams(window.location.search).get('debug') === '1' && trackingParams && (
+      {isDebugMode && trackingParams && (
         <div className="fixed top-0 left-0 z-50 bg-black bg-opacity-90 text-white p-4 text-xs max-w-md">
           <div className="font-bold mb-2">🔍 Debug: Tracking Parameters</div>
           <div>UID: {trackingParams.uid}</div>
