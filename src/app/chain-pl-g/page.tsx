@@ -1022,6 +1022,64 @@ export default function ChainsawLanding() {
 
     console.log('🎯 Form submitted with form data:', formData);
 
+    // Send notification to N8N for Telegram (without Facebook tracking)
+    try {
+      console.log('📡 Sending Purchase notification to N8N webhook...');
+
+      const hashedPhone = formData.telefon ? await trackingUtils.hashData(formData.telefon.replace(/\D/g, '')) : null;
+      const hashedFirstName = formData.imie ? await trackingUtils.hashData(formData.imie.split(' ')[0]) : null;
+      const hashedLastName = formData.imie && formData.imie.split(' ').length > 1 ? await trackingUtils.hashData(formData.imie.split(' ').slice(1).join(' ')) : null;
+
+      const now = Math.floor(Date.now() / 1000);
+      const eventTimestamp = now - 10;
+
+      const notificationData = {
+        event_name: 'Purchase',
+        event_id: `purchase-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: eventTimestamp,
+        event_source_url: window.location.href,
+        action_source: 'website',
+        event_time: eventTimestamp,
+
+        token: 'EAAPYtpMdWREBPJH0W7LzwU2MuZA61clyQOfYg5C6E0vo9E5QYgJWl2n5XtO8Ur93YTZANcWYz3qsAbDOadffn10KbQZCOwkRS6DpM8bRjwX25NBn5d1lvVNQhFOCGY9eZARrjyCbJs1OtFk2BOc4ZBbaUjeD7dvkejyxZAZAEQdeb8AQzUKdAQitdhU0jVGywZDZD',
+        pixel_id: '763716602087140',
+
+        telefono_hash: hashedPhone,
+        nome_hash: hashedFirstName,
+        cognome_hash: hashedLastName,
+        indirizzo: formData.adres || null,
+
+        traffic_source: trackingUtils.getTrafficSource(),
+        user_agent: navigator.userAgent,
+        fbp: trackingUtils.getFbBrowserId(),
+        fbc: trackingUtils.getFbClickId(),
+
+        content_name: 'Titan Pro Saw - Piła Łańcuchowa Profesjonalna z Ostrzem Tytanowym',
+        content_category: 'Professional Power Tools',
+        content_ids: 'titan-pro-saw-titanium',
+        content_type: 'product',
+        value: 299.00,
+        currency: 'PLN',
+        quantity: 1
+      };
+
+      const n8nResponse = await fetch('https://primary-production-625c.up.railway.app/webhook/CAPI-Meta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(notificationData)
+      });
+
+      if (n8nResponse.ok) {
+        console.log('✅ Purchase notification sent to N8N successfully');
+      } else {
+        console.error('❌ N8N notification error:', n8nResponse.status);
+      }
+    } catch (error) {
+      console.error('❌ N8N notification failed:', error);
+    }
+
     try {
       // Ottieni click_id dai parametri URL
       const urlParams = new URLSearchParams(window.location.search);
