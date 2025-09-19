@@ -1043,7 +1043,7 @@ export default function JacketLanding() {
     }
 
     if (!formData.telefon.trim()) {
-      errors.telefon = 'Numer telefonu jest wymagany';
+      errors.telefon = 'Telefonní číslo je povinné';
       isValid = false;
     } else {
       const phoneRegex = /^[\+]?[0-9\s\-\(\)]{8,15}$/;
@@ -1054,7 +1054,7 @@ export default function JacketLanding() {
     }
 
     if (!formData.adres.trim()) {
-      errors.adres = 'Adres jest wymagany';
+      errors.adres = 'Adresa je povinná';
       isValid = false;
     } else if (formData.adres.trim().length < 10) {
       errors.adres = 'Adresa musí být podrobnější (ulice, číslo, město, PSČ)';
@@ -1343,9 +1343,9 @@ export default function JacketLanding() {
                   <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">🛡️ Chrániče CE</span>
                   <span className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">💧 Vodoněpropustná</span>
                   <span className="bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">🌬️ Prodyšná</span>
-                  <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">🔥 Termo podvázka</span>
+                  <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium">🔥 Termo podšívka</span>
                   <span className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full text-sm font-medium">✨ Reflexní prvky 360°</span>
-                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">📏 Rozmiary S-3XL</span>
+                  <span className="bg-purple-100 text-purple-800 px-3 py-1 rounded-full text-sm font-medium">📏 Velikosti S-3XL</span>
                 </div>
 
                 <div className="space-y-3">
@@ -1363,7 +1363,7 @@ export default function JacketLanding() {
                   </div>
                   <div className="flex items-start space-x-3">
                     <Check className="w-5 h-5 text-green-600 mt-0.5 flex-shrink-0" />
-                    <span className="text-base">🔥 <strong>Termo podvázka</strong> – Vypínací na zimu pro maximální komfort</span>
+                    <span className="text-base">🔥 <strong>Termo podšívka</strong> – Vypínací na zimu pro maximální komfort</span>
                   </div>
                 </div>
 
@@ -1680,7 +1680,7 @@ export default function JacketLanding() {
                       color: '#16a34a',
                       fontWeight: 'bold',
                       whiteSpace: 'nowrap'
-                    }}>✔ W zestawie</span>
+                    }}>✔ V ceně</span>
                   </div>
 
                   <div style={{
@@ -1697,7 +1697,7 @@ export default function JacketLanding() {
                       color: '#16a34a',
                       fontWeight: 'bold',
                       whiteSpace: 'nowrap'
-                    }}>✔ W zestawie</span>
+                    }}>✔ V ceně</span>
                   </div>
 
                   <div style={{
@@ -1709,12 +1709,12 @@ export default function JacketLanding() {
                     fontSize: '16px',
                     flexWrap: 'wrap'
                   }}>
-                    <span style={{ flex: '1 1 70%' }}>🔥 Podszewka termiczna wypinana + odblaski 360°</span>
+                    <span style={{ flex: '1 1 70%' }}>🔥 Vyjímatelná termo podšívka + reflexní prvky 360°</span>
                     <span style={{
                       color: '#16a34a',
                       fontWeight: 'bold',
                       whiteSpace: 'nowrap'
-                    }}>✔ W zestawie</span>
+                    }}>✔ V ceně</span>
                   </div>
 
                   <div style={{
@@ -1895,13 +1895,13 @@ export default function JacketLanding() {
                   <div className="flex items-start space-x-3">
                     <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                     <div className="text-lg">
-                      <strong>Wentylacja:</strong> Otwory pod pachami i na plecach z zamkami – regulacja temperatury.
+                      <strong>Ventilace:</strong> Otvory pod paží a na zádech se zipy – regulace teploty.
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
                     <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
                     <div className="text-lg">
-                      <strong>Termo podvázka:</strong> Vypínací na zimu – jedna bunda na 4 sezóny.
+                      <strong>Termo podšívka:</strong> Vypínací na zimu – jedna bunda na 4 sezóny.
                     </div>
                   </div>
                   <div className="flex items-start space-x-3">
@@ -1967,7 +1967,7 @@ export default function JacketLanding() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Zestaw W Komplecie
+                Co je součástí balení
               </h2>
               <p className="text-lg text-gray-700">
                 Vše, co potřebujete pro bezpečnou a komfortní jízdu za všech podmínek.
@@ -2003,7 +2003,7 @@ export default function JacketLanding() {
                 </div>
                 <div className="bg-white p-6 rounded-lg shadow-md text-center">
                   <div className="text-4xl mb-4">📏</div>
-                  <h3 className="font-bold text-lg mb-2">Tabela Rozmiarów</h3>
+                  <h3 className="font-bold text-lg mb-2">Tabulka velikostí</h3>
                   <p className="text-gray-600">S, M, L, XL, XXL, 3XL - idealny rozmiar dla każdego</p>
                 </div>
               </div>
@@ -2015,7 +2015,7 @@ export default function JacketLanding() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Specyfikacja Techniczna
+                Technická specifikace
               </h2>
               <p className="text-lg text-gray-700">
                 Najważniejsze parametry techniczne kurtki RoadShield™ 4-Seasons
@@ -2098,10 +2098,10 @@ export default function JacketLanding() {
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Odpowiedzi na Twoje Najczęściej Zadawane Pytania
+                Odpovědi na vaše nejčastější otázky
               </h2>
               <p className="text-lg text-gray-700">
-                Jasność i wsparcie dla bezpiecznego zakupu.
+                Jasnost a podpora pro bezpečný nákup.
               </p>
             </div>
 
@@ -2146,7 +2146,7 @@ export default function JacketLanding() {
                 <span className="text-2xl font-bold">4.9/5</span>
               </div>
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                Opinie klientów o kurtce RoadShield™ 4-Seasons
+                Recenze zákazníků o bundě RoadShield™ 4-Seasons
               </h2>
               <p className="text-lg text-gray-700">
                 Autentické a důvěryhodné recenze motocyklistů
@@ -2178,7 +2178,7 @@ export default function JacketLanding() {
                 {
                   name: "Kateřina V. - Liberec",
                   rating: 5,
-                  review: "Termo podvázka je úplně skvělá! 🔥 V zimě s ní je teplo, v létě bez ní je chładno. Jedna bunda na celý rok - to se jmenuje praktická funkce! Kvalita materiálů je fantastická."
+                  review: "Termo podšívka je úplně skvělá! 🔥 V zimě s ní je teplo, v létě bez ní je příjemně. Jedna bunda na celý rok - to se jmenuje praktická funkce! Kvalita materiálů je fantastická."
                 },
                 {
                   name: "Tomáš K. - Olomouc",
@@ -2199,7 +2199,7 @@ export default function JacketLanding() {
                 <div key={index} className="bg-white p-6 rounded-lg shadow-md">
                   <div className="flex items-center space-x-2 mb-3">
                     <StarRating rating={review.rating} />
-                    <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
+                    <span className="text-sm text-gray-600">Ověřený zákazník</span>
                   </div>
                   <p className="text-gray-700 mb-3">{review.review}</p>
                   <p className="font-medium text-gray-900">- {review.name}</p>
@@ -2218,10 +2218,10 @@ export default function JacketLanding() {
                   <div className="flex items-center space-x-2 mb-2">
                     <StarRating rating={5} />
                     <span className="font-medium">Rafał D. - Szczecin</span>
-                    <span className="text-sm text-gray-600">Zweryfikowany Kupujący</span>
+                    <span className="text-sm text-gray-600">Ověřený zákazník</span>
                   </div>
                   <p className="text-gray-700">
-                    "Fantastická bunda RoadShield 4-Seasons! 🏍️ Chrániče CE úroveň 1 jsou skutečná ochrana - ověřil jsem ji už několikrát v praxi. Vodoněpropustná membrána udrží sucho za všech podmínek a systém ventilace zachřaní v létě. Termo podvázka skvěle funguje v zimě. To není obyčejná bunda - to je profesionální výbava pro každého motocyklistu. Nejlepší bunda, jakou jsem měl!"
+                    "Fantastická bunda RoadShield 4-Seasons! 🏍️ Chrániče CE úroveň 1 jsou skutečná ochrana - ověřil jsem ji už několikrát v praxi. Vodoněpropustná membrána udrží sucho za všech podmínek a systém ventilace zachřaní v létě. Termo podšívka skvěle funguje v zimě. To není obyčejná bunda - to je profesionální výbava pro každého motocyklistu. Nejlepší bunda, jakou jsem měl!"
                   </p>
                 </div>
               </div>
@@ -2234,13 +2234,13 @@ export default function JacketLanding() {
             <div className="bg-green-50 border border-green-200 rounded-lg p-8">
               <Shield className="w-16 h-16 text-green-600 mx-auto mb-6" />
               <h2 className="text-3xl font-bold text-gray-900 mb-4">
-                30-Dniowa Gwarancja Zwrotu Pieniędzy
+                30denní záruka vrácení peněz
               </h2>
               <p className="text-lg text-gray-700 mb-6">
                 Vyzkousíte bundu RoadShield™ 4-Seasons s úplným klidem díky naší 30-denní záruce vrácení peněz. Zažijte bezpečnost a komfort jízdy bez rizika.
               </p>
               <p className="text-xl font-bold text-green-600">
-                Jeśli nie jesteś całkowicie zadowolony, zwrócimy Ci całą kwotę.
+                Pokud nebudete úplně spokojeni, vrátíme vám celou částku.
               </p>
             </div>
           </div>
@@ -2258,7 +2258,7 @@ export default function JacketLanding() {
               <div className="space-y-4">
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
-                  <span>Numer śledzenia dla każdego zamówienia</span>
+                  <span>Číslo pro sledování každé objednávky</span>
                 </div>
                 <div className="flex items-start space-x-3">
                   <Check className="w-6 h-6 text-green-600 mt-0.5 flex-shrink-0" />
@@ -2286,7 +2286,7 @@ export default function JacketLanding() {
                   </div>
                   <div className="flex items-center space-x-2">
                     <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-sm">W zestawie numer śledzenia</span>
+                    <span className="text-sm">V ceně numer śledzenia</span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-4">
@@ -2300,7 +2300,7 @@ export default function JacketLanding() {
         <section className="py-16 bg-orange-600 text-white">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-4xl font-bold mb-6">
-              🔥 Nie Przegap Tej Specjalnej Oferty!
+              🔥 Nezmeškejte tuto speciální nabídku!
             </h2>
             <p className="text-xl mb-8">
               Tylko na dziś: <span className="line-through opacity-75">4373 Kč</span> <span className="text-5xl font-bold">299 Kč</span>
@@ -2316,12 +2316,12 @@ export default function JacketLanding() {
                 <div>
                   <Package className="w-8 h-8 mx-auto mb-2" />
                   <div className="font-bold">99.2%</div>
-                  <div className="text-sm opacity-90">Wskaźnik Zadowolenia</div>
+                  <div className="text-sm opacity-90">Míra spokojenosti</div>
                 </div>
                 <div>
                   <Clock className="w-8 h-8 mx-auto mb-2" />
                   <div className="font-bold">24/7</div>
-                  <div className="text-sm opacity-90">Obsługa Klientów</div>
+                  <div className="text-sm opacity-90">Zákaznická podpora</div>
                 </div>
               </div>
             </div>
@@ -2390,12 +2390,12 @@ export default function JacketLanding() {
 
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 md:mb-6">
                 <div className="text-center">
-                  <div className="text-xs text-red-600 mb-1">🔒 Rezerwujemy Twoje zamówienie</div>
+                  <div className="text-xs text-red-600 mb-1">🔒 Rezervujeme vaši objednávku</div>
                   <div className="text-xl md:text-2xl font-mono font-bold text-red-700">
                     {reservationTimer.minutes.toString().padStart(2, '0')}:{reservationTimer.seconds.toString().padStart(2, '0')}
                   </div>
                   <div className="text-xs text-red-600 mt-1">
-                    Pozostały czas na sfinalizowanie zamówienia
+                    Zbývající čas na dokončení objednávky
                   </div>
                 </div>
               </div>
@@ -2483,9 +2483,9 @@ export default function JacketLanding() {
                   <input type="hidden" name="model" value={model} />
                   <input type="hidden" name="size" value={size} />
 
-                  {/* Tabela Rozmiarów */}
+                  {/* Tabulka velikostí */}
                   <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                    <h4 className="text-sm font-semibold text-blue-800 mb-3 text-center">📏 Tabela Rozmiarów</h4>
+                    <h4 className="text-sm font-semibold text-blue-800 mb-3 text-center">📏 Tabulka velikostí</h4>
 
                     {/* Mobile: Layout compatto 2x3 */}
                     <div className="block md:hidden text-xs">
