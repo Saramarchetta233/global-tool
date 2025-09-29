@@ -339,50 +339,6 @@ const trackingUtils = {
   }
 };
 
-// Countdown Timer Component
-const CountdownTimer = () => {
-  const [timeLeft, setTimeLeft] = useState({
-    hours: 23,
-    minutes: 59,
-    seconds: 59
-  });
-
-  useEffect(() => {
-    const calculateTimeLeft = () => {
-      const now = new Date();
-      const midnight = new Date(now);
-      midnight.setHours(24, 0, 0, 0);
-      const difference = midnight.getTime() - now.getTime();
-
-      if (difference > 0) {
-        setTimeLeft({
-          hours: Math.floor(difference / (1000 * 60 * 60)),
-          minutes: Math.floor((difference / 1000 / 60) % 60),
-          seconds: Math.floor((difference / 1000) % 60)
-        });
-      } else {
-        setTimeLeft({ hours: 0, minutes: 0, seconds: 0 });
-      }
-    };
-
-    // Start calculation only after component mounts
-    const timer = setTimeout(() => {
-      calculateTimeLeft();
-      const interval = setInterval(calculateTimeLeft, 1000);
-      return () => clearInterval(interval);
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  return (
-    <span className="text-red-600 font-bold text-lg">
-      {String(timeLeft.hours).padStart(2, '0')}:
-      {String(timeLeft.minutes).padStart(2, '0')}:
-      {String(timeLeft.seconds).padStart(2, '0')}
-    </span>
-  );
-};
 
 // Star Rating Component
 const StarRating = ({ rating, size = 'w-4 h-4' }: { rating: number; size?: string }) => {
@@ -862,7 +818,6 @@ const ProductCarousel = () => {
 export default function JacketLanding() {
   const [mounted, setMounted] = useState(false);
   const [showOrderPopup, setShowOrderPopup] = useState(false);
-  const [reservationTimer, setReservationTimer] = useState({ minutes: 5, seconds: 0 });
   const [showStickyButton, setShowStickyButton] = useState(false);
   const [bounceAnimation, setBounceAnimation] = useState(false);
 
@@ -946,25 +901,6 @@ export default function JacketLanding() {
     };
   }, [showStickyButton]);
 
-  useEffect(() => {
-    let reservationInterval: NodeJS.Timeout | undefined;
-    if (showOrderPopup) {
-      reservationInterval = setInterval(() => {
-        setReservationTimer(prev => {
-          if (prev.seconds > 0) {
-            return { ...prev, seconds: prev.seconds - 1 };
-          } else if (prev.minutes > 0) {
-            return { minutes: prev.minutes - 1, seconds: 59 };
-          }
-          return { minutes: 0, seconds: 0 };
-        });
-      }, 1000);
-    }
-
-    return () => {
-      if (reservationInterval) clearInterval(reservationInterval);
-    };
-  }, [showOrderPopup]);
 
   const validateVariantSelection = () => {
     if (!model || !size) {
@@ -1033,7 +969,6 @@ export default function JacketLanding() {
     }));
 
     setShowOrderPopup(true);
-    setReservationTimer({ minutes: 5, seconds: 0 });
     setFormErrors({ imie: '', telefon: '', adres: '', modello: '', taglia: '' });
   };
 
@@ -1293,7 +1228,7 @@ export default function JacketLanding() {
 
         <div className="bg-red-600 text-white text-center py-2 px-4">
           <div className="flex items-center justify-center space-x-4 text-sm font-medium">
-            <span>🔥 OFERTA LIMITOWANA – Zniżka -60% tylko dziś!</span>
+            <span>🔥 OFERTA LIMITOWANA – Zniżka -60% na ostatnie sztuki!</span>
           </div>
         </div>
 
@@ -1306,9 +1241,9 @@ export default function JacketLanding() {
 
               <div className="order-2 space-y-6">
                 <div className="flex items-center space-x-2">
-                  <StarRating rating={5} size="w-5 h-5" />
-                  <span className="text-yellow-600 font-medium">4.9</span>
-                  <span className="text-gray-600">(478 opinii)</span>
+                  <span className="text-green-600 font-medium">
+                    Wodoodporna membrana + ochraniacze CE. Płatność przy odbiorze.
+                  </span>
                 </div>
 
                 <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
@@ -1704,7 +1639,7 @@ export default function JacketLanding() {
                     margin: '10px 0',
                     fontSize: '15px'
                   }}>
-                    🚚 <strong>Darmowa dostawa</strong> w całej Polsce (dostawa w 3-4 dni robocze)
+                    🚚 <strong>Darmowa dostawa kurierem DPD – 3–4 dni robocze</strong>
                   </div>
 
                   <div style={{
@@ -1714,7 +1649,7 @@ export default function JacketLanding() {
                     margin: '10px 0',
                     fontSize: '15px'
                   }}>
-                    💶 <strong>Płatność przy odbiorze</strong> dostępna
+                    💶 <strong>Płatność przy odbiorze (gotówka/karta)</strong>
                   </div>
 
                   <div style={{
@@ -1743,8 +1678,8 @@ export default function JacketLanding() {
                     marginBottom: '10px',
                     fontSize: '14px'
                   }}>
-                    ⏳ <strong>Oferta ważna tylko przez kilka dni!</strong><br />
-                    Skorzystaj zanim wróci do pełnej ceny.
+                    🔥 <strong>Ostatnie sztuki dostępne w magazynie</strong><br />
+                    Zamów teraz, aby nie przegapić promocji.
                   </div>
 
                   <div style={{
@@ -1754,7 +1689,7 @@ export default function JacketLanding() {
                     fontWeight: 'bold',
                     marginTop: '8px'
                   }}>
-                    <CountdownTimer />
+                    🔥 Ostatnie sztuki dostępne w magazynie – zamów teraz!
                   </div>
 
                   <div style={{
@@ -1771,7 +1706,7 @@ export default function JacketLanding() {
                   </div>
 
                   <p style={{ textAlign: 'center', fontSize: '14px', color: '#555' }}>
-                    📦 Wysyłka w 24/48h – Dostawa gwarantowana w 3-4 dni
+                    📦 Śledzenie przesyłki — wyślemy numer SMS/em
                   </p>
                 </div>
 
@@ -2159,6 +2094,9 @@ export default function JacketLanding() {
               <p className="text-lg text-gray-700">
                 Autentyczne i wiarygodne opinie motocyklistów
               </p>
+              <p className="text-sm text-gray-600 mt-2 mb-6">
+                <strong>Nota:</strong> Opinie pochodzą z ankiet pozakupowych z ostatnich 12 miesięcy. Na stronie pokazujemy losową próbkę.
+              </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2283,18 +2221,30 @@ export default function JacketLanding() {
               </div>
 
               <div className="bg-white p-6 rounded-lg shadow-md">
-                <h3 className="font-bold text-lg mb-4">DOSTAWA</h3>
-                <p className="text-gray-700 mb-4">
-                  Wysyłamy w całej Polsce, a jeśli zamówienie zostanie złożone przed 21:59, zostanie wysłane następnego dnia roboczego.
-                </p>
-                <div className="space-y-2">
+                <h3 className="font-bold text-lg mb-4 flex items-center">
+                  <Truck className="w-5 h-5 mr-2" />
+                  DOSTAWA
+                </h3>
+                <div className="space-y-3">
                   <div className="flex items-center space-x-2">
                     <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-sm">Dostarczone w 3-4 dni robocze</span>
+                    <span className="text-sm"><strong>Dostawa:</strong> Kurier DPD Polska na terenie całego kraju</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <Check className="w-4 h-4 text-green-600" />
-                    <span className="text-sm">W zestawie numer śledzenia</span>
+                    <span className="text-sm"><strong>Czas dostawy:</strong> 3–4 dni robocze</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-green-600" />
+                    <span className="text-sm"><strong>Płatność przy odbiorze:</strong> gotówką lub kartą u kuriera</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-green-600" />
+                    <span className="text-sm"><strong>Śledzenie przesyłki:</strong> numer listu przewozowego wysyłamy SMS/em</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Check className="w-4 h-4 text-green-600" />
+                    <span className="text-sm"><strong>Kontakt z przewoźnikiem:</strong> infolinia DPD: 801 400 373 / 22 577 55 55</span>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 mt-4">
@@ -2395,12 +2345,8 @@ export default function JacketLanding() {
 
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 md:mb-6">
                 <div className="text-center">
-                  <div className="text-xs text-red-600 mb-1">🔒 Rezerwujemy Twoje zamówienie</div>
-                  <div className="text-xl md:text-2xl font-mono font-bold text-red-700">
-                    {reservationTimer.minutes.toString().padStart(2, '0')}:{reservationTimer.seconds.toString().padStart(2, '0')}
-                  </div>
-                  <div className="text-xs text-red-600 mt-1">
-                    Pozostały czas na sfinalizowanie zamówienia
+                  <div className="text-sm text-red-600 font-medium">
+                    🔥 Ostatnie sztuki dostępne w magazynie – zamów teraz!
                   </div>
                 </div>
               </div>
