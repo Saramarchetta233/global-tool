@@ -1465,7 +1465,7 @@ export default function JacketLanding() {
         localStorage.setItem('orderData', JSON.stringify(orderData));
         console.log('✅ Order data saved to localStorage:', orderData);
 
-        window.location.href = '/ty-montcair-pl';
+        window.location.href = '/ty-montcalir-pl';
       } else if (response.status === 401) {
         console.error('❌ Unauthorized: Invalid token');
         alert('Błąd autoryzacji. Skontaktuj się z obsługą klienta.');
