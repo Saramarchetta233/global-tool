@@ -1197,7 +1197,7 @@ export default function HeatedVestLanding() {
           ...formData,
           orderId,
           product_name: 'ThermoVest Pro — Unisex kamizelka grzewcza USB (5 stref, 3 poziomy)',
-          price: '299,00 PLN',
+          price: '299,00 zł',
           color: color,
           size: size
         }));
@@ -1442,7 +1442,7 @@ export default function HeatedVestLanding() {
                     color: '#2563eb',
                     marginBottom: '10px'
                   }}>
-                    299,00 PLN
+                    299,00 zł
                   </div>
                   <div style={{
                     color: '#dc2626',
@@ -2211,7 +2211,7 @@ export default function HeatedVestLanding() {
                 onClick={handleOrderClick}
                 className={`w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-3 px-6 rounded-lg text-lg transition-all duration-300 transform hover:scale-105 shadow-lg ${bounceAnimation ? 'animate-bounce' : ''}`}
               >
-                🛒 ZAMÓW TERAZ - 299,00 PLN
+                🛒 ZAMÓW TERAZ - 299,00 zł
               </button>
             </div>
           </div>
@@ -2245,7 +2245,7 @@ export default function HeatedVestLanding() {
                     <div className="text-xs md:text-sm text-green-600">✅ Darmowa dostawa</div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="font-bold text-lg md:text-xl text-gray-900">299,00 PLN</div>
+                    <div className="font-bold text-lg md:text-xl text-gray-900">299,00 zł</div>
                     <div className="text-xs text-gray-500 line-through">747,50 zł</div>
                   </div>
                 </div>
@@ -2349,7 +2349,7 @@ export default function HeatedVestLanding() {
                 disabled={isSubmitting}
                 className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 text-base md:text-lg"
               >
-                {isSubmitting ? 'PRZETWARZANIE...' : 'POTWIERDŹ ZAMÓWIENIE - 299,00 PLN'}
+                {isSubmitting ? 'PRZETWARZANIE...' : 'POTWIERDŹ ZAMÓWIENIE - 299,00 zł'}
               </button>
             </div>
           </div>
