@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
           <div className="mb-12">
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Introduction</h2>
             <p className="text-lg text-gray-600 mb-4">
-              Newheras™ ("we," "our," or "us") is committed to protecting your privacy and ensuring the security
+              iNordexa™ ("we," "our," or "us") is committed to protecting your privacy and ensuring the security
               of your personal information. This Privacy Policy explains how we collect, use, disclose, and
               safeguard your information when you visit our website or make a purchase from us.
             </p>
@@ -347,11 +347,11 @@ export default function PrivacyPolicy() {
                   <div className="space-y-2 text-gray-600">
                     <div className="flex items-center">
                       <Mail className="w-4 h-4 mr-2" />
-                      <span>privacy@newheras.com</span>
+                      <span>privacy@inordexa.com</span>
                     </div>
                     <div className="flex items-center">
                       <MapPin className="w-4 h-4 mr-2" />
-                      <span>Via Roma 123, 20121 Milano, Italy</span>
+                      <span>iNordexa Ltd., 27 Old Gloucester Street, London, WC1N 3AX, United Kingdom</span>
                     </div>
                   </div>
                 </div>
@@ -394,7 +394,7 @@ export default function PrivacyPolicy() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:privacy@newheras.com"
+              href="mailto:privacy@inordexa.com"
               className="bg-white text-green-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Email Privacy Team

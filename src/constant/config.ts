@@ -1,7 +1,7 @@
 export const siteConfig = {
-  title: 'Newheras™',
+  title: 'iNordexa™',
   description:
-    'Creative tools for your everyday life',
+    'Professional technology solutions for modern living',
   /** Without additional '/' on the end, e.g. https://theodorusclarence.com */
-  url: 'https://newheras.com',
+  url: 'https://inordexa.com',
 };

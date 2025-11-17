@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     siteName: siteConfig.title,
     images: [`${siteConfig.url}/images/og.jpg`],
     type: 'website',
-    locale: 'it_IT',
+    locale: 'en_GB',
   },
   twitter: {
     card: 'summary_large_image',

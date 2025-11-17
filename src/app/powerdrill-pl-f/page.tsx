@@ -638,7 +638,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">Newheras</h3>
+            <h3 className="text-xl font-bold mb-4">iNordexa</h3>
             <p className="text-gray-300 text-sm">
               Najwyższej jakości narzędzia elektryczne dla profesjonalistów i miłośników DIY.
             </p>
@@ -678,7 +678,7 @@ const Footer = () => {
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-sm text-gray-400">
-              © 2025 Newheras. Wszystkie prawa zastrzeżone.
+              © 2025 iNordexa. Wszystkie prawa zastrzeżone.
             </p>
             <div className="flex space-x-6">
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Polityka Prywatności</a>
@@ -690,7 +690,7 @@ const Footer = () => {
           <div className="mt-6 text-xs text-gray-500 max-w-4xl mx-auto">
             <p className="mb-2">
               <strong>Informacje prawne:</strong> Wszystkie ceny zawierają podatek VAT. Prawo do odstąpienia od umowy w ciągu 14 dni zgodnie z prawem konsumenckim.
-              Gwarancja 24 miesiące zgodnie z Kodeksem Cywilnym. Sprzedawca: Newheras Sp. z o.o.
+              Gwarancja 24 miesiące zgodnie z Kodeksem Cywilnym. Sprzedawca: iNordexa Ltd.
             </p>
             <p>
               <strong>Ochrona danych:</strong> Przetwarzamy Twoje dane osobowe zgodnie z RODO. Szczegóły w Polityce Prywatności.
@@ -1627,7 +1627,7 @@ export default function PowerDrillLanding() {
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-4">
-                Sprzedawane wyłącznie przez <strong>NEWHERAS</strong>
+                Sprzedawane wyłącznie przez <strong>INORDEXA</strong>
               </p>
             </div>
           </div>

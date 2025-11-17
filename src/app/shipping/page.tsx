@@ -186,7 +186,7 @@ export default function ShippingInfo() {
               Contact Support
             </a>
             <a
-              href="mailto:info@newheras.com"
+              href="mailto:info@nordexa.com"
               className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors"
             >
               Email Us

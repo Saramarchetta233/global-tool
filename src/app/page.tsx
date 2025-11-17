@@ -1,170 +1,181 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Star, Shield, Truck, CreditCard, ChevronRight, Menu, X, Phone, Mail, MapPin, Facebook, Instagram, Twitter } from 'lucide-react';
+import { Star, Shield, Truck, CreditCard, ChevronRight, Menu, X, Phone, Mail, MapPin, Facebook, Instagram, Twitter, Zap, Globe, Award } from 'lucide-react';
 
 const HomePage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState('home');
 
-  const products = [
+  const featuredProducts = [
     {
-      name: "Professional Stapler",
-      price: "€29.99",
-      image: "/api/placeholder/300/300",
-      rating: 4.8,
-      reviews: 245
-    },
-    {
-      name: "Smart Watch Pro",
-      price: "€149.99",
+      name: "TechFlow Smart Hub",
+      price: "€189.99",
       image: "/api/placeholder/300/300",
       rating: 4.9,
-      reviews: 892
+      reviews: 1247,
+      category: "Smart Technology"
     },
     {
-      name: "Garden Trimmer",
-      price: "€89.99",
+      name: "ProForce Toolkit",
+      price: "€124.99",
+      image: "/api/placeholder/300/300",
+      rating: 4.8,
+      reviews: 892,
+      category: "Professional Tools"
+    },
+    {
+      name: "EcoFlow Energy Station",
+      price: "€299.99",
       image: "/api/placeholder/300/300",
       rating: 4.7,
-      reviews: 156
+      reviews: 563,
+      category: "Energy Solutions"
     }
   ];
 
-  const features = [
+  const coreFeatures = [
     {
       icon: <Truck className="w-8 h-8 text-blue-600" />,
-      title: "Free Europe-wide Delivery",
-      description: "Fast and reliable shipping across all European countries"
+      title: "Global Express Delivery",
+      description: "Swift international shipping with real-time tracking across 25+ countries"
     },
     {
       icon: <CreditCard className="w-8 h-8 text-blue-600" />,
-      title: "Pay on Delivery",
-      description: "Secure cash on delivery payment option available"
+      title: "Flexible Payment Options",
+      description: "Multiple secure payment methods including installment plans"
     },
     {
       icon: <Shield className="w-8 h-8 text-blue-600" />,
-      title: "Quality Guarantee",
-      description: "30-day money-back guarantee on all products"
+      title: "Premium Warranty",
+      description: "Extended 36-month warranty coverage on all technology products"
+    },
+    {
+      icon: <Zap className="w-8 h-8 text-blue-600" />,
+      title: "Innovation First",
+      description: "Cutting-edge technology solutions tested by industry experts"
     }
   ];
 
   const testimonials = [
     {
-      name: "Maria Schmidt",
-      location: "Germany",
-      text: "Amazing quality products and fast delivery. The smartwatch exceeded my expectations!",
+      name: "Alexandra Chen",
+      role: "Technology Director",
+      content: "iNordexa's solutions have transformed our workflow efficiency. Outstanding quality and support.",
       rating: 5
     },
     {
-      name: "Jean Dupont",
-      location: "France",
-      text: "Professional tools at great prices. The pay on delivery option gave me confidence to order.",
+      name: "Marcus Rodriguez",
+      role: "Engineering Manager",
+      content: "Exceptional build quality and innovative design. These products exceed professional standards.",
       rating: 5
     },
     {
-      name: "Alessandro Rossi",
-      location: "Italy",
-      text: "Excellent customer service and high-quality products. Highly recommended!",
+      name: "Sophie Laurent",
+      role: "Product Designer",
+      content: "Perfect blend of functionality and aesthetics. iNordexa understands modern professional needs.",
       rating: 5
     }
   ];
 
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <Star key={i} className={`w-4 h-4 ${i < rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
-    ));
-  };
-
-  const scrollToSection = (sectionId: string) => {
-    setActiveSection(sectionId);
-    const element = document.getElementById(sectionId);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-    setIsMenuOpen(false);
-  };
-
   return (
     <div className="min-h-screen bg-white">
-      {/* Header */}
+      {/* Navigation */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <span className="text-2xl font-bold text-gray-900">Newheras™</span>
-              <span className="text-sm text-gray-600 ml-2 hidden sm:inline">Creative tools for your everyday life</span>
+              <span className="text-2xl font-bold text-gray-900">iNordexa™</span>
+              <span className="text-sm text-gray-600 ml-2 hidden sm:inline">Professional technology solutions for modern living</span>
             </div>
 
             <nav className="hidden md:flex space-x-8">
-              <button onClick={() => scrollToSection('home')} className="text-gray-700 hover:text-blue-600 transition-colors">Home</button>
-              <button onClick={() => scrollToSection('products')} className="text-gray-700 hover:text-blue-600 transition-colors">Products</button>
-              <button onClick={() => scrollToSection('about')} className="text-gray-700 hover:text-blue-600 transition-colors">About Us</button>
-              <button onClick={() => scrollToSection('contact')} className="text-gray-700 hover:text-blue-600 transition-colors">Contact</button>
+              <a href="#home" className="text-gray-700 hover:text-blue-600 transition-colors">Home</a>
+              <a href="#products" className="text-gray-700 hover:text-blue-600 transition-colors">Products</a>
+              <a href="#solutions" className="text-gray-700 hover:text-blue-600 transition-colors">Solutions</a>
+              <a href="#about" className="text-gray-700 hover:text-blue-600 transition-colors">About</a>
+              <a href="#contact" className="text-gray-700 hover:text-blue-600 transition-colors">Contact</a>
             </nav>
 
-            <button
-              className="md:hidden"
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile menu */}
-        {isMenuOpen && (
-          <div className="md:hidden bg-white border-t">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              <button onClick={() => scrollToSection('home')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Home</button>
-              <button onClick={() => scrollToSection('products')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Products</button>
-              <button onClick={() => scrollToSection('about')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">About Us</button>
-              <button onClick={() => scrollToSection('contact')} className="block px-3 py-2 text-gray-700 hover:text-blue-600">Contact</button>
+            <div className="md:hidden">
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="text-gray-700 hover:text-blue-600"
+              >
+                {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </div>
-        )}
+
+          {isMenuOpen && (
+            <div className="md:hidden py-4 border-t">
+              <div className="flex flex-col space-y-3">
+                <a href="#home" className="text-gray-700 hover:text-blue-600 transition-colors">Home</a>
+                <a href="#products" className="text-gray-700 hover:text-blue-600 transition-colors">Products</a>
+                <a href="#solutions" className="text-gray-700 hover:text-blue-600 transition-colors">Solutions</a>
+                <a href="#about" className="text-gray-700 hover:text-blue-600 transition-colors">About</a>
+                <a href="#contact" className="text-gray-700 hover:text-blue-600 transition-colors">Contact</a>
+              </div>
+            </div>
+          )}
+        </div>
       </header>
 
       {/* Hero Section */}
-      <section id="home" className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+      <section id="home" className="py-20 bg-gradient-to-br from-blue-50 to-indigo-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-              Creative Tools for Your
-              <span className="text-blue-600 block">Everyday Life</span>
-            </h1>
-            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Discover high-quality tools and gadgets designed to enhance your daily routine.
-              From professional staplers to smart watches and garden equipment - we've got you covered across Europe.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={() => scrollToSection('products')}
-                className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center"
-              >
-                Shop Now <ChevronRight className="w-5 h-5 ml-2" />
-              </button>
-              <button
-                onClick={() => scrollToSection('about')}
-                className="border-2 border-blue-600 text-blue-600 px-8 py-4 rounded-lg font-semibold hover:bg-blue-50 transition-colors"
-              >
-                Learn More
-              </button>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div>
+              <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+                Innovate Your
+                <span className="text-blue-600"> Technology</span>
+                <br />Experience
+              </h1>
+              <p className="text-xl text-gray-600 mb-8">
+                Discover premium technology solutions engineered for professionals who demand excellence. 
+                Transform your workspace with cutting-edge innovations designed for the digital age.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <button className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center">
+                  Explore Solutions
+                  <ChevronRight className="ml-2 w-5 h-5" />
+                </button>
+                <button className="border-2 border-gray-300 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:border-blue-600 hover:text-blue-600 transition-colors">
+                  Watch Demo
+                </button>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="bg-gradient-to-r from-blue-400 to-purple-500 rounded-3xl h-96 flex items-center justify-center">
+                <div className="text-white text-center">
+                  <div className="w-32 h-32 bg-white/20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                    <Globe className="w-16 h-16" />
+                  </div>
+                  <h3 className="text-2xl font-bold mb-2">Global Innovation</h3>
+                  <p className="text-blue-100">Connecting technology worldwide</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="py-16 bg-white">
+      <section id="features" className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8">
-            {features.map((feature, index) => (
-              <div key={index} className="text-center p-6 rounded-lg hover:shadow-lg transition-shadow">
-                <div className="flex justify-center mb-4">
-                  {feature.icon}
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">{feature.title}</h3>
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Why Choose iNordexa™?</h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              We deliver professional-grade technology solutions with unmatched quality, 
+              innovative design, and comprehensive support for modern businesses.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {coreFeatures.map((feature, index) => (
+              <div key={index} className="text-center p-6 rounded-lg border border-gray-200 hover:shadow-lg transition-shadow">
+                <div className="mb-4 flex justify-center">{feature.icon}</div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-3">{feature.title}</h3>
                 <p className="text-gray-600">{feature.description}</p>
               </div>
             ))}
@@ -172,34 +183,37 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* Products Section */}
+      {/* Featured Products */}
       <section id="products" className="py-16 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Featured Products</h2>
-            <p className="text-xl text-gray-600">Carefully selected tools for modern living</p>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Featured Solutions</h2>
+            <p className="text-xl text-gray-600">Professional technology products designed for excellence</p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.map((product, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {featuredProducts.map((product, index) => (
               <div key={index} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-                <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                  <div className="w-48 h-48 bg-gradient-to-br from-blue-100 to-blue-200 rounded-lg flex items-center justify-center">
-                    <span className="text-blue-600 font-semibold">{product.name}</span>
+                <div className="h-64 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
+                  <div className="text-gray-400 text-center">
+                    <div className="w-24 h-24 bg-gray-300 rounded-lg mx-auto mb-4"></div>
+                    <p className="font-medium">{product.category}</p>
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">{product.name}</h3>
-                  <div className="flex items-center mb-2">
-                    <div className="flex">
-                      {renderStars(Math.floor(product.rating))}
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h3>
+                  <div className="flex items-center mb-3">
+                    <div className="flex text-yellow-400">
+                      {[...Array(5)].map((_, i) => (
+                        <Star key={i} size={16} className={i < Math.floor(product.rating) ? "fill-current" : ""} />
+                      ))}
                     </div>
                     <span className="text-sm text-gray-600 ml-2">({product.reviews} reviews)</span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-2xl font-bold text-blue-600">{product.price}</span>
                     <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                      Add to Cart
+                      View Details
                     </button>
                   </div>
                 </div>
@@ -209,68 +223,26 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* About Section */}
-      <section id="about" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">Why Choose Newheras™?</h2>
-              <p className="text-lg text-gray-600 mb-6">
-                At Newheras™, we believe that the right tools can transform your everyday experiences.
-                Founded with a passion for innovation and quality, we curate exceptional products that
-                combine functionality with style.
-              </p>
-              <div className="space-y-4">
-                <div className="flex items-start">
-                  <Shield className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Quality Assurance</h3>
-                    <p className="text-gray-600">Every product is rigorously tested to meet our high standards</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <Truck className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Europe-wide Reach</h3>
-                    <p className="text-gray-600">Serving customers across all European countries with reliable delivery</p>
-                  </div>
-                </div>
-                <div className="flex items-start">
-                  <CreditCard className="w-6 h-6 text-blue-600 mt-1 mr-3 flex-shrink-0" />
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Secure Payment</h3>
-                    <p className="text-gray-600">Pay on delivery option for your peace of mind</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-blue-100 to-indigo-200 rounded-lg h-96 flex items-center justify-center">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-blue-600 mb-2">10,000+</div>
-                <div className="text-lg text-blue-700">Happy Customers</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Testimonials */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">What Our Customers Say</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-6">What Our Clients Say</h2>
+            <p className="text-xl text-gray-600">Trusted by professionals worldwide</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-6 rounded-lg shadow-md">
-                <div className="flex mb-4">
-                  {renderStars(testimonial.rating)}
+              <div key={index} className="bg-gray-50 p-6 rounded-lg">
+                <div className="flex text-yellow-400 mb-4">
+                  {[...Array(testimonial.rating)].map((_, i) => (
+                    <Star key={i} size={16} className="fill-current" />
+                  ))}
                 </div>
-                <p className="text-gray-600 mb-4">"{testimonial.text}"</p>
-                <div className="border-t pt-4">
-                  <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                  <div className="text-sm text-gray-600">{testimonial.location}</div>
+                <p className="text-gray-700 mb-4 italic">"{testimonial.content}"</p>
+                <div>
+                  <p className="font-semibold text-gray-900">{testimonial.name}</p>
+                  <p className="text-sm text-gray-600">{testimonial.role}</p>
                 </div>
               </div>
             ))}
@@ -279,104 +251,101 @@ const HomePage = () => {
       </section>
 
       {/* Contact Section */}
-      <section id="contact" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Contact Us</h2>
-            <p className="text-xl text-gray-600">We're here to help with any questions</p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <Phone className="w-8 h-8 text-blue-600 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Phone</h3>
-              <p className="text-gray-600">+44 7353023196</p>
-            </div>
-            <div className="text-center">
-              <Mail className="w-8 h-8 text-blue-600 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Email</h3>
-              <p className="text-gray-600">info@newheras.com</p>
-            </div>
-            <div className="text-center">
-              <MapPin className="w-8 h-8 text-blue-600 mx-auto mb-4" />
-              <h3 className="font-semibold text-gray-900 mb-2">Address</h3>
-              <p className="text-gray-600">Milan, Italy</p>
-            </div>
+      <section id="contact" className="py-16 bg-blue-600 text-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <h2 className="text-3xl md:text-4xl font-bold mb-6">Ready to Transform Your Technology?</h2>
+          <p className="text-xl mb-8 opacity-90">
+            Join thousands of professionals who trust iNordexa™ for their technology needs
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+              Get Started Today
+            </button>
+            <button className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors">
+              Schedule Consultation
+            </button>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div className="col-span-1">
-              <h3 className="text-xl font-bold mb-4">Newheras™</h3>
-              <p className="text-gray-400 mb-4">Creative tools for your everyday life</p>
+      <footer className="bg-gray-800 text-white py-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+              <h3 className="text-xl font-bold mb-4">iNordexa™</h3>
+              <p className="text-gray-300 text-sm mb-4">
+                Leading provider of professional technology solutions for the modern digital workplace.
+              </p>
               <div className="flex space-x-4">
-                <Facebook className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
-                <Instagram className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
-                <Twitter className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer" />
+                <Facebook size={20} className="text-gray-400 hover:text-white cursor-pointer" />
+                <Instagram size={20} className="text-gray-400 hover:text-white cursor-pointer" />
+                <Twitter size={20} className="text-gray-400 hover:text-white cursor-pointer" />
               </div>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4">Products</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Office Tools</a></li>
-                <li><a href="#" className="hover:text-white">Smart Devices</a></li>
-                <li><a href="#" className="hover:text-white">Garden Equipment</a></li>
-                <li><a href="#" className="hover:text-white">Home Accessories</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold mb-4">Company</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">About Us</a></li>
-                <li><a href="#" className="hover:text-white">Careers</a></li>
-                <li><a href="#" className="hover:text-white">Press</a></li>
-                <li><a href="#" className="hover:text-white">Blog</a></li>
+              <h4 className="font-semibold mb-4">Solutions</h4>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><a href="#" className="hover:text-white">Smart Technology</a></li>
+                <li><a href="#" className="hover:text-white">Professional Tools</a></li>
+                <li><a href="#" className="hover:text-white">Energy Solutions</a></li>
+                <li><a href="#" className="hover:text-white">Custom Integration</a></li>
               </ul>
             </div>
 
             <div>
               <h4 className="font-semibold mb-4">Support</h4>
-              <ul className="space-y-2 text-gray-400">
-                <li><a href="#" className="hover:text-white">Help Center</a></li>
-                <li><a href="#" className="hover:text-white">Shipping Info</a></li>
-                <li><a href="#" className="hover:text-white">Returns</a></li>
-                <li><a href="#" className="hover:text-white">Contact Us</a></li>
+              <ul className="space-y-2 text-sm text-gray-300">
+                <li><a href="/privacy" className="hover:text-white">Privacy Policy</a></li>
+                <li><a href="/terms" className="hover:text-white">Terms of Service</a></li>
+                <li><a href="/shipping" className="hover:text-white">Shipping Info</a></li>
+                <li><a href="/returns" className="hover:text-white">Returns</a></li>
               </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4">Contact Information</h4>
+              <div className="space-y-2 text-sm text-gray-300">
+                <div className="flex items-center">
+                  <Phone className="w-4 h-4 mr-2" />
+                  <span>+44 20 7946 0958</span>
+                </div>
+                <div className="flex items-center">
+                  <Mail className="w-4 h-4 mr-2" />
+                  <span>info@inordexa.com</span>
+                </div>
+                <div className="flex items-center">
+                  <MapPin className="w-4 h-4 mr-2" />
+                  <span>London, United Kingdom</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div className="border-t border-gray-800 mt-8 pt-8">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <div className="text-gray-400 text-sm mb-4 md:mb-0">
-                © 2025 Newheras™. All rights reserved.
+          <div className="border-t border-gray-700 mt-8 pt-8 text-center">
+            <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+              <div>
+                <p className="text-sm text-gray-400">
+                  © 2025 iNordexa™. All rights reserved.
+                </p>
               </div>
-              <div className="flex space-x-6 text-sm text-gray-400">
-                <a href="/privacy" className="hover:text-white">Privacy Policy</a>
-                <a href="/terms" className="hover:text-white">Terms of Service</a>
-                <a href="/cookies" className="hover:text-white">Cookie Policy</a>
-                <a href="/gdpr" className="hover:text-white">GDPR Compliance</a>
+              <div className="flex space-x-6">
+                <a href="/privacy" className="text-gray-400 hover:text-white text-sm">Privacy</a>
+                <a href="/terms" className="text-gray-400 hover:text-white text-sm">Terms</a>
+                <a href="/cookies" className="text-gray-400 hover:text-white text-sm">Cookies</a>
               </div>
             </div>
 
-            <div className="mt-4 text-xs text-gray-500">
+            <div className="mt-6 text-xs text-gray-500 max-w-4xl mx-auto">
               <p className="mb-2">
-                <strong>Legal Notice:</strong> Newheras™ is a registered trademark. All product names, logos, and brands are property of their respective owners.
-              </p>
-              <p className="mb-2">
-                <strong>Delivery:</strong> Free delivery across Europe. Cash on delivery available. Delivery times: 3-7 business days.
-              </p>
-              <p className="mb-2">
-                <strong>Returns:</strong> 30-day return policy. Items must be in original condition. Customer service: info@newheras.com
+                <strong>Legal Notice:</strong> iNordexa™ is a registered trademark. All prices include applicable taxes. 
+                30-day return policy applies to all products. Warranty terms vary by product category.
+                Seller: iNordexa Ltd., 27 Old Gloucester Street, London, WC1N 3AX, United Kingdom.
               </p>
               <p>
-                <strong>Business Registration:</strong> VAT ID: IT12345678901 | Commercial Registry: Milan Court |
-                Registered Office: Via Roma 123, 20121 Milano, Italy
+                <strong>Data Protection:</strong> We process personal data in accordance with GDPR and UK data protection laws. 
+                See our Privacy Policy for details. This website uses analytics and marketing cookies for optimization.
               </p>
             </div>
           </div>

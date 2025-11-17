@@ -505,10 +505,10 @@ export default function GDPRCompliance() {
               <h3 className="text-xl font-semibold mb-2">Email</h3>
               <p className="opacity-90 mb-4">Direct line to our Data Protection Officer</p>
               <a
-                href="mailto:dpo@newheras.com"
+                href="mailto:dpo@nordexa.com"
                 className="bg-white text-indigo-600 px-6 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors inline-block"
               >
-                dpo@newheras.com
+                dpo@nordexa.com
               </a>
             </div>
 
@@ -531,9 +531,9 @@ export default function GDPRCompliance() {
               <div className="bg-white text-indigo-600 px-6 py-2 rounded-lg font-medium">
                 <div className="text-sm">
                   Data Protection Officer<br />
-                  Newheras™ S.r.l.<br />
-                  Via Roma 123<br />
-                  20121 Milano, Italy
+                  iNordexa™ Ltd.<br />
+                  27 Old Gloucester Street<br />
+                  London, WC1N 3AX, United Kingdom
                 </div>
               </div>
             </div>

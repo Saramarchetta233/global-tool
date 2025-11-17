@@ -255,7 +255,7 @@ export default function CookiePolicy() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Privacy Team</h3>
-                  <p className="text-gray-600">Email: privacy@newheras.com</p>
+                  <p className="text-gray-600">Email: privacy@inordexa.com</p>
                   <p className="text-gray-600">Phone: +39 02 1234 5678</p>
                 </div>
                 <div>

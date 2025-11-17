@@ -51,14 +51,14 @@ export default function ContactUs() {
             <div className="text-center p-6 bg-blue-50 rounded-lg">
               <Mail className="w-12 h-12 text-blue-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Email Support</h3>
-              <p className="text-gray-600 mb-2">info@newheras.com</p>
+              <p className="text-gray-600 mb-2">info@inordexa.com</p>
               <p className="text-sm text-gray-500">Response within 24 hours</p>
             </div>
             <div className="text-center p-6 bg-green-50 rounded-lg">
               <MapPin className="w-12 h-12 text-green-600 mx-auto mb-4" />
               <h3 className="text-xl font-semibold text-gray-900 mb-2">Address</h3>
-              <p className="text-gray-600 mb-2">Via Roma 123</p>
-              <p className="text-sm text-gray-500">20121 Milano, Italy</p>
+              <p className="text-gray-600 mb-2">27 Old Gloucester Street</p>
+              <p className="text-sm text-gray-500">London, WC1N 3AX, United Kingdom</p>
             </div>
           </div>
 

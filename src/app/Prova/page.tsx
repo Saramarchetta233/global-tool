@@ -696,7 +696,7 @@ const Footer = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
-            <h3 className="text-xl font-bold mb-4">Newheras</h3>
+            <h3 className="text-xl font-bold mb-4">iNordexa</h3>
             <p className="text-gray-300 text-sm">
               Droni di alta qualità per la tua creatività aerea.
             </p>
@@ -736,7 +736,7 @@ const Footer = () => {
         <div className="border-t border-gray-700 mt-8 pt-8 text-center">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
             <p className="text-sm text-gray-400">
-              © 2025 Newheras. Tutti i diritti riservati.
+              © 2025 iNordexa. Tutti i diritti riservati.
             </p>
             <div className="flex space-x-6">
               <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white text-sm">Privacy Policy</a>
@@ -748,7 +748,7 @@ const Footer = () => {
           <div className="mt-6 text-xs text-gray-500 max-w-4xl mx-auto">
             <p className="mb-2">
               <strong>Informazioni legali:</strong> Tutti i prezzi includono IVA. Diritto di recesso entro 14 giorni secondo la normativa dei consumatori.
-              Garanzia 24 mesi secondo il Codice Civile. Venditore: Newheras S.r.l.
+              Garanzia 24 mesi secondo il Codice Civile. Venditore: iNordexa Ltd.
             </p>
             <p>
               <strong>Protezione dati:</strong> Trattiamo i tuoi dati personali in conformità al GDPR. Dettagli nella Politica sulla Privacy.
@@ -1711,7 +1711,7 @@ export default function DroneLanding() {
                 </div>
               </div>
               <p className="text-sm text-gray-600 mt-4">
-                Venduto esclusivamente da <strong>Newheras</strong>
+                Venduto esclusivamente da <strong>iNordexa</strong>
               </p>
             </div>
           </div>

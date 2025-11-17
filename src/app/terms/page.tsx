@@ -35,7 +35,7 @@ export default function TermsOfService() {
             <h2 className="text-3xl font-bold text-gray-900 mb-6">Agreement to Terms</h2>
             <div className="bg-blue-50 p-6 rounded-lg">
               <p className="text-lg text-blue-800 mb-4">
-                These Terms of Service ("Terms") govern your use of the Newheras™ website and services.
+                These Terms of Service ("Terms") govern your use of the iNordexa™ website and services.
                 By accessing or using our website, you agree to be bound by these Terms.
               </p>
               <p className="text-blue-700">
@@ -55,15 +55,15 @@ export default function TermsOfService() {
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Legal Entity</h3>
-                  <p className="text-gray-600">Newheras™ S.r.l.</p>
+                  <p className="text-gray-600">iNordexa Ltd.</p>
                   <p className="text-gray-600">VAT ID: IT12345678901</p>
                   <p className="text-gray-600">Commercial Registry: Milan Court</p>
                 </div>
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-3">Registered Address</h3>
-                  <p className="text-gray-600">Via Roma 123</p>
-                  <p className="text-gray-600">20121 Milano, Italy</p>
-                  <p className="text-gray-600">Email: legal@newheras.com</p>
+                  <p className="text-gray-600">27 Old Gloucester Street</p>
+                  <p className="text-gray-600">London, WC1N 3AX, United Kingdom</p>
+                  <p className="text-gray-600">Email: legal@inordexa.com</p>
                 </div>
               </div>
             </div>
@@ -218,7 +218,7 @@ export default function TermsOfService() {
               <div className="bg-yellow-50 border border-yellow-200 p-6 rounded-lg">
                 <h3 className="text-xl font-semibold text-yellow-900 mb-4">Limitation of Liability</h3>
                 <p className="text-yellow-800 mb-3">
-                  To the maximum extent permitted by law, Newheras™ shall not be liable for any indirect,
+                  To the maximum extent permitted by law, iNordexa™ shall not be liable for any indirect,
                   incidental, special, consequential, or punitive damages, including but not limited to loss of profits,
                   data, or goodwill.
                 </p>
@@ -248,7 +248,7 @@ export default function TermsOfService() {
             <div className="bg-gray-50 p-6 rounded-lg">
               <p className="text-lg text-gray-600 mb-4">
                 The website and its original content, features, and functionality are and will remain the exclusive
-                property of Newheras™ and its licensors. The service is protected by copyright, trademark, and other laws.
+                property of iNordexa™ and its licensors. The service is protected by copyright, trademark, and other laws.
               </p>
 
               <div className="grid md:grid-cols-2 gap-6 mt-6">
@@ -256,7 +256,7 @@ export default function TermsOfService() {
                   <h3 className="font-semibold text-gray-900 mb-3">Our Rights</h3>
                   <ul className="text-gray-600 space-y-1">
                     <li>• Website design and content</li>
-                    <li>• Newheras™ trademark and logo</li>
+                    <li>• iNordexa™ trademark and logo</li>
                     <li>• Product descriptions and images</li>
                     <li>• Software and functionality</li>
                   </ul>
@@ -435,9 +435,9 @@ export default function TermsOfService() {
                 <div>
                   <h3 className="font-semibold text-blue-900 mb-3">Legal Department</h3>
                   <div className="space-y-2 text-blue-800">
-                    <p>Email: legal@newheras.com</p>
+                    <p>Email: legal@inordexa.com</p>
                     <p>Phone: +39 02 1234 5678</p>
-                    <p>Address: Via Roma 123, 20121 Milano, Italy</p>
+                    <p>Address: 27 Old Gloucester Street, London, WC1N 3AX, United Kingdom</p>
                   </div>
                 </div>
 
@@ -464,7 +464,7 @@ export default function TermsOfService() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:legal@newheras.com"
+              href="mailto:legal@inordexa.com"
               className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Email Legal Team

@@ -8,7 +8,7 @@ export default function Returns() {
     {
       step: 1,
       title: "Contact Us",
-      description: "Email us at returns@newheras.com or use our contact form",
+      description: "Email us at returns@nordexa.com or use our contact form",
       timeframe: "Within 30 days"
     },
     {
@@ -259,7 +259,7 @@ export default function Returns() {
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
-              href="mailto:returns@newheras.com"
+              href="mailto:returns@nordexa.com"
               className="bg-white text-orange-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors"
             >
               Email Returns Team
