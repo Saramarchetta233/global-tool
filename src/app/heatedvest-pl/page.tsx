@@ -68,12 +68,12 @@ const trackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17553726122');
+      window.gtag('config', 'AW-17690533263');
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17553726122';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17690533263';
       document.head.appendChild(script);
     }
   },
@@ -1257,7 +1257,7 @@ export default function HeatedVestLanding() {
                 </div>
 
                 <h1 className="text-3xl lg:text-4xl font-bold text-gray-900 leading-tight">
-                  ThermoVest Pro – Unisex kamizelka grzewcza z zasilaniem USB + Powerbank w cenie!
+                  ThermoVest Pro – Unisex kurtka grzewcza z zasilaniem USB + Powerbank w cenie!
                 </h1>
 
                 <p className="text-lg text-gray-700 font-medium">
@@ -1719,7 +1719,7 @@ export default function HeatedVestLanding() {
               <div className="order-1">
                 <div className="relative">
                   <img
-                    src="/images/giacca/10.jpg"
+                    src="/images/giacca/10.gif"
                     alt="Klient używający ThermoVest Pro"
                     className="w-full rounded-2xl shadow-2xl"
                   />
@@ -2240,7 +2240,7 @@ export default function HeatedVestLanding() {
                     className="w-12 h-12 md:w-16 md:h-16 rounded-lg border border-gray-200 object-cover flex-shrink-0"
                   />
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm md:text-base">🔥 ThermoVest Pro — Unisex kamizelka grzewcza USB + powerbank w zestawie</div>
+                    <div className="font-medium text-gray-900 text-sm md:text-base">🔥 ThermoVest Pro – Unisex kurtka grzewcza z zasilaniem USB + Powerbank w cenie!</div>
                     <div className="text-xs md:text-sm text-gray-600">{color} • Rozmiar {size}</div>
                     <div className="text-xs md:text-sm text-green-600">✅ Darmowa dostawa</div>
                   </div>

@@ -47,14 +47,14 @@ const advancedTrackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17086993346', {
+      window.gtag('config', 'AW-17690533263', {
         send_page_view: false // We'll send it manually with purchase data
       });
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17086993346';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17690533263';
       document.head.appendChild(script);
     }
   },
@@ -234,7 +234,7 @@ const advancedTrackingUtils = {
 
         // Track Google Ads conversion
         window.gtag('event', 'conversion', {
-          send_to: 'AW-17086993346/DJt3CMrUrPsaEMKn29M_',
+          send_to: 'AW-17690533263/6GOqCLng-8EbEI-7wPNB',
           value: 299.00,
           currency: 'PLN',
           transaction_id: transactionId
@@ -538,7 +538,7 @@ const ThankYouPage = () => {
             🎉 Zamówienie Potwierdzone!
           </h1>
           <p className="text-xl md:text-2xl opacity-90">
-            Dziękujemy za zamówienie kamizelki ThermoVest Pro
+            Dziękujemy za zamówienie kurtki ThermoVest Pro
           </p>
           {orderData?.orderId && (
             <p className="text-lg mt-2 opacity-80">
@@ -719,7 +719,7 @@ const ThankYouPage = () => {
             </h3>
 
             <p className="text-gray-600 text-lg mb-6">
-              Dokonałeś właściwego wyboru jakości i funkcjonalności kamizelki ThermoVest Pro.
+              Dokonałeś właściwego wyboru jakości i funkcjonalności kurtki ThermoVest Pro.
             </p>
 
             <div className="grid md:grid-cols-3 gap-4">
