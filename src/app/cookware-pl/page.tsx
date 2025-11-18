@@ -67,12 +67,12 @@ const trackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17553726122');
+      window.gtag('config', 'AW-17690533263');
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17553726122';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17690533263';
       document.head.appendChild(script);
     }
   },
@@ -839,7 +839,7 @@ export default function CookwareLanding() {
         // Google Ads conversion tracking
         if (typeof window !== 'undefined' && window.gtag) {
           window.gtag('event', 'conversion', {
-            send_to: 'AW-17553726122/conversion_label',
+            send_to: 'AW-17690533263/6GOqCLng-8EbEI-7wPNB',
             value: 349.00,
             currency: 'PLN',
             transaction_id: orderId

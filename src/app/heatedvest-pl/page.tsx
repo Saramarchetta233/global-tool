@@ -1205,7 +1205,7 @@ export default function HeatedVestLanding() {
         // Google Ads conversion tracking
         if (typeof window !== 'undefined' && window.gtag) {
           window.gtag('event', 'conversion', {
-            send_to: 'AW-17553726122/conversion_label',
+            send_to: 'AW-17690533263/6GOqCLng-8EbEI-7wPNB',
             value: 299.00,
             currency: 'PLN',
             transaction_id: orderId

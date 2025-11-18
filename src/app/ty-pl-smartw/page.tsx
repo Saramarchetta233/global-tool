@@ -47,14 +47,14 @@ const advancedTrackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17122800574', {
+      window.gtag('config', 'AW-17690533263', {
         send_page_view: false // We'll send it manually with purchase data
       });
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17122800574';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17690533263';
       document.head.appendChild(script);
     }
   },
@@ -234,7 +234,7 @@ const advancedTrackingUtils = {
 
         // Track Google Ads conversion
         window.gtag('event', 'conversion', {
-          send_to: 'AW-17122800574/ezAVCOvdhIAbEL7n5OQ_',
+          send_to: 'AW-17690533263/6GOqCLng-8EbEI-7wPNB',
           value: 219.00,
           currency: 'PLN',
           transaction_id: transactionId
