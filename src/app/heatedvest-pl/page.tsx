@@ -68,12 +68,12 @@ const trackingUtils = {
         window.dataLayer.push(arguments);
       };
       window.gtag('js', new Date());
-      window.gtag('config', 'AW-17690533263');
+      window.gtag('config', 'AW-17740732466');
 
       // Load gtag script
       const script = document.createElement('script');
       script.async = true;
-      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17690533263';
+      script.src = 'https://www.googletagmanager.com/gtag/js?id=AW-17740732466';
       document.head.appendChild(script);
     }
   },
@@ -1205,7 +1205,7 @@ export default function HeatedVestLanding() {
         // Google Ads conversion tracking
         if (typeof window !== 'undefined' && window.gtag) {
           window.gtag('event', 'conversion', {
-            send_to: 'AW-17690533263/6GOqCLng-8EbEI-7wPNB',
+            send_to: 'AW-17740732466/xCQtCIjknsIbELKwuItC',
             value: 299.00,
             currency: 'PLN',
             transaction_id: orderId
