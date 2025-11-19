@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
   console.log('Starting PDF text extraction with iLovePDF...');
@@ -201,6 +198,11 @@ export async function POST(request: NextRequest) {
 }
 
 async function generateStudyMaterials(text: string, language: string) {
+  // Initialize OpenAI client inside the function
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
   const languageMap: { [key: string]: string } = {
     'Italiano': 'Italian',
     'Inglese': 'English',
