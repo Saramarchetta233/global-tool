@@ -607,7 +607,7 @@ const ResultsSection = () => {
                     <span className="text-2xl font-bold text-gray-900">96%</span>
                   </div>
                 </div>
-                <p className="text-sm font-medium text-gray-700">Ha risparmiato tempo con le funzioni automatiche!</p>
+                <p className="text-sm font-medium text-gray-700">Hai risparmiato tempo con le funzioni automatiche!</p>
               </div>
             </div>
           </div>
@@ -1091,7 +1091,7 @@ export default function DroneLanding() {
                   borderRadius: '50%',
                   zIndex: 1
                 }}></div>
-                
+
                 <h2 style={{
                   color: '#ffffff',
                   fontSize: '22px',
