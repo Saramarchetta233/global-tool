@@ -17,11 +17,14 @@
     "postbuild": "next-sitemap --config next-sitemap.config.js"
   },
   "dependencies": {
+    "@ilovepdf/ilovepdf-nodejs": "^0.3.1",
     "@shadcn/ui": "^0.0.4",
     "clsx": "^2.0.0",
     "framer-motion": "^12.19.1",
     "lucide-react": "^0.438.0",
     "next": "^14.2.23",
+    "openai": "^6.9.1",
+    "pdf-parse": "^1.1.1",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.4.0",
@@ -35,6 +38,7 @@
     "@tailwindcss/forms": "^0.5.9",
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/react": "^15.0.7",
+    "@types/pdf-parse": "^1.1.5",
     "@types/react": "^18.3.18",
     "@types/testing-library__jest-dom": "^5.14.9",
     "@typescript-eslint/eslint-plugin": "^5.62.0",

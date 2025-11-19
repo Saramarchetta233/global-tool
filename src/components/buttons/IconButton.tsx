@@ -1,7 +1,6 @@
 import { LucideIcon } from 'lucide-react';
 import * as React from 'react';
 import { IconType } from 'react-icons';
-import { ImSpinner2 } from 'react-icons/im';
 
 import { cn } from '@/lib/utils';
 
@@ -104,10 +103,10 @@ const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(
               }
             )}
           >
-            <ImSpinner2 className='animate-spin' />
+            <div className='w-4 h-4 border-2 border-gray-300 border-t-current rounded-full animate-spin' />
           </div>
         )}
-        {Icon && <Icon size='1em' className={cn(classNames?.icon)} />}
+        {Icon && React.createElement(Icon as any, { size: '1em', className: cn(classNames?.icon) })}
       </button>
     );
   }

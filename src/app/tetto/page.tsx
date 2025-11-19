@@ -1,17 +1,9 @@
 'use client';
 
 import Image from 'next/image';
-import { useState } from 'react';
 
-import RegionMap from '../components/RegionMap';
 
 export default function Home() {
-  const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-
-  const handleProvinceSelect = (province: string) => {
-    setSelectedProvince(province);
-    // Qui puoi aggiungere la logica per gestire la selezione della provincia
-  };
 
   return (
     <main className='max-w-4xl mx-auto px-4 py-8 bg-white'>
@@ -119,17 +111,14 @@ export default function Home() {
           subito
         </h2>
 
-        {/* Interactive Map Section */}
-        <div className='my-8'>
-          <RegionMap onProvinceSelect={handleProvinceSelect} />
-          {selectedProvince && (
-            <div className='mt-4 p-4 bg-green-50 rounded-lg text-center'>
-              <p className='text-green-700'>
-                Grazie per aver selezionato {selectedProvince}! Ti contatteremo
-                presto per una consulenza gratuita.
-              </p>
-            </div>
-          )}
+        {/* Interactive Form Section */}
+        <div className='my-8 p-6 bg-blue-50 rounded-lg text-center'>
+          <p className='text-blue-700 mb-4'>
+            Contattaci per una consulenza gratuita e scopri quanto puoi risparmiare!
+          </p>
+          <button className='bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700'>
+            Richiedi Consulenza Gratuita
+          </button>
         </div>
       </div>
       {/* Author Bio */}
