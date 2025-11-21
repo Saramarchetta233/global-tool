@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { Star, Shield, Truck, CreditCard, ChevronRight, Menu, X, Phone, Mail, MapPin, Facebook, Instagram, Twitter, Zap, Globe, Award } from 'lucide-react';
+import EmailConfirmationHandler from '@/components/EmailConfirmationHandler';
 
 const HomePage = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -80,6 +81,9 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Email Confirmation Handler */}
+      <EmailConfirmationHandler />
+      
       {/* Navigation */}
       <header className="bg-white shadow-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

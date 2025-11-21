@@ -7,6 +7,7 @@ import '@/styles/globals.css';
 import '@/styles/colors.css';
 
 import { siteConfig } from '@/constant/config';
+import { AuthProvider } from '@/lib/auth-context';
 
 // !STARTERCONF Change these default meta
 // !STARTERCONF Look at @/constant/config to change them
@@ -57,7 +58,10 @@ export default function RootLayout({
 }) {
   return (
     <html>
-      <body>{children}
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
 
         <Script
           id="meta-pixel"

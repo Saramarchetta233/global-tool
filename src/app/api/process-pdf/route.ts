@@ -1,155 +1,55 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
+import { getPdfCost, getPdfCostDescription } from '@/lib/credits/calcPdfCost';
 
-async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
-  console.log('Starting PDF text extraction with iLovePDF...');
-  console.log(`Buffer size: ${buffer.byteLength} bytes`);
+/**
+ * Estrazione testo PDF con LlamaParse - UNICO METODO
+ */
+async function extractTextFromPDF(buffer: ArrayBuffer, fileName: string): Promise<string> {
+  console.log('🦙 Avvio estrazione PDF con LlamaParse...');
+  console.log(`Buffer size: ${buffer.byteLength} bytes, File: ${fileName}`);
+  
+  // Verifica configurazione LlamaParse
+  if (!validateLlamaParseConfig()) {
+    throw new Error('LlamaParse non configurato. Verificare LLAMA_CLOUD_API_KEY nelle variabili d\'ambiente.');
+  }
   
   const pdfBuffer = Buffer.from(buffer);
-  console.log(`PDF Buffer created, size: ${pdfBuffer.length} bytes`);
   
-  // Try PDF.co extraction (with fallback to local processing)
+  // Validazione PDF signature
+  const signature = pdfBuffer.slice(0, 4).toString();
+  if (!signature.startsWith('%PDF')) {
+    throw new Error('File non valido: non è un PDF');
+  }
+  
   try {
-    console.log('Attempting PDF extraction using PDF.co API...');
+    // UNICO METODO: LlamaParse
+    console.log('🦙 Estrazione con LlamaParse...');
     
-    const apiKey = process.env.PDFCO_API_KEY;
-    
-    if (!apiKey || apiKey === 'your_pdfco_api_key_here') {
-      throw new Error('PDF.co API key not configured. Please get your free key from https://app.pdf.co/account');
-    }
-    
-    console.log('Step 1: Uploading PDF to PDF.co...');
-    
-    // Step 1: Upload the file first
-    const formData = new FormData();
-    formData.append('file', new Blob([pdfBuffer], { type: 'application/pdf' }), 'document.pdf');
-    
-    const uploadResponse = await fetch('https://api.pdf.co/v1/file/upload', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey
-      },
-      body: formData
+    const extractedText = await parsePdfWithLlamaParse(pdfBuffer, {
+      fileName: fileName,
+      mimeType: 'application/pdf'
     });
     
-    if (!uploadResponse.ok) {
-      const uploadErrorText = await uploadResponse.text();
-      throw new Error(`PDF.co upload failed: ${uploadResponse.status} ${uploadResponse.statusText} - ${uploadErrorText}`);
+    console.log(`✅ LlamaParse completato: ${extractedText.length} caratteri estratti`);
+    console.log(`📖 Anteprima: "${extractedText.substring(0, 200)}"`);
+    
+    return extractedText;
+    
+  } catch (llamaError) {
+    console.error('❌ LlamaParse failed:', llamaError);
+    
+    // Errore specifico con suggerimento per l'utente
+    const errorMessage = llamaError instanceof Error ? llamaError.message : 'Errore sconosciuto';
+    
+    if (errorMessage.includes('API key')) {
+      throw new Error('Configurazione LlamaParse non valida. Contattare l\'amministratore.');
+    } else if (errorMessage.includes('insufficient text')) {
+      throw new Error('Il PDF non contiene testo leggibile. Potrebbe essere un documento scansionato o danneggiato.');
+    } else {
+      throw new Error(`Impossibile elaborare il PDF: ${errorMessage}`);
     }
-    
-    const uploadResult = await uploadResponse.json();
-    
-    if (!uploadResult.url) {
-      throw new Error('PDF.co upload did not return file URL');
-    }
-    
-    console.log('Step 2: Converting PDF to text...');
-    
-    // Step 2: Convert the uploaded file to text
-    const response = await fetch('https://api.pdf.co/v1/pdf/convert/to/text', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey
-      },
-      body: JSON.stringify({
-        url: uploadResult.url,
-        inline: true
-      })
-    });
-    
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`PDF.co API failed: ${response.status} ${response.statusText} - ${errorText}`);
-    }
-    
-    const result = await response.json();
-    
-    if (!result.body) {
-      throw new Error('PDF.co API did not return text content');
-    }
-    
-    const extractedText = result.body;
-    
-    console.log(`Successfully extracted ${extractedText.length} characters from PDF via PDF.co`);
-    console.log(`First 200 chars:`, extractedText.substring(0, 200));
-    
-    if (!extractedText || extractedText.length < 50) {
-      throw new Error('PDF contains insufficient text content');
-    }
-    
-    // Clean up the text
-    const cleanedText = extractedText
-      .replace(/\s+/g, ' ')  // Replace multiple whitespace with single space
-      .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
-      .trim();
-    
-    console.log(`Cleaned text length: ${cleanedText.length} characters`);
-    return cleanedText;
-    
-  } catch (pdfExtractionError) {
-    console.error('PDF.co extraction failed:', {
-      error: pdfExtractionError instanceof Error ? pdfExtractionError.message : 'Unknown error',
-      stack: pdfExtractionError instanceof Error ? pdfExtractionError.stack : undefined
-    });
-    
-    console.log('Falling back to demo content...');
-    
-    // Fallback to demo content
-    const fallbackText = `
-      Introduzione alla Psicologia Cognitiva
-      
-      La psicologia cognitiva è un ramo della psicologia che studia i processi mentali coinvolti nella conoscenza, nell'elaborazione delle informazioni e nella comprensione. Questa disciplina si concentra su come le persone percepiscono, pensano, ricordano e apprendono.
-      
-      Capitolo 1: I Processi Cognitivi Fondamentali
-      
-      I processi cognitivi includono:
-      - Percezione: il processo attraverso cui interpretiamo le informazioni sensoriali
-      - Attenzione: la capacità di concentrarsi su stimoli specifici
-      - Memoria: il sistema che ci consente di codificare, conservare e recuperare informazioni
-      - Linguaggio: il sistema di comunicazione simbolica
-      - Pensiero: i processi mentali coinvolti nel ragionamento e nella risoluzione dei problemi
-      
-      Capitolo 2: La Memoria
-      
-      La memoria è suddivisa in tre sistemi principali:
-      
-      1. Memoria Sensoriale: conserva brevemente le informazioni percettive
-      2. Memoria a Breve Termine: mantiene le informazioni per circa 15-30 secondi
-      3. Memoria a Lungo Termine: conserva le informazioni in modo permanente
-      
-      La memoria a lungo termine si divide in:
-      - Memoria dichiarativa (esplicita): fatti e eventi
-      - Memoria procedurale (implicita): abilità e abitudini
-      
-      Capitolo 3: L'Attenzione
-      
-      L'attenzione è un processo selettivo che ci permette di concentrarci su alcune informazioni ignorandone altre. I tipi di attenzione includono:
-      - Attenzione selettiva: focalizzazione su stimoli specifici
-      - Attenzione divisa: elaborazione di più stimoli contemporaneamente
-      - Attenzione sostenuta: mantenimento della concentrazione nel tempo
-      
-      Capitolo 4: Il Linguaggio
-      
-      Il linguaggio umano ha caratteristiche uniche:
-      - Arbitrarietà: la relazione tra parole e significati è convenzionale
-      - Produttività: possiamo creare infinite frasi nuove
-      - Displacement: possiamo parlare di cose non presenti
-      
-      Conclusioni
-      
-      La psicologia cognitiva fornisce una comprensione scientifica dei processi mentali fondamentali. Questa conoscenza è applicabile in molti campi, dall'educazione alla tecnologia, dalla terapia al design dell'interfaccia utente.
-      
-      NOTA: Questa è una versione demo. L'estrazione PDF reale non è riuscita: ${pdfExtractionError instanceof Error ? pdfExtractionError.message : 'Errore sconosciuto'}
-    `;
-    
-    const cleanedText = fallbackText
-      .replace(/\s+/g, ' ')
-      .replace(/\n+/g, '\n')
-      .trim();
-    
-    console.log(`Using fallback text with ${cleanedText.length} characters`);
-    return cleanedText;
   }
 }
 
@@ -158,9 +58,15 @@ export async function POST(request: NextRequest) {
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const language = formData.get('language') as string || 'Italiano';
+    const userId = formData.get('userId') as string;
+    const isPremium = formData.get('isPremium') === 'true';
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
     if (file.type !== 'application/pdf') {
@@ -171,8 +77,39 @@ export async function POST(request: NextRequest) {
     const buffer = await file.arrayBuffer();
     console.log(`Processing PDF: ${file.name}, size: ${file.size} bytes`);
 
-    const extractedText = await extractTextFromPDF(buffer);
+    const extractedText = await extractTextFromPDF(buffer, file.name);
     console.log(`Extracted ${extractedText.length} characters from PDF: ${file.name}`);
+
+    // Calcola pagine stimate (approssimativo: 3000 caratteri per pagina)
+    const estimatedPages = Math.max(1, Math.ceil(extractedText.length / 3000));
+    const creditCost = getPdfCost(estimatedPages, isPremium);
+    const costDescription = getPdfCostDescription(estimatedPages, isPremium);
+
+    // Consuma crediti prima di generare
+    const creditResponse = await fetch(`${new URL(request.url).origin}/api/credits/consume`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: userId,
+        amount: creditCost,
+        description: costDescription,
+        featureType: 'pdf'
+      })
+    });
+
+    if (!creditResponse.ok) {
+      const creditError = await creditResponse.json();
+      if (creditError.error === 'insufficient_credits') {
+        return NextResponse.json({
+          error: 'insufficient_credits',
+          message: 'Crediti insufficienti per elaborare questo PDF',
+          required: creditCost,
+          current: creditError.currentCredits || 0,
+          costDescription: costDescription
+        }, { status: 403 });
+      }
+      throw new Error('Errore nel consumo crediti');
+    }
 
     // Log first 200 characters for debugging
     console.log('First 200 chars:', extractedText.substring(0, 200));
@@ -222,85 +159,21 @@ async function generateStudyMaterials(text: string, language: string) {
 
   console.log(`Processing text: ${processedText.length} characters (original: ${text.length})`);
 
+  // Usa i prompts centralizzati migliorati
+  const {
+    createSummaryPrompt,
+    createFlashcardsPrompt,
+    createConceptMapPrompt,
+    createQuizPrompt,
+    createExamGuidePrompt
+  } = await import('@/lib/prompts');
+
   const prompts = {
-    summary: `Analyze the following text and create two summaries in ${targetLang}:
-
-1. A brief summary (max 200 words) highlighting the key concepts
-2. An extended summary (max 800 words) with structured sections
-
-Text to analyze:
-${processedText}
-
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting:
-{
-  "riassunto_breve": "brief summary here",
-  "riassunto_esteso": "extended summary here"
-}`,
-
-    flashcards: `Create 5 flashcards in ${targetLang} based on the following text.
-
-Text:
-${text}
-
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting:
-{
-  "flashcard": [
-    {"front": "question", "back": "answer"}
-  ]
-}`,
-
-    conceptMap: `Create a concept map in ${targetLang} from the following text.
-
-Text:
-${text}
-
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting:
-{
-  "mappa_concettuale": [
-    {
-      "title": "Main Concept",
-      "children": [
-        {"title": "Subconcept"}
-      ]
-    }
-  ]
-}`,
-
-    quiz: `Create 3 multiple choice questions in ${targetLang} based on the following text.
-
-Text:
-${text}
-
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting:
-{
-  "quiz": [
-    {
-      "question": "Question text?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correct_option_index": 1,
-      "explanation": "Explanation"
-    }
-  ]
-}`,
-
-    examGuide: `Create a comprehensive 1-hour exam study guide in ${targetLang} based on the following text. Structure it as a practical 60-minute plan.
-
-Text:
-${text}
-
-IMPORTANT: Respond ONLY with valid JSON, no markdown formatting:
-{
-  "guida_esame": {
-    "tempo_totale": "60 minuti",
-    "piano_di_studio": [
-      {
-        "fase": "Nome della fase",
-        "durata": "15 minuti",
-        "descrizione": "Cosa fare in questa fase, tecniche di memorizzazione, concetti chiave da rivedere"
-      }
-    ]
-  }
-}`
+    summary: createSummaryPrompt({ language: targetLang, text: processedText, targetLanguage: targetLang }),
+    flashcards: createFlashcardsPrompt({ language: targetLang, text: processedText, targetLanguage: targetLang }),
+    conceptMap: createConceptMapPrompt({ language: targetLang, text: processedText, targetLanguage: targetLang }),
+    quiz: createQuizPrompt({ language: targetLang, text: processedText, targetLanguage: targetLang }),
+    examGuide: createExamGuidePrompt({ language: targetLang, text: processedText, targetLanguage: targetLang })
   };
 
   try {
