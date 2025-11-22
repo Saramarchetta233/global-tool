@@ -1493,7 +1493,7 @@ const StudiusAIV2: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
       {/* Credit Bar */}
       <CreditBar 
         onPurchaseCredits={() => alert('Feature di acquisto crediti in arrivo!')}
@@ -1506,65 +1506,89 @@ const StudiusAIV2: React.FC = () => {
       
       {/* Header */}
       <header className={`relative z-10 ${user && !loading ? 'pt-4 pb-2' : 'pt-8 pb-4'}`}>
-        <div className="max-w-6xl mx-auto px-4">
+        <div className="max-w-6xl mx-auto px-3 sm:px-4">
           {user ? (
             /* Compact header for logged users */
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
-                  Studius AI
-                </h1>
-                <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-purple-500/30">
-                  <Sparkles className="w-3 h-3" />
-                  Powered by AI
+            <div className="flex flex-col gap-3">
+              {/* First row - Logo and Credits */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
+                    Studius AI
+                  </h1>
+                  <div className="hidden md:inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-purple-500/30">
+                    <Sparkles className="w-3 h-3" />
+                    Powered by AI
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 sm:gap-3">
+                  {/* Credit Display */}
+                  <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-green-500/30">
+                    <Coins className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="font-semibold text-sm sm:text-base">{userCredits}</span>
+                    <span className="text-green-200 text-xs hidden sm:inline">crediti</span>
+                  </div>
+
+                  {!results && (
+                    <button
+                      onClick={() => setShowHistory(true)}
+                      className="p-1.5 sm:px-3 sm:py-1.5 bg-white/10 text-white rounded-lg sm:rounded-xl hover:bg-white/20 text-xs sm:text-sm font-medium transition-all border border-white/20"
+                    >
+                      <History className="w-4 h-4" />
+                      <span className="hidden sm:inline ml-1">Storico</span>
+                    </button>
+                  )}
+                  <button
+                    onClick={handleLogout}
+                    className="p-1.5 sm:px-3 sm:py-1.5 bg-red-500/20 text-red-300 rounded-lg sm:rounded-xl hover:bg-red-500/30 text-xs sm:text-sm font-medium transition-all border border-red-500/30"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline ml-1">Logout</span>
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center gap-4">
-                {/* Credit Display */}
-                <div className="flex items-center gap-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-4 py-2 rounded-xl border border-green-500/30">
-                  <Coins className="w-4 h-4" />
-                  <span className="font-semibold">{userCredits}</span>
-                  <span className="text-green-200 text-xs">crediti</span>
-                </div>
-
-                
-                {/* Action Buttons */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      // TODO: Navigate to recharge page
-                      console.log('Navigate to recharge');
-                    }}
-                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                  >
-                    Ricarica
-                  </button>
-                  <button
-                    onClick={() => {
-                      // TODO: Navigate to subscription page
-                      console.log('Navigate to subscription');
-                    }}
-                    className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
-                  >
-                    Abbonati
-                  </button>
-                </div>
-
-                {!results && (
-                  <button
-                    onClick={() => setShowHistory(true)}
-                    className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-xl hover:bg-white/20 font-medium text-sm transition-all border border-white/20"
-                  >
-                    <History className="w-4 h-4" />
-                    <span>Storico</span>
-                  </button>
-                )}
+              
+              {/* Second row - Action buttons (mobile only) */}
+              <div className="flex items-center gap-2 md:hidden">
                 <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 bg-red-500/20 text-red-300 px-4 py-2 rounded-xl hover:bg-red-500/30 font-medium text-sm transition-all border border-red-500/30"
+                  onClick={() => {
+                    // TODO: Navigate to recharge page
+                    console.log('Navigate to recharge');
+                  }}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 >
-                  <LogOut className="w-4 h-4" />
-                  <span>Logout</span>
+                  Ricarica Crediti
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Navigate to subscription page
+                    console.log('Navigate to subscription');
+                  }}
+                  className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
+                >
+                  Abbonati
+                </button>
+              </div>
+              
+              {/* Desktop action buttons */}
+              <div className="hidden md:flex absolute right-4 top-4 gap-2">
+                <button
+                  onClick={() => {
+                    // TODO: Navigate to recharge page
+                    console.log('Navigate to recharge');
+                  }}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                >
+                  Ricarica
+                </button>
+                <button
+                  onClick={() => {
+                    // TODO: Navigate to subscription page
+                    console.log('Navigate to subscription');
+                  }}
+                  className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
+                >
+                  Abbonati
                 </button>
               </div>
             </div>
