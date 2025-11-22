@@ -158,16 +158,16 @@ const TutorChat: React.FC<TutorChatProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px]">
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2">
+      <div className="flex-1 overflow-y-auto mb-4 space-y-3 sm:space-y-4 pr-1 sm:pr-2">
         {messages.map((message) => (
           <div
             key={message.id}
             className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
           >
             <div
-              className={`max-w-[80%] rounded-2xl px-6 py-4 ${
+              className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 sm:px-6 py-3 sm:py-4 ${
                 message.isUser
                   ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
                   : 'bg-white/10 backdrop-blur-xl border border-white/20 text-gray-200'
@@ -175,8 +175,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
             >
               <div className="flex items-start gap-3">
                 {!message.isUser && (
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-1">
-                    <Bot className="w-5 h-5 text-white" />
+                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
+                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                 )}
                 {message.isUser && (
@@ -199,10 +199,10 @@ const TutorChat: React.FC<TutorChatProps> = ({
         
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-6 py-4 max-w-[80%]">
+            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 max-w-[85%] sm:max-w-[80%]">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                 </div>
                 <div className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
@@ -218,22 +218,22 @@ const TutorChat: React.FC<TutorChatProps> = ({
 
       {/* Input Area */}
       <div className="relative">
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-4">
-          <div className="flex items-end gap-4">
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-3 sm:p-4">
+          <div className="flex items-end gap-2 sm:gap-4">
             <div className="flex-1">
               <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Fai una domanda al tutor... (Costo: 5 crediti per messaggio)"
-                className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[60px] max-h-[120px]"
+                placeholder="Fai una domanda al tutor... (5 crediti)"
+                className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-400 resize-none focus:outline-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px]"
                 disabled={loading}
               />
             </div>
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || loading || !authToken}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white p-3 rounded-xl transition-all duration-300 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white p-2.5 sm:p-3 rounded-xl transition-all duration-300 disabled:cursor-not-allowed"
             >
               {loading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -245,7 +245,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
           
           {/* Cost indicator */}
           <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
-            <span>Premi Invio per inviare, Shift+Invio per andare a capo</span>
+            <span className="hidden sm:inline">Premi Invio per inviare, Shift+Invio per andare a capo</span>
+            <span className="sm:hidden">Invio per inviare</span>
             <div className="flex items-center gap-1">
               <Coins className="w-3 h-3" />
               <span>5 crediti per messaggio</span>

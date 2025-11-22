@@ -125,13 +125,13 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
     }
 
     return (
-      <li key={node.title + level} className={`ml-${level * 4} mb-3`}>
+      <li key={node.title + level} className={`ml-${level * 2} sm:ml-${level * 4} mb-3`}>
         <div className={`${
           level === 0 
-            ? 'font-bold text-xl text-emerald-300 bg-emerald-500/20 px-4 py-2 rounded-xl border border-emerald-500/30' 
+            ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30' 
             : level === 1 
-              ? 'font-semibold text-lg text-teal-300 bg-teal-500/10 px-3 py-1 rounded-lg' 
-              : 'font-medium text-gray-200 bg-white/5 px-2 py-1 rounded-md'
+              ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg' 
+              : 'font-medium text-sm sm:text-base text-gray-200 bg-white/5 px-2 py-1 rounded-md'
           } mb-2 inline-block`}>
           {node.title}
         </div>
@@ -201,7 +201,7 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-3xl blur-xl"></div>
         
-        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
+        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
           <div className="text-center mb-6">
             <span className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-3 py-1 rounded-full text-sm font-medium">
               {currentCard + 1} / {flashcards.length}
@@ -558,18 +558,19 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
   return (
     <div className="max-w-3xl mx-auto">
       {/* Exam Controls */}
-      <div className="mb-4 flex items-center justify-between bg-white/5 p-4 rounded-xl border border-white/10">
-        <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white px-4 py-2 rounded-full text-sm font-medium">
+      <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/5 p-3 sm:p-4 rounded-xl border border-white/10 gap-3">
+        <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
           Domanda {currentQuestion + 1} / {currentQuestions.length}
         </span>
         
         {/* Control Buttons */}
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={resetToConfiguration}
-            className="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            🔄 Azzera
+            <span className="hidden sm:inline">🔄 Azzera</span>
+            <span className="sm:hidden">🔄</span>
           </button>
           <button
             onClick={() => {
@@ -582,15 +583,17 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 score: 0
               });
             }}
-            className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            🔄 Ricomincia
+            <span className="hidden sm:inline">🔄 Ricomincia</span>
+            <span className="sm:hidden">🔄</span>
           </button>
           <button
             onClick={finishExam}
-            className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors"
+            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            ⏹️ Termina Esame
+            <span className="hidden sm:inline">⏹️ Termina Esame</span>
+            <span className="sm:hidden">⏹️</span>
           </button>
         </div>
       </div>
@@ -1659,13 +1662,13 @@ const StudiusAIV2: React.FC = () => {
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl"></div>
               
-              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-                <div className="text-center mb-8">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl mb-4">
-                    <Upload className="w-8 h-8 text-white" />
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
+                <div className="text-center mb-6 sm:mb-8">
+                  <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl mb-4">
+                    <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
                   </div>
-                  <h2 className="text-2xl font-bold text-white mb-2">Carica il tuo documento</h2>
-                  <p className="text-gray-300">Genera automaticamente riassunti, flashcard, quiz e molto altro</p>
+                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">Carica il tuo documento</h2>
+                  <p className="text-sm sm:text-base text-gray-300">Genera automaticamente riassunti, flashcard, quiz e molto altro</p>
                 </div>
 
                 {/* File Upload */}
@@ -1673,7 +1676,7 @@ const StudiusAIV2: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-3">
                     📄 File PDF
                   </label>
-                  <div className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 ${
+                  <div className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 ${
                     file 
                       ? 'border-green-400 bg-green-400/10' 
                       : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
@@ -1688,26 +1691,26 @@ const StudiusAIV2: React.FC = () => {
                     
                     {!file ? (
                       <>
-                        <div className="w-20 h-20 mx-auto mb-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center">
-                          <Upload className="w-10 h-10 text-purple-400" />
+                        <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center">
+                          <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
                         </div>
                         <button
                           onClick={() => fileInputRef.current?.click()}
-                          className="text-white hover:text-purple-300 font-medium text-lg transition-colors"
+                          className="text-white hover:text-purple-300 font-medium text-base sm:text-lg transition-colors"
                         >
                           Clicca per caricare un file PDF
                         </button>
-                        <p className="text-gray-400 text-sm mt-2">Oppure trascina e rilascia qui</p>
+                        <p className="text-gray-400 text-xs sm:text-sm mt-2">Oppure trascina e rilascia qui</p>
                       </>
                     ) : (
-                      <div className="flex items-center justify-between gap-3 bg-green-500/10 p-4 rounded-xl border border-green-500/30">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                            <FileText className="w-6 h-6 text-green-400" />
+                      <div className="flex items-center justify-between gap-2 sm:gap-3 bg-green-500/10 p-3 sm:p-4 rounded-xl border border-green-500/30">
+                        <div className="flex items-center gap-2 sm:gap-3">
+                          <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-500/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
                           </div>
-                          <div>
-                            <p className="text-white font-medium">{file.name}</p>
-                            <p className="text-green-400 text-sm">File caricato con successo!</p>
+                          <div className="min-w-0">
+                            <p className="text-white font-medium text-sm sm:text-base truncate">{file.name}</p>
+                            <p className="text-green-400 text-xs sm:text-sm">File caricato con successo!</p>
                           </div>
                         </div>
                         
@@ -1740,7 +1743,7 @@ const StudiusAIV2: React.FC = () => {
                   <select
                     value={language}
                     onChange={(e) => setLanguage(e.target.value)}
-                    className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all"
+                    className="w-full p-3 sm:p-4 bg-white/10 border border-white/20 rounded-2xl text-white text-sm sm:text-base focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all"
                   >
                     <option value="Italiano">🇮🇹 Italiano</option>
                     <option value="Inglese">🇺🇸 Inglese</option>
@@ -1756,7 +1759,7 @@ const StudiusAIV2: React.FC = () => {
                   <select
                     value={targetLanguage}
                     onChange={(e) => setTargetLanguage(e.target.value)}
-                    className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl text-white focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all"
+                    className="w-full p-3 sm:p-4 bg-white/10 border border-white/20 rounded-2xl text-white text-sm sm:text-base focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all"
                   >
                     <option value="Auto">🔄 Auto (stessa del documento)</option>
                     <option value="Italiano">🇮🇹 Italiano</option>
@@ -1859,10 +1862,10 @@ const StudiusAIV2: React.FC = () => {
             </div>
 
             {/* Export and Tutor Buttons */}
-            <div className="mb-8 flex flex-wrap gap-4 justify-center">
+            <div className="mb-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 justify-center">
               <button
                 onClick={downloadSummary}
-                className="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center gap-2 font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
+                className="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
               >
                 <Download size={18} />
                 <span>Scarica Riassunto</span>
@@ -1870,7 +1873,7 @@ const StudiusAIV2: React.FC = () => {
               </button>
               <button
                 onClick={downloadFlashcards}
-                className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-violet-600 text-white px-6 py-3 rounded-xl hover:from-purple-700 hover:to-violet-700 flex items-center gap-2 font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
+                className="relative overflow-hidden bg-gradient-to-r from-purple-600 to-violet-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-purple-700 hover:to-violet-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
               >
                 <Download size={18} />
                 <span>Scarica Flashcard</span>
@@ -1881,7 +1884,7 @@ const StudiusAIV2: React.FC = () => {
               <button
                 onClick={downloadAudio}
                 disabled={isGenerating}
-                className="relative overflow-hidden bg-gradient-to-r from-orange-600 to-red-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-red-700 flex items-center gap-2 font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group disabled:opacity-50"
+                className="relative overflow-hidden bg-gradient-to-r from-orange-600 to-red-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-orange-700 hover:to-red-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group disabled:opacity-50"
               >
                 <Volume2 size={18} />
                 <span>{isGenerating ? 'Generando...' : 'Audio MP3'}</span>
@@ -1893,7 +1896,7 @@ const StudiusAIV2: React.FC = () => {
               {results.sessionId && (
                 <button
                   onClick={openTutor}
-                  className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-cyan-700 flex items-center gap-2 font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
+                  className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-blue-700 hover:to-cyan-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
                 >
                   <MessageCircle size={18} />
                   <span>Apri Tutor AI</span>
@@ -1903,7 +1906,7 @@ const StudiusAIV2: React.FC = () => {
               
               <button
                 onClick={() => setShowHistory(true)}
-                className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-xl hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 font-medium transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
+                className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
               >
                 <History size={18} />
                 <span>Storico</span>
@@ -1919,7 +1922,7 @@ const StudiusAIV2: React.FC = () => {
                     fileInputRef.current.value = '';
                   }
                 }}
-                className="relative overflow-hidden bg-white/10 text-white px-6 py-3 rounded-xl hover:bg-white/20 flex items-center gap-2 font-medium transition-all duration-300 backdrop-blur-sm border border-white/20"
+                className="relative overflow-hidden bg-white/10 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:bg-white/20 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 backdrop-blur-sm border border-white/20"
               >
                 <Upload size={18} />
                 <span>Nuovo Documento</span>
