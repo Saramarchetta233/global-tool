@@ -567,10 +567,9 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
         <div className="flex flex-wrap gap-2">
           <button
             onClick={resetToConfiguration}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            className="px-3 py-1.5 sm:py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            <span className="hidden sm:inline">🔄 Azzera</span>
-            <span className="sm:hidden">🔄</span>
+            ⚙️ Config
           </button>
           <button
             onClick={() => {
@@ -583,17 +582,15 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 score: 0
               });
             }}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            className="px-3 py-1.5 sm:py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            <span className="hidden sm:inline">🔄 Ricomincia</span>
-            <span className="sm:hidden">🔄</span>
+            🔄 Riparti
           </button>
           <button
             onClick={finishExam}
-            className="px-2 sm:px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
+            className="px-3 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs sm:text-sm font-medium transition-colors"
           >
-            <span className="hidden sm:inline">⏹️ Termina Esame</span>
-            <span className="sm:hidden">⏹️</span>
+            ⏹️ Fine
           </button>
         </div>
       </div>
@@ -604,15 +601,23 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
           <button
             onClick={prevQuestion}
             disabled={currentQuestion === 0}
-            className="p-2 bg-white/10 hover:bg-white/20 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-xs sm:text-sm"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={16} />
+            <span className="hidden sm:inline">Indietro</span>
           </button>
           <button
             onClick={nextQuestion}
-            className="p-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors"
+            className="flex items-center gap-1 px-3 py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-xs sm:text-sm"
           >
-            {currentQuestion === currentQuestions.length - 1 ? 'Termina' : <ChevronRight size={20} />}
+            {currentQuestion === currentQuestions.length - 1 ? (
+              <>⏹️ <span className="hidden sm:inline">Termina</span></>
+            ) : (
+              <>
+                <span className="hidden sm:inline">Avanti</span>
+                <ChevronRight size={16} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -782,9 +787,9 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
             <button
               onClick={generateStudyPlan}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium text-sm transition-all duration-300 disabled:opacity-50"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium text-xs sm:text-sm transition-all duration-300 disabled:opacity-50 w-full sm:w-auto"
             >
-              {isGenerating ? 'Generando...' : 'Genera Piano'}
+              {isGenerating ? '⏳ Generando...' : '📅 Genera Piano'}
             </button>
           </div>
         </div>
@@ -1956,21 +1961,21 @@ const StudiusAIV2: React.FC = () => {
             {/* Tabs Navigation */}
             <div className="mb-8" data-tabs-section>
               <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl p-2 border border-white/10">
-                <nav className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-2">
+                <nav className="flex flex-wrap gap-2">
                   {tabs.map((tab) => {
                     const IconComponent = tab.icon;
                     return (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`relative py-3 px-4 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-300 ${
+                        className={`flex-1 min-w-[120px] sm:min-w-[140px] py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-medium text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${
                           activeTab === tab.id
                             ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
                             : 'text-gray-300 hover:text-white hover:bg-white/10'
                         }`}
                       >
-                        <IconComponent size={16} />
-                        <span className="hidden sm:inline">{tab.label}</span>
+                        <IconComponent size={16} className="sm:w-4 sm:h-4" />
+                        <span className="text-[10px] sm:text-sm">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -1983,19 +1988,21 @@ const StudiusAIV2: React.FC = () => {
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-3xl blur-xl"></div>
               
-              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
                 {activeTab === 'riassunto_breve' && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-white">Riassunto Breve</h3>
-                        <p className="text-gray-400">Panoramica essenziale dei concetti chiave</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Riassunto Breve</h3>
+                        <p className="text-xs sm:text-sm text-gray-400">Panoramica essenziale dei concetti chiave</p>
                       </div>
-                      
-                      {/* Audio Player */}
+                    </div>
+                    
+                    {/* Audio Player - Separate row on mobile */}
+                    <div className="mb-4 sm:mb-0 sm:absolute sm:top-6 sm:right-6">
                       <AudioPlayer 
                         text={renderContent(results.riassunto_breve)}
                         language={targetLanguage === 'Auto' ? 'it-IT' : 
@@ -2007,24 +2014,26 @@ const StudiusAIV2: React.FC = () => {
                         }
                       />
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                      <p className="text-gray-200 leading-relaxed text-lg whitespace-pre-wrap">{renderContent(results.riassunto_breve)}</p>
+                    <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 overflow-y-auto max-h-[400px] sm:max-h-[500px]">
+                      <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_breve)}</p>
                     </div>
                   </div>
                 )}
 
                 {activeTab === 'riassunto_esteso' && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                        <FileText className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-white">Riassunto Esteso</h3>
-                        <p className="text-gray-400">Materiale di studio universitario completo</p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Riassunto Esteso</h3>
+                        <p className="text-xs sm:text-sm text-gray-400">Materiale di studio universitario completo</p>
                       </div>
-                      
-                      {/* Audio Player */}
+                    </div>
+                    
+                    {/* Audio Player - Separate row on mobile */}
+                    <div className="mb-4 sm:mb-0 sm:absolute sm:top-6 sm:right-6">
                       <AudioPlayer 
                         text={renderContent(results.riassunto_esteso)}
                         language={targetLanguage === 'Auto' ? 'it-IT' : 
@@ -2036,8 +2045,8 @@ const StudiusAIV2: React.FC = () => {
                         }
                       />
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                      <p className="text-gray-200 leading-relaxed text-lg whitespace-pre-wrap">{renderContent(results.riassunto_esteso)}</p>
+                    <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 overflow-y-auto max-h-[400px] sm:max-h-[500px]">
+                      <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_esteso)}</p>
                     </div>
                   </div>
                 )}

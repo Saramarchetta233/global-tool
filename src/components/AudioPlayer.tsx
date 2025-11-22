@@ -179,8 +179,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ text, language = 'it-IT', cla
   }, []);
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className="flex items-center gap-2 bg-white/10 backdrop-blur-xl rounded-xl px-4 py-2 border border-white/20">
+    <div className={`flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 ${className}`}>
+      <div className="flex items-center gap-1 sm:gap-2 bg-white/10 backdrop-blur-xl rounded-xl px-2 sm:px-4 py-1.5 sm:py-2 border border-white/20">
         {/* Mode Toggle */}
         <select
           value={mode}
@@ -188,10 +188,10 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({ text, language = 'it-IT', cla
             setMode(e.target.value as 'browser' | 'backend');
             handleStop(); // Stop current playback when switching modes
           }}
-          className="bg-transparent text-white text-xs border border-white/20 rounded px-2 py-1 focus:outline-none focus:border-purple-400"
+          className="bg-transparent text-white text-[10px] sm:text-xs border border-white/20 rounded px-1 sm:px-2 py-0.5 sm:py-1 focus:outline-none focus:border-purple-400"
         >
-          <option value="browser" className="bg-gray-800">Browser TTS</option>
-          <option value="backend" className="bg-gray-800">Backend TTS</option>
+          <option value="browser" className="bg-gray-800">Browser</option>
+          <option value="backend" className="bg-gray-800">AI Voice</option>
         </select>
 
         {/* Controls */}
