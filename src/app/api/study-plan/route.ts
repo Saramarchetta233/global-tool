@@ -1,13 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
+import { verifyAuth } from '@/lib/middleware';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const POST = withCredits('summary', async (request: NextRequest, user, newCreditBalance) => {
+export async function POST(request: NextRequest) {
   try {
+    // Verifica autenticazione (ma il piano di studio è GRATIS!)
+    const user = await verifyAuth(request);
+    
     const { docContext, examDays } = await request.json();
 
     if (!docContext) {
@@ -90,8 +93,8 @@ IMPORTANTE: Le attività devono essere SEMPRE basate sui contenuti specifici del
 
     return NextResponse.json({
       studyPlan: planData.studyPlan || planData,
-      newCreditBalance,
-      creditsUsed: 5
+      newCreditBalance: user.credits, // Nessuna deduzione, è gratis
+      creditsUsed: 0 // Piano di studio GRATIS!
     });
 
   } catch (error) {
@@ -101,4 +104,4 @@ IMPORTANTE: Le attività devono essere SEMPRE basate sui contenuti specifici del
       { status: 500 }
     );
   }
-});
+}

@@ -1,19 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
+import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { getExamCost, getExamCostDescription } from '@/lib/credits/creditRules';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const POST = withCredits('quiz', async (request: NextRequest, user, newCreditBalance) => {
+export async function POST(request: NextRequest) {
   try {
-    const { docContext, numQuestions, difficulty, questionType } = await request.json();
+    // Verifica autenticazione
+    const user = await verifyAuth(request);
+    
+    const { docContext, numQuestions = 5, difficulty, questionType } = await request.json();
 
     if (!docContext) {
       return NextResponse.json(
         { error: 'Document context is required' },
         { status: 400 }
+      );
+    }
+
+    // Calcola il costo basato sul numero di domande
+    const cost = getExamCost(numQuestions);
+    const costDescription = getExamCostDescription(numQuestions);
+
+    // Se il costo è > 0, deduci i crediti
+    let newCreditBalance = user.credits;
+    if (cost > 0) {
+      newCreditBalance = await deductCredits(
+        user.id, 
+        cost, 
+        costDescription,
+        { 
+          numQuestions, 
+          difficulty, 
+          questionType 
+        }
       );
     }
 
@@ -61,17 +84,30 @@ export const POST = withCredits('quiz', async (request: NextRequest, user, newCr
     return NextResponse.json({
       questions: examData.questions || [],
       newCreditBalance,
-      creditsUsed: 8
+      creditsUsed: cost,
+      costDescription
     });
 
   } catch (error) {
     console.error('Generate exam API error:', error);
+    
+    // Gestisci errori specifici di crediti
+    if (error instanceof Error && error.message.includes('Insufficient credits')) {
+      return NextResponse.json(
+        { 
+          error: 'Crediti insufficienti',
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to generate exam' },
       { status: 500 }
     );
   }
-});
+}
 
 function createExamPrompt(docContext: string, numQuestions: number, difficulty: string, questionType: string): string {
   const basePrompt = `Crea un esame di ${numQuestions} domande basato ESCLUSIVAMENTE sul seguente contenuto del documento.

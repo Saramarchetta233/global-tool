@@ -1,14 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
+import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { CreditCosts } from '@/lib/credits/creditRules';
+import { supabase } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const POST = withCredits('tutor', async (request: NextRequest, user, newCreditBalance) => {
+export async function POST(request: NextRequest) {
   try {
-    const { docContext, action, userAnswer, sessionHistory, targetLanguage } = await request.json();
+    // Verifica autenticazione
+    const user = await verifyAuth(request);
+    
+    const { docContext, action, userAnswer, sessionHistory, targetLanguage, turnCount = 0 } = await request.json();
 
     if (!docContext) {
       return NextResponse.json(
@@ -16,6 +21,45 @@ export const POST = withCredits('tutor', async (request: NextRequest, user, newC
         { status: 400 }
       );
     }
+
+    // Gestione costi - REGOLE DEFINITIVE
+    let newCreditBalance = user.credits;
+    let cost = 0;
+    let isFirstTime = false;
+    
+    if (action === 'start') {
+      // Controlla se è la prima sessione orale per questo utente
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('has_used_oral_once')
+        .eq('user_id', user.id)
+        .single();
+      
+      isFirstTime = !profile?.has_used_oral_once;
+      
+      if (isFirstTime) {
+        // Prima sessione sempre GRATIS
+        cost = CreditCosts.oralExamFirst; // 0 crediti
+        
+        // Segna che l'utente ha usato l'orale almeno una volta
+        await supabase
+          .from('profiles')
+          .update({ has_used_oral_once: true })
+          .eq('user_id', user.id);
+          
+        newCreditBalance = user.credits; // Nessuna deduzione
+      } else {
+        // Sessioni successive costano 10 crediti
+        cost = CreditCosts.oralExam; // 10 crediti
+        newCreditBalance = await deductCredits(
+          user.id, 
+          cost, 
+          'Sessione esame orale',
+          { action }
+        );
+      }
+    }
+    // Rimuovo la logica dei turni extra: dentro la sessione tutto è GRATIS
 
     const language = targetLanguage || 'Italiano';
     let prompt = '';
@@ -117,14 +161,27 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
     return NextResponse.json({
       response,
       newCreditBalance,
-      creditsUsed: 5
+      creditsUsed: cost,
+      isFirstTime
     });
 
   } catch (error) {
     console.error('Oral exam API error:', error);
+    
+    // Gestisci errori specifici di crediti
+    if (error instanceof Error && error.message.includes('Insufficient credits')) {
+      return NextResponse.json(
+        { 
+          error: 'Crediti insufficienti per l\'esame orale',
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to process oral exam request' },
       { status: 500 }
     );
   }
-});
+}

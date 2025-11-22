@@ -31,7 +31,36 @@ const TutorChat: React.FC<TutorChatProps> = ({
   }]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [freeMessagesRemaining, setFreeMessagesRemaining] = useState<number>(5);
+  const [isWithinFreeLimit, setIsWithinFreeLimit] = useState<boolean>(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Load initial message count on mount
+  useEffect(() => {
+    const loadMessageCount = async () => {
+      if (!authToken) return;
+      
+      try {
+        // Make a dummy request to get current message count without sending a message
+        const response = await fetch('/api/tutor/count', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setFreeMessagesRemaining(data.freeMessagesRemaining || 5);
+          setIsWithinFreeLimit(data.isWithinFreeLimit !== false);
+        }
+      } catch (error) {
+        console.error('Error loading message count:', error);
+      }
+    };
+
+    loadMessageCount();
+  }, [authToken]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -84,7 +113,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
         body: JSON.stringify({
           message: userMessage,
           docContext: docContext,
-          language: 'Italiano'
+          language: 'Italiano',
+          sessionId: sessionId
         })
       });
 
@@ -94,6 +124,14 @@ const TutorChat: React.FC<TutorChatProps> = ({
         // Update credits if callback provided
         if (onCreditsUpdate && (data.creditsRemaining !== undefined || data.newCreditBalance !== undefined)) {
           onCreditsUpdate(data.creditsRemaining || data.newCreditBalance);
+        }
+
+        // Update free messages tracking
+        if (data.isWithinFreeLimit !== undefined) {
+          setIsWithinFreeLimit(data.isWithinFreeLimit);
+        }
+        if (data.freeMessagesRemaining !== undefined) {
+          setFreeMessagesRemaining(data.freeMessagesRemaining);
         }
 
         // Add AI response
@@ -225,7 +263,11 @@ const TutorChat: React.FC<TutorChatProps> = ({
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Fai una domanda al tutor... (5 crediti)"
+                placeholder={
+                  isWithinFreeLimit 
+                    ? `Fai una domanda al tutor... (${freeMessagesRemaining} messaggi gratis rimasti)`
+                    : "Fai una domanda al tutor... (2 crediti)"
+                }
                 className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-400 resize-none focus:outline-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px]"
                 disabled={loading}
               />
@@ -249,7 +291,13 @@ const TutorChat: React.FC<TutorChatProps> = ({
             <span className="sm:hidden">Invio per inviare</span>
             <div className="flex items-center gap-1">
               <Coins className="w-3 h-3" />
-              <span>5 crediti per messaggio</span>
+              {isWithinFreeLimit ? (
+                <span className="text-green-400">
+                  {freeMessagesRemaining} messaggi gratuiti rimasti
+                </span>
+              ) : (
+                <span>2 crediti per messaggio</span>
+              )}
             </div>
           </div>
         </div>

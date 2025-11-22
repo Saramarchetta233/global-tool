@@ -11,8 +11,6 @@ import HistoryView from '@/components/HistoryView';
 import AudioPlayer from '@/components/AudioPlayer';
 import OralExamSection from '@/components/OralExamSection';
 import InsufficientCreditsModal from '@/components/InsufficientCreditsModal';
-import RechargeModal from '@/components/RechargeModal';
-import SubscriptionModal from '@/components/SubscriptionModal';
 import { saveStudySession, convertResultsToHistory, getStudySession } from '@/lib/study-history';
 import { useStudySessionStore } from '@/store/useStudySessionStore';
 
@@ -133,7 +131,7 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
             ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30' 
             : level === 1 
               ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg' 
-              : 'font-medium text-sm sm:text-base text-gray-100 bg-white/10 px-2 py-1 rounded-md'
+              : 'font-medium text-sm sm:text-base text-gray-200 bg-white/5 px-2 py-1 rounded-md'
           } mb-2 inline-block`}>
           {node.title}
         </div>
@@ -573,7 +571,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
   return (
     <div className="max-w-3xl mx-auto">
       {/* Exam Controls */}
-      <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/10 p-3 sm:p-4 rounded-xl border border-white/20 gap-3">
+      <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white/5 p-3 sm:p-4 rounded-xl border border-white/10 gap-3">
         <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
           Domanda {currentQuestion + 1} / {currentQuestions.length}
         </span>
@@ -676,7 +674,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                           : 'border-red-500 bg-red-500/20 text-red-300 backdrop-blur-sm'
                         : index === question.correct_option_index && showExplanation
                           ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
-                          : 'border-white/20 bg-white/10 text-gray-300'
+                          : 'border-white/10 bg-white/5 text-gray-400'
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -716,7 +714,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
 
           {/* Progress Bar */}
           <div className="mt-6">
-            <div className="flex justify-between text-sm text-gray-200 mb-2">
+            <div className="flex justify-between text-sm text-gray-400 mb-2">
               <span>Progresso Esame</span>
               <span>{currentQuestion + 1}/{currentQuestions.length}</span>
             </div>
@@ -969,8 +967,6 @@ const StudiusAIV2: React.FC = () => {
     current: number;
     costDescription?: string;
   } | null>(null);
-  const [showRechargeModal, setShowRechargeModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
 
@@ -1607,13 +1603,19 @@ const StudiusAIV2: React.FC = () => {
               {/* Second row - Action buttons (mobile only) */}
               <div className="flex items-center gap-2 md:hidden">
                 <button
-                  onClick={() => setShowRechargeModal(true)}
+                  onClick={() => {
+                    // TODO: Navigate to recharge page
+                    console.log('Navigate to recharge');
+                  }}
                   className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 >
                   Ricarica Crediti
                 </button>
                 <button
-                  onClick={() => setShowSubscriptionModal(true)}
+                  onClick={() => {
+                    // TODO: Navigate to subscription page
+                    console.log('Navigate to subscription');
+                  }}
                   className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
                 >
                   Abbonati
@@ -1623,13 +1625,19 @@ const StudiusAIV2: React.FC = () => {
               {/* Desktop action buttons */}
               <div className="hidden md:flex absolute right-4 top-4 gap-2">
                 <button
-                  onClick={() => setShowRechargeModal(true)}
+                  onClick={() => {
+                    // TODO: Navigate to recharge page
+                    console.log('Navigate to recharge');
+                  }}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
                 >
                   Ricarica
                 </button>
                 <button
-                  onClick={() => setShowSubscriptionModal(true)}
+                  onClick={() => {
+                    // TODO: Navigate to subscription page
+                    console.log('Navigate to subscription');
+                  }}
                   className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
                 >
                   Abbonati
@@ -1862,7 +1870,7 @@ const StudiusAIV2: React.FC = () => {
                         <Rocket className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                       </div>
                       <div className="text-sm opacity-75">
-                        (usa crediti)
+                        10-40 crediti a seconda del PDF
                       </div>
                     </div>
                   )}
@@ -2061,7 +2069,7 @@ const StudiusAIV2: React.FC = () => {
                         }
                       />
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
+                    <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 overflow-y-auto max-h-[400px] sm:max-h-[500px]">
                       <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_breve)}</p>
                     </div>
                   </div>
@@ -2092,7 +2100,7 @@ const StudiusAIV2: React.FC = () => {
                         }
                       />
                     </div>
-                    <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
+                    <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 overflow-y-auto max-h-[400px] sm:max-h-[500px]">
                       <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_esteso)}</p>
                     </div>
                   </div>
@@ -2421,32 +2429,17 @@ const StudiusAIV2: React.FC = () => {
         current={creditError?.current || 0}
         costDescription={creditError?.costDescription}
         onRecharge={() => {
-          setShowInsufficientCreditsModal(false);
-          setCreditError(null);
-          setShowRechargeModal(true);
+          // TODO: Navigate to recharge page
+          console.log('Navigate to recharge');
         }}
         onSubscribe={() => {
-          setShowInsufficientCreditsModal(false);
-          setCreditError(null);
-          setShowSubscriptionModal(true);
+          // TODO: Navigate to subscription page
+          console.log('Navigate to subscription');
         }}
         onLifetime={() => {
-          setShowInsufficientCreditsModal(false);
-          setCreditError(null);
-          setShowSubscriptionModal(true);
+          // TODO: Navigate to lifetime page
+          console.log('Navigate to lifetime');
         }}
-      />
-
-      {/* Recharge Modal */}
-      <RechargeModal
-        isOpen={showRechargeModal}
-        onClose={() => setShowRechargeModal(false)}
-      />
-
-      {/* Subscription Modal */}
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
       />
     </div>
   );

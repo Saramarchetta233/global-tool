@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { CreditCosts } from '@/lib/credits/creditRules';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -7,6 +9,9 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
+    // Verifica autenticazione
+    const user = await verifyAuth(request);
+    
     const { text, voice = 'alloy', language = 'it' } = await request.json();
 
     if (!text || text.trim().length === 0) {
@@ -15,6 +20,13 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Deduci crediti per il download audio
+    const newCreditBalance = await deductCredits(
+      user.id, 
+      CreditCosts.audioDownload, 
+      'Download audio MP3'
+    );
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(
@@ -53,12 +65,26 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'audio/mpeg',
         'Content-Disposition': 'attachment; filename="riassunto-audio.mp3"',
         'Content-Length': buffer.length.toString(),
-        'Cache-Control': 'no-cache'
+        'Cache-Control': 'no-cache',
+        'X-New-Credit-Balance': newCreditBalance.toString(),
+        'X-Credits-Used': CreditCosts.audioDownload.toString()
       }
     });
 
   } catch (error) {
     console.error('❌ TTS API error:', error);
+    
+    // Gestisci errori specifici di crediti
+    if (error instanceof Error && error.message.includes('Insufficient credits')) {
+      return NextResponse.json(
+        { 
+          error: 'Crediti insufficienti per generare l\'audio MP3',
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Errore durante la generazione audio: ' + (error instanceof Error ? error.message : 'Errore sconosciuto') },
       { status: 500 }

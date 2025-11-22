@@ -1,20 +1,51 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
+import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { CreditCosts } from '@/lib/credits/creditRules';
+import { supabase } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-export const POST = withCredits('quiz', async (request: NextRequest, user, newCreditBalance) => {
+export async function POST(request: NextRequest) {
   try {
-    const { docContext } = await request.json();
+    // Verifica autenticazione
+    const user = await verifyAuth(request);
+    
+    const { docContext, sessionId } = await request.json();
 
     if (!docContext) {
       return NextResponse.json(
         { error: 'Document context is required' },
         { status: 400 }
       );
+    }
+
+    // Controlla se l'utente ha già usato domande probabili per questa sessione
+    let cost = 0;
+    let newCreditBalance = user.credits;
+    let isFirstTime = true;
+
+    if (sessionId) {
+      // Controlla se ci sono già state domande probabili generate per questa sessione
+      const { data: existingQuestions } = await supabase
+        .from('credit_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('description', 'Domande probabili')
+        .eq('metadata.sessionId', sessionId);
+
+      if (existingQuestions && existingQuestions.length > 0) {
+        isFirstTime = false;
+        cost = CreditCosts.probablePaid;
+        newCreditBalance = await deductCredits(
+          user.id, 
+          cost, 
+          'Domande probabili (rigenerazione)',
+          { sessionId, isRegenerating: true }
+        );
+      }
     }
 
     const prompt = `Analizza il seguente contenuto del documento e identifica le 7-10 domande più probabili che potrebbero essere chieste all'esame universitario.
@@ -84,17 +115,43 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       );
     }
 
+    // Se è la prima volta, aggiungi un log gratuito
+    if (isFirstTime && sessionId) {
+      await supabase
+        .from('credit_logs')
+        .insert({
+          user_id: user.id,
+          amount: 0,
+          operation: 'deduct',
+          description: 'Domande probabili (prima volta GRATIS)',
+          metadata: { sessionId, isFirstTime: true }
+        });
+    }
+
     return NextResponse.json({
       questions: questionsData.questions || [],
       newCreditBalance,
-      creditsUsed: 5
+      creditsUsed: cost,
+      isFirstTime
     });
 
   } catch (error) {
     console.error('Probable questions API error:', error);
+    
+    // Gestisci errori specifici di crediti
+    if (error instanceof Error && error.message.includes('Insufficient credits')) {
+      return NextResponse.json(
+        { 
+          error: 'Crediti insufficienti per rigenerare le domande probabili',
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
+      );
+    }
+    
     return NextResponse.json(
       { error: 'Failed to generate probable questions' },
       { status: 500 }
     );
   }
-});
+}

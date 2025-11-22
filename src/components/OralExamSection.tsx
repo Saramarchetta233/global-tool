@@ -32,6 +32,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [timer, setTimer] = useState(0);
   const [timerActive, setTimerActive] = useState(false);
+  const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
+  const [isCheckingFirstTime, setIsCheckingFirstTime] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -72,10 +74,48 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
     };
   }, [timerActive]);
 
-  // Auto scroll
+  // Auto scroll to latest message (only when new messages arrive)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (messages.length > 0) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'end'
+        });
+      }, 100);
+    }
+  }, [messages.length]);
+
+  // Check if it's first time oral exam
+  useEffect(() => {
+    const checkFirstTime = async () => {
+      if (!authToken) {
+        setIsCheckingFirstTime(false);
+        return;
+      }
+      
+      try {
+        const response = await fetch('/api/oral-exam/check-first-time', {
+          headers: {
+            'Authorization': `Bearer ${authToken}`
+          }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsFirstTime(data.isFirstTime);
+        }
+      } catch (error) {
+        console.error('Error checking first time:', error);
+        // Default to not first time to be safe
+        setIsFirstTime(false);
+      } finally {
+        setIsCheckingFirstTime(false);
+      }
+    };
+
+    checkFirstTime();
+  }, [authToken]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -129,6 +169,10 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       if (response.ok) {
         const data = await response.json();
         addMessage(data.response, 'professor');
+        // Se era la prima volta, aggiorna lo stato
+        if (data.isFirstTime) {
+          setIsFirstTime(false);
+        }
       } else {
         throw new Error('Failed to start exam');
       }
@@ -242,7 +286,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   }
 
   return (
-    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 w-full">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center">
@@ -304,17 +348,26 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
 
           <button
             onClick={startExam}
-            disabled={isLoading}
+            disabled={isLoading || isCheckingFirstTime}
             className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-red-700 hover:to-pink-700 font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] disabled:opacity-50"
           >
-            {isLoading ? '🔄 Preparando...' : '🚀 Inizia Esame Orale'}
+            {isLoading ? '🔄 Preparando...' : 
+             isCheckingFirstTime ? '🔄 Caricando...' : (
+              <div className="text-center">
+                <div className="font-bold">🚀 Inizia Esame Orale</div>
+                <div className="text-sm opacity-75">
+                  {isFirstTime ? 'GRATIS' : '10 crediti'}
+                </div>
+              </div>
+            )}
           </button>
+          
         </div>
       ) : (
         /* Exam Interface */
         <div className="space-y-6">
           {/* Messages */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10 max-h-96 overflow-y-auto">
+          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div key={message.id} className={`flex ${message.role === 'student' ? 'justify-end' : 'justify-start'}`}>
@@ -392,9 +445,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                   </button>
                 </div>
                 
-                <div className="flex justify-between items-center mt-3 text-xs text-gray-400">
-                  <span>Ctrl+Invio per inviare</span>
-                  <span>Costo: 5 crediti per risposta</span>
+                <div className="flex justify-center items-center mt-3 text-xs text-gray-400">
+                  <span>Ctrl+Invio per inviare • Risposte GRATIS</span>
                 </div>
               </div>
 
