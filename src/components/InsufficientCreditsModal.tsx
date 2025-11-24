@@ -12,6 +12,7 @@ interface InsufficientCreditsModalProps {
   onRecharge?: () => void;
   onSubscribe?: () => void;
   onLifetime?: () => void;
+  canPurchaseRecharge?: boolean;
 }
 
 const InsufficientCreditsModal: React.FC<InsufficientCreditsModalProps> = ({ 
@@ -22,7 +23,8 @@ const InsufficientCreditsModal: React.FC<InsufficientCreditsModalProps> = ({
   costDescription,
   onRecharge,
   onSubscribe,
-  onLifetime
+  onLifetime,
+  canPurchaseRecharge = false
 }) => {
   if (!isOpen) return null;
 
@@ -54,15 +56,17 @@ const InsufficientCreditsModal: React.FC<InsufficientCreditsModalProps> = ({
 
           {/* Action Buttons */}
           <div className="space-y-3">
-            <button
-              onClick={() => {
-                onRecharge?.();
-                onClose();
-              }}
-              className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300"
-            >
-              Ricarica
-            </button>
+            {canPurchaseRecharge && (
+              <button
+                onClick={() => {
+                  onRecharge?.();
+                  onClose();
+                }}
+                className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white py-3 px-4 rounded-xl font-semibold transition-all duration-300"
+              >
+                Ricarica
+              </button>
+            )}
             
             <button
               onClick={() => {

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -14,6 +14,12 @@ export async function POST(request: NextRequest) {
     const user = await verifyAuth(request);
     
     const { docContext, sessionId } = await request.json();
+    
+    console.log('🚀 Probable Questions API chiamata:', {
+      hasDocContext: !!docContext,
+      sessionId: sessionId,
+      userId: user.id
+    });
 
     if (!docContext) {
       return NextResponse.json(
@@ -22,30 +28,112 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Controlla se l'utente ha già usato domande probabili per questa sessione
+    // NUOVA LOGICA: conta quante volte l'utente ha già usato le "Domande Probabili" (per utente, non per sessione)
     let cost = 0;
     let newCreditBalance = user.credits;
     let isFirstTime = true;
+    let probableCount = 0;
 
-    if (sessionId) {
-      // Controlla se ci sono già state domande probabili generate per questa sessione
-      const { data: existingQuestions } = await supabase
-        .from('credit_logs')
-        .select('*')
+    console.log('🔍 Counting existing probable question generations for user:', user.id);
+    
+    if (!supabaseAdmin) {
+      console.error('❌ supabaseAdmin not available - assuming first time');
+      cost = 0;
+      isFirstTime = true;
+    } else {
+      const { count, error: countError } = await supabaseAdmin
+        .from('probable_question_sessions')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+
+      if (countError) {
+        console.error('[PROBABLE_Q_COUNT_ERROR]', { userId: user.id, countError });
+        // Se la tabella non esiste, assumiamo sia la prima volta
+        console.log('📝 probable_question_sessions table not found, assuming first time');
+        cost = 0;
+        isFirstTime = true;
+      } else {
+        probableCount = count ?? 0;
+        
+        console.log('[PROBABLE_Q_DEBUG_COUNT]', {
+          userId: user.id,
+          probableCount,
+        });
+        
+        // LOGICA: prima volta gratis, dalla seconda in poi 5 crediti
+        if (probableCount === 0) {
+          cost = 0;      // PRIMA VOLTA → GRATIS
+          isFirstTime = true;
+          console.log('🎉 First probable questions generation detected - making it FREE');
+        } else {
+          cost = 5;      // DALLA SECONDA IN POI → 5 CREDITI
+          isFirstTime = false;
+          console.log(`💳 Subsequent probable questions (#${probableCount + 1}) - charging 5 credits`);
+        }
+      }
+    }
+
+    // Se cost > 0, controlla crediti e scala
+    if (cost > 0) {
+      // Recupera crediti attuali
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('credits')
         .eq('user_id', user.id)
-        .eq('description', 'Domande probabili')
-        .eq('metadata.sessionId', sessionId);
+        .single();
 
-      if (existingQuestions && existingQuestions.length > 0) {
-        isFirstTime = false;
-        cost = CreditCosts.probablePaid;
-        newCreditBalance = await deductCredits(
-          user.id, 
-          cost, 
-          'Domande probabili (rigenerazione)',
-          { sessionId, isRegenerating: true }
+      if (profileError) {
+        console.error('❌ Error fetching user credits:', profileError);
+        return NextResponse.json(
+          { error: 'Errore nel recupero del profilo utente' },
+          { status: 500 }
         );
       }
+
+      const currentCredits = profile?.credits || user.credits;
+      
+      if (currentCredits < cost) {
+        console.log('❌ Insufficient credits:', { required: cost, available: currentCredits });
+        return NextResponse.json(
+          { 
+            error: 'Crediti insufficienti per le domande probabili',
+            required: cost,
+            available: currentCredits,
+            type: 'insufficient_credits' 
+          },
+          { status: 402 }
+        );
+      }
+
+      // Scala crediti atomicamente
+      const { data: creditResult, error: creditError } = await supabase
+        .rpc('consume_credits', {
+          p_user_id: user.id,
+          p_amount: cost,
+          p_description: `Domande probabili (${cost} crediti)`,
+          p_feature_type: 'probable_questions'
+        });
+
+      if (creditError || !creditResult?.success) {
+        console.error('❌ Error consuming credits:', creditError || creditResult);
+        return NextResponse.json(
+          { error: 'Errore nella detrazione dei crediti' },
+          { status: 500 }
+        );
+      }
+
+      newCreditBalance = creditResult.new_balance;
+      console.log('✅ Credits consumed:', { cost, newBalance: newCreditBalance });
+    } else {
+      // Prima volta gratis - nessuna variazione crediti
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('credits')
+        .eq('user_id', user.id)
+        .single();
+      
+      newCreditBalance = profile?.credits || user.credits;
+      console.log('✅ First generation - no credits consumed');
     }
 
     const prompt = `Analizza il seguente contenuto del documento e identifica le 7-10 domande più probabili che potrebbero essere chieste all'esame universitario.
@@ -98,41 +186,119 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       throw new Error('Failed to generate probable questions');
     }
 
-    // Parse JSON response
-    const cleanContent = responseContent
+    // Parse JSON response con maggiore robustezza
+    let cleanContent = responseContent
       .replace(/```json/g, '')
       .replace(/```/g, '')
       .trim();
+
+    // Cerca il JSON tra le parentesi graffe
+    const jsonStart = cleanContent.indexOf('{');
+    const jsonEnd = cleanContent.lastIndexOf('}') + 1;
+    
+    if (jsonStart !== -1 && jsonEnd > jsonStart) {
+      cleanContent = cleanContent.substring(jsonStart, jsonEnd);
+    }
 
     let questionsData;
     try {
       questionsData = JSON.parse(cleanContent);
     } catch (parseError) {
       console.error('Failed to parse questions JSON:', parseError);
-      return NextResponse.json(
-        { error: 'Failed to generate properly formatted questions' },
-        { status: 500 }
-      );
+      console.error('Raw content length:', responseContent.length);
+      console.error('Clean content preview:', cleanContent.substring(0, 500));
+      
+      // Fallback: prova a riparare JSON comuni
+      try {
+        // Rimuovi trailing comma o caratteri problematici
+        const fixedContent = cleanContent
+          .replace(/,\s*}/g, '}')
+          .replace(/,\s*]/g, ']')
+          .replace(/[\r\n\t]/g, ' ')
+          .replace(/\s+/g, ' ');
+        
+        questionsData = JSON.parse(fixedContent);
+        console.log('✅ JSON parsed after cleanup');
+      } catch (secondError) {
+        console.error('Second parse attempt failed:', secondError);
+        
+        // Fallback finale: genera domande semplici
+        questionsData = {
+          questions: [
+            {
+              id: 1,
+              question: "Quali sono i concetti principali trattati nel documento?",
+              answer: "Basandosi sul contenuto del documento, identificare e spiegare i concetti fondamentali.",
+              importance: "Alta",
+              type: "Spiegazione",
+              reasoning: "Domanda generale che copre i temi principali"
+            }
+          ]
+        };
+        console.log('⚠️ Using fallback questions due to JSON parse errors');
+      }
     }
 
-    // Se è la prima volta, aggiungi un log gratuito
-    if (isFirstTime && sessionId) {
-      await supabase
-        .from('credit_logs')
+    // SALVA la nuova sessione nella tabella probable_question_sessions
+    console.log('[PROBABLE_Q_DEBUG_BEFORE_INSERT]', {
+      userId: user.id,
+      cost,
+      isFirstTime,
+      sessionId
+    });
+    
+    if (!supabaseAdmin) {
+      console.log('⚠️ Skipping session insert - supabaseAdmin not available');
+    } else {
+      const { data: sessionData, error: sessionError } = await supabaseAdmin
+        .from('probable_question_sessions')
         .insert({
           user_id: user.id,
-          amount: 0,
-          operation: 'deduct',
-          description: 'Domande probabili (prima volta GRATIS)',
-          metadata: { sessionId, isFirstTime: true }
-        });
+          document_id: null, // potremmo aggiungere il document_id se necessario
+          session_data: {
+            questions: questionsData.questions || [],
+            sessionId,
+            cost,
+            was_free: isFirstTime,
+            generated_at: new Date().toISOString()
+          },
+          cost,
+          was_free: isFirstTime
+        })
+        .select('id')
+        .single();
+
+      console.log('[PROBABLE_Q_DEBUG_AFTER_INSERT]', {
+        userId: user.id,
+        sessionError,
+        sessionData,
+      });
+
+      if (sessionError) {
+        console.error('[PROBABLE_Q_INSERT_FAILED]', sessionError);
+        return NextResponse.json(
+          { error: 'PROBABLE_Q_SESSION_INSERT_FAILED', details: sessionError.message },
+          { status: 500 }
+        );
+      } else {
+        console.log('✅ Probable questions session created:', sessionData?.id);
+      }
     }
+
+    console.log('✅ Probable Questions processed successfully:', {
+      isFirstTime,
+      cost,
+      newBalance: newCreditBalance,
+      sessionCount: probableCount + 1,
+      questionCount: questionsData.questions?.length || 0
+    });
 
     return NextResponse.json({
       questions: questionsData.questions || [],
       newCreditBalance,
       creditsUsed: cost,
-      isFirstTime
+      isFirstTime,
+      wasFree: isFirstTime
     });
 
   } catch (error) {

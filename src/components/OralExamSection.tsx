@@ -16,13 +16,15 @@ interface OralExamSectionProps {
   authToken?: string;
   targetLanguage?: string;
   onBack?: () => void;
+  onCreditsUpdate?: (newCredits: number) => void;
 }
 
 const OralExamSection: React.FC<OralExamSectionProps> = ({ 
   docContext, 
   authToken, 
   targetLanguage = 'Italiano',
-  onBack
+  onBack,
+  onCreditsUpdate
 }) => {
   // Use store for oral exam state persistence
   const { examState, updateExamOralState } = useStudySessionStore();
@@ -86,34 +88,39 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
     }
   }, [messages.length]);
 
-  // Check if it's first time oral exam
-  useEffect(() => {
-    const checkFirstTime = async () => {
-      if (!authToken) {
-        setIsCheckingFirstTime(false);
-        return;
-      }
-      
-      try {
-        const response = await fetch('/api/oral-exam/check-first-time', {
-          headers: {
-            'Authorization': `Bearer ${authToken}`
-          }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsFirstTime(data.isFirstTime);
+  // Function to check if it's first time oral exam
+  const checkFirstTime = async () => {
+    if (!authToken) {
+      setIsCheckingFirstTime(false);
+      return;
+    }
+    
+    setIsCheckingFirstTime(true);
+    
+    try {
+      console.log('🔍 Checking first time status for user...');
+      const response = await fetch('/api/oral-exam/check-first-time', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
         }
-      } catch (error) {
-        console.error('Error checking first time:', error);
-        // Default to not first time to be safe
-        setIsFirstTime(false);
-      } finally {
-        setIsCheckingFirstTime(false);
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ First time check result:', data);
+        setIsFirstTime(data.isFirstTime);
       }
-    };
+    } catch (error) {
+      console.error('Error checking first time:', error);
+      // Default to not first time to be safe
+      setIsFirstTime(false);
+    } finally {
+      setIsCheckingFirstTime(false);
+    }
+  };
 
+  // Check if it's first time oral exam when component loads
+  useEffect(() => {
     checkFirstTime();
   }, [authToken]);
 
@@ -168,10 +175,24 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
 
       if (response.ok) {
         const data = await response.json();
+        console.log('🔥 Oral Exam Start Response:', data);
         addMessage(data.response, 'professor');
-        // Se era la prima volta, aggiorna lo stato
-        if (data.isFirstTime) {
+        
+        // Aggiorna i crediti se forniti
+        if (data.newCreditBalance !== undefined && onCreditsUpdate) {
+          console.log('🔥 Updating credits from', data.newCreditBalance);
+          onCreditsUpdate(data.newCreditBalance);
+        } else {
+          console.log('🔥 No newCreditBalance in response or no onCreditsUpdate callback');
+        }
+
+        // Mostra messaggio se era gratis o a pagamento
+        if (data.was_free) {
+          console.log('🎉 First oral exam - FREE!');
+          // Aggiorna lo stato: non è più la prima volta
           setIsFirstTime(false);
+        } else {
+          console.log(`💳 Oral exam charged: ${data.creditsUsed || 25} credits`);
         }
       } else {
         throw new Error('Failed to start exam');
@@ -214,6 +235,10 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       if (response.ok) {
         const data = await response.json();
         addMessage(data.response, 'professor');
+        // Aggiorna i crediti se forniti
+        if (data.newCreditBalance !== undefined && onCreditsUpdate) {
+          onCreditsUpdate(data.newCreditBalance);
+        }
       } else {
         throw new Error('Failed to get professor response');
       }
@@ -251,6 +276,10 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
         const data = await response.json();
         addMessage(data.response, 'professor');
         updateExamOralState({ currentStep: 'completed' });
+        // Aggiorna i crediti se forniti
+        if (data.newCreditBalance !== undefined && onCreditsUpdate) {
+          onCreditsUpdate(data.newCreditBalance);
+        }
       }
     } catch (error) {
       console.error('Error finishing exam:', error);
@@ -267,6 +296,10 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
     setUserAnswer('');
     setTimer(0);
     setTimerActive(false);
+    
+    // IMPORTANTE: Ricontrolla se è la prima volta dopo aver resettato
+    console.log('🔄 Resetting exam and checking first-time status...');
+    checkFirstTime();
   };
 
   if (!docContext || !authToken) {
@@ -348,15 +381,19 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
 
           <button
             onClick={startExam}
-            disabled={isLoading || isCheckingFirstTime}
+            disabled={isLoading}
             className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-red-700 hover:to-pink-700 font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] disabled:opacity-50"
           >
-            {isLoading ? '🔄 Preparando...' : 
-             isCheckingFirstTime ? '🔄 Caricando...' : (
+            {isLoading ? '🔄 Preparando...' : (
               <div className="text-center">
                 <div className="font-bold">🚀 Inizia Esame Orale</div>
                 <div className="text-sm opacity-75">
-                  {isFirstTime ? 'GRATIS' : '10 crediti'}
+                  {isCheckingFirstTime 
+                    ? 'Verificando...' 
+                    : isFirstTime 
+                      ? 'GRATIS' 
+                      : '25 crediti'
+                  }
                 </div>
               </div>
             )}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { verifyAuth } from '@/lib/middleware';
+import { supabase } from '@/lib/supabase';
 import { getExamCost, getExamCostDescription } from '@/lib/credits/creditRules';
 
 const openai = new OpenAI({
@@ -25,23 +26,28 @@ export async function POST(request: NextRequest) {
     const cost = getExamCost(numQuestions);
     const costDescription = getExamCostDescription(numQuestions);
 
-    // Se il costo è > 0, deduci i crediti
-    let newCreditBalance = user.credits;
-    if (cost > 0) {
-      newCreditBalance = await deductCredits(
-        user.id, 
-        cost, 
-        costDescription,
+    // STEP 1: Verifica crediti sufficienti (SENZA scalare)
+    if (cost > 0 && user.credits < cost) {
+      console.log(`❌ Insufficient credits: user has ${user.credits}, needs ${cost}`);
+      return NextResponse.json(
         { 
-          numQuestions, 
-          difficulty, 
-          questionType 
-        }
+          error: 'Crediti insufficienti',
+          required: cost,
+          available: user.credits,
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
       );
     }
 
+    // STEP 2: Genera il quiz PRIMA di scalare i crediti
+    console.log(`🎯 Generating ${numQuestions} questions for user ${user.id}`);
+    
     const prompt = createExamPrompt(docContext, numQuestions, difficulty, questionType);
 
+    // Aumenta max_tokens per 20 domande
+    const maxTokens = numQuestions <= 10 ? 2000 : 4000;
+    
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
@@ -55,16 +61,17 @@ export async function POST(request: NextRequest) {
         }
       ],
       temperature: 0.3,
-      max_tokens: 2000,
+      max_tokens: maxTokens,
     });
 
     const responseContent = completion.choices[0]?.message?.content;
     
     if (!responseContent) {
-      throw new Error('Failed to generate exam questions');
+      console.error('❌ OpenAI returned empty response');
+      throw new Error('OpenAI returned empty response');
     }
 
-    // Parse JSON response
+    // STEP 3: Parse e valida la risposta
     const cleanContent = responseContent
       .replace(/```json/g, '')
       .replace(/```/g, '')
@@ -74,13 +81,46 @@ export async function POST(request: NextRequest) {
     try {
       examData = JSON.parse(cleanContent);
     } catch (parseError) {
-      console.error('Failed to parse exam JSON:', parseError);
-      return NextResponse.json(
-        { error: 'Failed to generate properly formatted exam' },
-        { status: 500 }
-      );
+      console.error('❌ Failed to parse OpenAI JSON response:', parseError);
+      console.error('Raw response content:', responseContent);
+      throw new Error(`Failed to parse AI response as JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
     }
 
+    // STEP 4: Valida che le domande siano state generate correttamente
+    if (!examData.questions || !Array.isArray(examData.questions) || examData.questions.length === 0) {
+      console.error('❌ Invalid exam data structure:', examData);
+      throw new Error('AI did not generate valid questions array');
+    }
+
+    if (examData.questions.length < numQuestions) {
+      console.warn(`⚠️ Only got ${examData.questions.length} questions instead of ${numQuestions}`);
+    }
+
+    // STEP 5: Solo ora scala i crediti (dopo che la generazione è riuscita)
+    let newCreditBalance = user.credits;
+    if (cost > 0) {
+      console.log(`💳 Consuming ${cost} credits for user ${user.id}`);
+      
+      const { data: creditResult, error: creditError } = await supabase
+        .rpc('consume_credits', {
+          p_user_id: user.id,
+          p_amount: cost,
+          p_description: costDescription,
+          p_feature_type: 'exam'
+        });
+      
+      if (creditError || !creditResult?.success) {
+        console.error('❌ Credit deduction error:', creditError || creditResult);
+        throw new Error(`Failed to consume credits: ${creditError?.message || 'Unknown error'}`);
+      }
+      
+      newCreditBalance = creditResult.new_balance;
+      console.log(`✅ Credits consumed successfully. New balance: ${newCreditBalance}`);
+    }
+
+    // STEP 6: Restituisci il quiz generato
+    console.log(`✅ Exam generated successfully: ${examData.questions.length} questions`);
+    
     return NextResponse.json({
       questions: examData.questions || [],
       newCreditBalance,
@@ -89,7 +129,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Generate exam API error:', error);
+    console.error('❌ Generate exam API error:', error);
     
     // Gestisci errori specifici di crediti
     if (error instanceof Error && error.message.includes('Insufficient credits')) {
@@ -102,8 +142,13 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // Per qualsiasi altro errore, i crediti NON sono stati scalati
     return NextResponse.json(
-      { error: 'Failed to generate exam' },
+      { 
+        error: 'Si è verificato un problema nella generazione dell\'esame. I tuoi crediti non sono stati utilizzati. Riprova.',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        type: 'generation_failed'
+      },
       { status: 500 }
     );
   }

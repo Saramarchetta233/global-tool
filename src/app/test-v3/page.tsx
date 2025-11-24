@@ -15,6 +15,7 @@ import RechargeModal from '@/components/RechargeModal';
 import SubscriptionModal from '@/components/SubscriptionModal';
 import { saveStudySession, convertResultsToHistory, getStudySession } from '@/lib/study-history';
 import { useStudySessionStore } from '@/store/useStudySessionStore';
+import { useSubscription } from '@/hooks/useSubscription';
 
 // Types (same as before but with sessionId)
 interface FlashCard {
@@ -128,11 +129,10 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
 
     return (
       <li key={node.title + level} className={`ml-${level * 2} sm:ml-${level * 4} mb-3`}>
-        <div className={`${
-          level === 0 
-            ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30' 
-            : level === 1 
-              ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg' 
+        <div className={`${level === 0
+            ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30'
+            : level === 1
+              ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg'
               : 'font-medium text-sm sm:text-base text-gray-100 bg-white/10 px-2 py-1 rounded-md'
           } mb-2 inline-block`}>
           {node.title}
@@ -155,7 +155,7 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
 
 const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) => {
   const { flashcardState, updateFlashcardState } = useStudySessionStore();
-  
+
   // Use store state
   const currentCard = flashcardState.currentCard;
   const showBack = flashcardState.showBack;
@@ -202,7 +202,7 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
     <div className="max-w-lg mx-auto">
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-3xl blur-xl"></div>
-        
+
         <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
           <div className="text-center mb-6">
             <span className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-3 py-1 rounded-full text-sm font-medium">
@@ -245,7 +245,8 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
 
 const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: string, authToken?: string }> = ({ questions, docContext, authToken }) => {
   const { examState, updateExamWrittenState, setActiveTab } = useStudySessionStore();
-  
+  const { updateCredits } = useAuth();
+
   // Use store state instead of local state
   const currentQuestion = examState.written.currentQuestion;
   const selectedOption = examState.written.selectedOption;
@@ -258,8 +259,14 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
   const numQuestions = examState.written.customExamConfig.numQuestions;
   const difficulty = examState.written.customExamConfig.difficulty;
   const questionType = examState.written.customExamConfig.type;
-  
+
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [creditError, setCreditError] = useState<{
+    required: number;
+    current: number;
+    costDescription?: string;
+  } | null>(null);
 
   // Function to reset to initial configuration state
   const resetToConfiguration = () => {
@@ -291,9 +298,13 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
 
   const generateCustomExam = async () => {
     if (!authToken || !docContext) return;
-    
+
     setIsGenerating(true);
+    setError(null); // Reset any previous errors
+
     try {
+      console.log(`🎯 Starting exam generation: ${numQuestions} questions`);
+
       const response = await fetch('/api/generate-exam', {
         method: 'POST',
         headers: {
@@ -308,8 +319,12 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
         })
       });
 
+      const data = await response.json();
+
       if (response.ok) {
-        const data = await response.json();
+        // Success: quiz generated and credits consumed
+        console.log(`✅ Exam generated successfully: ${data.questions?.length} questions`);
+
         updateExamWrittenState({
           customQuestions: data.questions || [],
           currentQuestion: 0,
@@ -318,9 +333,41 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
           userAnswers: new Array(data.questions?.length || 0).fill(null),
           generatedExam: data
         });
+
+        // Update user credits in the UI
+        if (data.newCreditBalance !== undefined) {
+          updateCredits(data.newCreditBalance);
+          console.log(`💳 Credits updated: ${data.creditsUsed} used, new balance: ${data.newCreditBalance}`);
+        }
+
+        // Show success message
+        alert(`🎯 Esame generato con successo!\n${data.questions?.length} domande create.\nCrediti utilizzati: ${data.creditsUsed || 0}`);
+
+      } else {
+        // Error: handle different error types
+        console.error('❌ Exam generation failed:', data);
+
+        if (data.type === 'insufficient_credits') {
+          // Credits insufficient
+          setCreditError({
+            required: data.required,
+            current: data.available,
+            costDescription: `Esame ${numQuestions} domande`
+          });
+        } else if (data.type === 'generation_failed') {
+          // Generation failed but credits NOT consumed
+          setError(`❌ ${data.error}\n\nDettagli: ${data.details || 'Errore sconosciuto'}`);
+          alert(`❌ ${data.error}`);
+        } else {
+          // Generic error
+          setError(`❌ Errore durante la generazione dell'esame: ${data.error || 'Errore sconosciuto'}`);
+          alert(`❌ Errore durante la generazione dell'esame: ${data.error || 'Errore sconosciuto'}`);
+        }
       }
-    } catch (error) {
-      console.error('Error generating exam:', error);
+    } catch (networkError) {
+      console.error('❌ Network error during exam generation:', networkError);
+      setError('❌ Errore di connessione. Controlla la tua connessione internet e riprova.');
+      alert('❌ Errore di connessione. Controlla la tua connessione internet e riprova.');
     } finally {
       setIsGenerating(false);
     }
@@ -329,9 +376,22 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
   const selectOption = (index: number | string) => {
     const newAnswers = [...userAnswers];
     newAnswers[currentQuestion] = index;
+
+    // Per risposte multiple choice, mostra subito la spiegazione
+    // Per risposte aperte, aspetta il click su "Invia risposta"
+    const currentQ = currentQuestions[currentQuestion];
+    const showExpl = currentQ?.type === 'multiple_choice' || typeof index === 'number';
+
     updateExamWrittenState({
       userAnswers: newAnswers,
       selectedOption: typeof index === 'number' ? index : null,
+      showExplanation: showExpl
+    });
+  };
+
+  const submitOpenAnswer = () => {
+    // Mostra la risposta corretta per le domande aperte
+    updateExamWrittenState({
       showExplanation: true
     });
   };
@@ -381,7 +441,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
       question: "Quali sono i concetti chiave trattati nel documento?",
       options: [
         "Concetti teorici e applicazioni pratiche",
-        "Solo definizioni tecniche", 
+        "Solo definizioni tecniche",
         "Esempi storici esclusivamente",
         "Procedimenti amministrativi"
       ],
@@ -392,7 +452,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
       question: "Come si collegano tra loro gli argomenti principali?",
       options: [
         "Sono completamente indipendenti",
-        "Seguono una progressione logica e si rafforzano a vicenda", 
+        "Seguono una progressione logica e si rafforzano a vicenda",
         "Si contraddicono frequentemente",
         "Non hanno alcuna relazione"
       ],
@@ -422,7 +482,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
             Inizia con queste domande generali mentre generi un quiz personalizzato sul tuo documento.
           </p>
           <button
-            onClick={() => updateExamWrittenState({ 
+            onClick={() => updateExamWrittenState({
               customQuestions: defaultQuestions,
               userAnswers: new Array(defaultQuestions.length).fill(null)
             })}
@@ -435,7 +495,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
         {/* Exam Configuration */}
         <div className="bg-blue-500/20 backdrop-blur-sm p-6 rounded-2xl border border-blue-500/30">
           <h4 className="text-lg font-semibold text-blue-300 mb-4">Configura la Simulazione Esame</h4>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -443,7 +503,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
               </label>
               <select
                 value={numQuestions}
-                onChange={(e) => updateExamWrittenState({ 
+                onChange={(e) => updateExamWrittenState({
                   customExamConfig: { ...examState.written.customExamConfig, numQuestions: parseInt(e.target.value) }
                 })}
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500"
@@ -454,14 +514,14 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 <option value={20}>20 domande — 25 crediti</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Difficoltà:
               </label>
               <select
                 value={difficulty}
-                onChange={(e) => updateExamWrittenState({ 
+                onChange={(e) => updateExamWrittenState({
                   customExamConfig: { ...examState.written.customExamConfig, difficulty: e.target.value }
                 })}
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500"
@@ -471,14 +531,14 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 <option value="Avanzato">Avanzato</option>
               </select>
             </div>
-            
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Tipo:
               </label>
               <select
                 value={questionType}
-                onChange={(e) => updateExamWrittenState({ 
+                onChange={(e) => updateExamWrittenState({
                   customExamConfig: { ...examState.written.customExamConfig, type: e.target.value }
                 })}
                 className="w-full bg-white/10 border border-white/20 rounded-xl px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500"
@@ -489,8 +549,8 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
               </select>
             </div>
           </div>
-          
-          
+
+
           <button
             onClick={generateCustomExam}
             disabled={isGenerating}
@@ -500,15 +560,15 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
               <div className="text-center">
                 <div className="font-semibold">🎯 Genera {numQuestions} domande</div>
                 <div className="text-xs opacity-75">
-                  {numQuestions <= 3 ? 'GRATIS' : 
-                   numQuestions <= 5 ? '10 crediti' : 
-                   numQuestions <= 10 ? '15 crediti' : 
-                   '25 crediti'}
+                  {numQuestions <= 3 ? 'GRATIS' :
+                    numQuestions <= 5 ? '10 crediti' :
+                      numQuestions <= 10 ? '15 crediti' :
+                        '25 crediti'}
                 </div>
               </div>
             )}
           </button>
-          
+
         </div>
 
         {currentQuestions.length === 0 ? (
@@ -540,7 +600,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
             <p className="text-red-200 mt-4">📖 Concentrati di più sui concetti fondamentali.</p>
           )}
         </div>
-        
+
         <div className="flex gap-4 justify-center">
           <button
             onClick={() => {
@@ -577,7 +637,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
         <span className="bg-gradient-to-r from-orange-400 to-amber-400 text-white px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium">
           Domanda {currentQuestion + 1} / {currentQuestions.length}
         </span>
-        
+
         {/* Control Buttons */}
         <div className="flex flex-wrap gap-2">
           <button
@@ -639,7 +699,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
 
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-3xl blur-xl"></div>
-        
+
         <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
           <h3 className="text-2xl font-semibold mb-8 text-white leading-relaxed">{question.question || question.text}</h3>
 
@@ -652,11 +712,26 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 placeholder="Scrivi qui la tua risposta..."
                 className="w-full p-4 bg-white/10 border border-white/20 rounded-xl text-white placeholder-gray-400 min-h-[120px] focus:ring-2 focus:ring-orange-500 focus:border-transparent"
               />
-              
+
+              {!showExplanation && userAnswers[currentQuestion] && (
+                <button
+                  onClick={submitOpenAnswer}
+                  className="bg-gradient-to-r from-orange-600 to-amber-600 text-white px-6 py-3 rounded-xl hover:from-orange-700 hover:to-amber-700 font-semibold transition-all duration-300 shadow-lg"
+                >
+                  📤 Invia Risposta
+                </button>
+              )}
+
               {showExplanation && question.correctAnswer && (
                 <div className="bg-green-500/20 p-4 rounded-xl border border-green-500/30">
                   <h4 className="text-green-300 font-semibold mb-2">Risposta Modello:</h4>
                   <p className="text-green-200">{question.correctAnswer}</p>
+                  {question.explanation && (
+                    <div className="mt-3">
+                      <h5 className="text-green-300 font-medium mb-1">Spiegazione:</h5>
+                      <p className="text-green-200 text-sm">{question.explanation}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -667,8 +742,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                 <button
                   key={index}
                   onClick={() => selectOption(index)}
-                  className={`w-full p-4 text-left rounded-2xl border-2 transition-all duration-300 font-medium ${
-                    userAnswers[currentQuestion] === null
+                  className={`w-full p-4 text-left rounded-2xl border-2 transition-all duration-300 font-medium ${userAnswers[currentQuestion] === null
                       ? 'border-white/20 hover:border-orange-400/50 hover:bg-white/10 text-gray-200 hover:text-white'
                       : userAnswers[currentQuestion] === index
                         ? index === question.correct_option_index
@@ -677,12 +751,11 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                         : index === question.correct_option_index && showExplanation
                           ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
                           : 'border-white/20 bg-white/10 text-gray-300'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${
-                      userAnswers[currentQuestion] === null 
-                        ? 'border-gray-400 text-gray-400' 
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${userAnswers[currentQuestion] === null
+                        ? 'border-gray-400 text-gray-400'
                         : userAnswers[currentQuestion] === index
                           ? index === question.correct_option_index
                             ? 'border-green-400 bg-green-500 text-white'
@@ -690,7 +763,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                           : index === question.correct_option_index && showExplanation
                             ? 'border-green-400 bg-green-500 text-white'
                             : 'border-gray-500 text-gray-500'
-                    }`}>
+                      }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
                     <span className="text-lg">{option}</span>
@@ -721,7 +794,7 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
               <span>{currentQuestion + 1}/{currentQuestions.length}</span>
             </div>
             <div className="w-full bg-gray-600 rounded-full h-2">
-              <div 
+              <div
                 className="bg-gradient-to-r from-orange-500 to-amber-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${((currentQuestion + 1) / currentQuestions.length) * 100}%` }}
               ></div>
@@ -737,14 +810,14 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
 const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = ({ docContext, authToken }) => {
   const { studyGuideState, updateStudyGuideState } = useStudySessionStore();
   const [isGenerating, setIsGenerating] = useState(false);
-  
+
   // Use store state
   const studyPlan = studyGuideState.studyPlan;
   const daysInput = studyGuideState.daysInput;
-  
+
   const generateStudyPlan = async () => {
     if (!authToken || !docContext) return;
-    
+
     setIsGenerating(true);
     try {
       const response = await fetch('/api/study-plan', {
@@ -776,13 +849,13 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
         <Calendar className="w-5 h-5" />
         📅 Piano di Studio Rapido
       </h4>
-      
+
       {!studyPlan ? (
         <div className="space-y-4">
           <p className="text-blue-200">
             Genera un piano di studio personalizzato basato sui giorni disponibili prima dell'esame.
           </p>
-          
+
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-blue-300 text-sm font-medium">
@@ -798,7 +871,7 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
               />
               <span className="text-blue-300 text-sm">giorni</span>
             </div>
-            
+
             <button
               onClick={generateStudyPlan}
               disabled={isGenerating}
@@ -828,7 +901,7 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
               </div>
             ))}
           </div>
-          
+
           <button
             onClick={() => updateStudyGuideState({ studyPlan: null })}
             className="text-blue-300 hover:text-blue-200 text-sm underline transition-colors"
@@ -845,14 +918,51 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
 const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: string; sessionId?: string }> = ({ docContext, authToken, sessionId }) => {
   const { studyGuideState, updateStudyGuideState } = useStudySessionStore();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isFirstTime, setIsFirstTime] = useState(true);
-  
+  const [cost, setCost] = useState(0);
+  const [isCheckingCost, setIsCheckingCost] = useState(true);
+
   // Use store state
   const questions = studyGuideState.probableQuestions;
-  
+
+  // Function to check cost before generation
+  const checkCost = async () => {
+    if (!authToken) {
+      setIsCheckingCost(false);
+      return;
+    }
+
+    setIsCheckingCost(true);
+
+    try {
+      console.log('🔍 Checking cost for probable questions...');
+      const response = await fetch('/api/probable-questions/check-cost', {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('✅ Cost check result:', data);
+        setCost(data.cost);
+      }
+    } catch (error) {
+      console.error('Error checking cost:', error);
+      // Default to first time to be safe
+      setCost(0);
+    } finally {
+      setIsCheckingCost(false);
+    }
+  };
+
+  // Check cost when component loads
+  useEffect(() => {
+    checkCost();
+  }, [authToken]);
+
   const generateQuestions = async () => {
     if (!authToken || !docContext) return;
-    
+
     setIsGenerating(true);
     try {
       const response = await fetch('/api/probable-questions', {
@@ -870,7 +980,9 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
       if (response.ok) {
         const data = await response.json();
         updateStudyGuideState({ probableQuestions: data.questions || [] });
-        setIsFirstTime(data.isFirstTime || false);
+
+        // After successful generation, check cost again for next time
+        setTimeout(checkCost, 1000);
       }
     } catch (error) {
       console.error('Error generating questions:', error);
@@ -885,13 +997,13 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
         <Target className="w-5 h-5" />
         🎯 Domande più Probabili all'Esame
       </h4>
-      
+
       {questions.length === 0 ? (
         <div className="space-y-4">
           <p className="text-yellow-200">
             Genera le 5-10 domande più probabili che potrebbero essere chieste all'esame, basate sui concetti chiave del documento.
           </p>
-          
+
           <button
             onClick={generateQuestions}
             disabled={isGenerating}
@@ -900,7 +1012,9 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
             {isGenerating ? 'Generando...' : (
               <div className="text-center">
                 <div className="font-semibold">⚡ Genera Domande Probabili</div>
-                <div className="text-xs opacity-75">GRATIS</div>
+                <div className="text-xs opacity-75">
+                  {isCheckingCost ? 'Verificando...' : (cost === 0 ? 'GRATIS' : `${cost} crediti`)}
+                </div>
               </div>
             )}
           </button>
@@ -928,18 +1042,18 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
               </div>
             </div>
           ))}
-          
+
           <button
             onClick={() => {
               updateStudyGuideState({ probableQuestions: [] });
-              setIsFirstTime(false);
+              generateQuestions();
             }}
             className="bg-gradient-to-r from-yellow-600 to-orange-600 text-white px-4 py-3 rounded-lg hover:from-yellow-700 hover:to-orange-700 font-medium text-sm transition-all duration-300"
           >
             <div className="text-center">
               <div className="font-semibold">🔄 Genera nuove domande</div>
               <div className="text-xs opacity-75">
-                {isFirstTime ? 'GRATIS' : '5 crediti'}
+                {isCheckingCost ? 'Verificando...' : (cost === 0 ? 'GRATIS' : `${cost} crediti`)}
               </div>
             </div>
           </button>
@@ -973,6 +1087,7 @@ const StudiusAIV2: React.FC = () => {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
+  const { canPurchaseRecharge, subscription } = useSubscription();
 
   // Use Zustand store instead of local state
   const {
@@ -1026,15 +1141,14 @@ const StudiusAIV2: React.FC = () => {
   useEffect(() => {
     const loadUserCredits = async () => {
       if (!user?.id) return;
-      
+
       try {
         // Prima prova a prendere i crediti attuali
         const response = await fetch(`/api/credits/add?userId=${user.id}`);
         if (response.ok) {
           const data = await response.json();
           let credits = data.credits || 0;
-          
-          
+
           setUserCredits(credits);
           // Sincronizza anche l'auth context - FORZA l'aggiornamento
           updateCredits(credits);
@@ -1071,14 +1185,14 @@ const StudiusAIV2: React.FC = () => {
     setLoading(true);
     setLoadingProgress(0);
     setError(null);
-    
+
     try {
       const studyResults = await processWithAI(file, language, token, targetLanguage, user);
-      
+
       // Update store with results and session data
       setResults(studyResults);
       setSessionId(studyResults.sessionId || null);
-      
+
       // Load docContext from session if sessionId exists
       if (studyResults.sessionId) {
         try {
@@ -1090,20 +1204,20 @@ const StudiusAIV2: React.FC = () => {
           console.error('Error loading session data:', error);
         }
       }
-      
+
       setLoadingProgress(100);
-      
+
       // Update user credits if returned from API
       if (studyResults.newCreditBalance !== undefined) {
         updateCredits(studyResults.newCreditBalance);
         setUserCredits(studyResults.newCreditBalance);
       }
-      
+
       // Save session ID for tutor (kept for backward compatibility)
       if (studyResults.sessionId) {
         localStorage.setItem('currentTutorSession', studyResults.sessionId);
       }
-      
+
       // Save to study history automatically
       if (user) {
         try {
@@ -1119,13 +1233,13 @@ const StudiusAIV2: React.FC = () => {
           console.error('Failed to save study session:', historyError);
         }
       }
-      
+
       // Set active tab to riassunto_breve after successful processing
       setActiveTab('riassunto_breve');
-      
+
     } catch (error) {
       console.error('Errore durante elaborazione:', error);
-      
+
       if (error instanceof Error) {
         try {
           // Check if it's a credit error
@@ -1142,7 +1256,7 @@ const StudiusAIV2: React.FC = () => {
         } catch (parseError) {
           // Not a JSON error, handle as regular error
         }
-        
+
         setError(error.message);
       } else {
         setError('Errore durante elaborazione del documento. Riprova.');
@@ -1166,11 +1280,11 @@ const StudiusAIV2: React.FC = () => {
 
   const handleSelectFromHistory = (historicalDocument: any) => {
     console.log('🔄 Caricando documento dallo storico:', historicalDocument);
-    
+
     // Use store method to load from history - this will restore all state including tutor messages and exam state
     loadFromHistory(historicalDocument);
     setShowHistory(false);
-    
+
     // Scroll to tabs section after loading
     setTimeout(() => {
       const tabsSection = document.querySelector('[data-tabs-section]') as HTMLElement;
@@ -1186,18 +1300,18 @@ const StudiusAIV2: React.FC = () => {
     resetSessionKeepTutor(); // Reset session but keep tutor messages
     setShowHistory(false);
     setFile(null);
-    
+
     // Force UI refresh dopo logout
     setTimeout(() => {
       window.location.reload();
     }, 100);
-    
+
     console.log('✅ Logout completed');
   };
 
   const downloadSummary = async () => {
     if (!results) return;
-    
+
     try {
       const response = await fetch('/api/download-summary', {
         method: 'POST',
@@ -1220,12 +1334,12 @@ const StudiusAIV2: React.FC = () => {
       a.download = 'riassunto-studius.html';
       a.click();
       URL.revokeObjectURL(url);
-      
+
       // Show user instruction for PDF conversion
       setTimeout(() => {
         alert('📄 File HTML generato! Per convertire in PDF:\n1. Apri il file nel browser\n2. Stampa → Salva come PDF\n3. Il layout è ottimizzato per la stampa');
       }, 500);
-      
+
     } catch (error) {
       console.error('Error downloading summary:', error);
       alert('Errore durante il download: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'));
@@ -1405,16 +1519,16 @@ const StudiusAIV2: React.FC = () => {
             </div>
             
             <div class="footer">
-              <p>🎓 Generato da Studius AI • ${new Date().toLocaleDateString('it-IT', { 
-                year: 'numeric', month: 'long', day: 'numeric' 
-              })}</p>
+              <p>🎓 Generato da Studius AI • ${new Date().toLocaleDateString('it-IT', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      })}</p>
               <p>💡 Perfetto per studio su mobile • Stampa per flashcard fisiche</p>
             </div>
           </div>
         </body>
         </html>
       `;
-      
+
       const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1422,11 +1536,11 @@ const StudiusAIV2: React.FC = () => {
       a.download = 'flashcards-studius.html';
       a.click();
       URL.revokeObjectURL(url);
-      
+
       setTimeout(() => {
         alert('🎨 Flashcards grafiche generate!\n📱 Mobile-friendly\n📄 Per PDF: Apri nel browser → Stampa → Salva come PDF');
       }, 500);
-      
+
     } catch (error) {
       console.error('❌ Errore durante la generazione flashcards grafiche:', error);
       alert('Errore durante la generazione: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'));
@@ -1436,20 +1550,20 @@ const StudiusAIV2: React.FC = () => {
   // Advanced Download Functions
   const downloadAudio = async () => {
     if (!results) return;
-    
+
     try {
       setIsGenerating(true);
       const content = `${renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}`;
-      
+
       console.log('🔊 Generating audio for summary, text length:', content.length);
-      
+
       const response = await fetch('/api/tts', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           text: content,
           voice: 'alloy', // OpenAI voice options: alloy, echo, fable, onyx, nova, shimmer
           language: targetLanguage === 'Auto' ? 'it' : targetLanguage.toLowerCase()
@@ -1468,7 +1582,7 @@ const StudiusAIV2: React.FC = () => {
       console.log('📥 Downloading audio blob...');
       const audioBlob = await response.blob();
       console.log('📊 Audio blob size:', audioBlob.size, 'bytes');
-      
+
       if (audioBlob.size === 0) {
         throw new Error('Audio file vuoto ricevuto dal server');
       }
@@ -1486,7 +1600,7 @@ const StudiusAIV2: React.FC = () => {
       a.download = 'riassunto-studius.mp3';
       a.click();
       URL.revokeObjectURL(url);
-      
+
       console.log('✅ Audio MP3 scaricato con successo');
       alert(`🔊 Audio MP3 generato e scaricato!\nDimensione: ${Math.round(audioBlob.size / 1024)}KB${creditsUsed ? `\nCrediti utilizzati: ${creditsUsed}` : ''}`);
     } catch (error) {
@@ -1519,7 +1633,7 @@ const StudiusAIV2: React.FC = () => {
         return Object.entries(content)
           .filter(([key, value]) => value && typeof value === 'string' && value.trim().length > 0)
           .map(([key, value]) => {
-            const cleanValue = typeof value === 'string' 
+            const cleanValue = typeof value === 'string'
               ? value.replace(/^\(+|\)+$/g, '').replace(/^\[+|\]+$/g, '').trim()
               : JSON.stringify(value, null, 2);
             return cleanValue;
@@ -1541,7 +1655,11 @@ const StudiusAIV2: React.FC = () => {
   ];
 
   if (authLoading) {
-    return <LoadingScreen stage="extracting" progress={50} />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400"></div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -1551,15 +1669,15 @@ const StudiusAIV2: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
       {/* Credit Bar */}
-      <CreditBar 
+      <CreditBar
         onPurchaseCredits={() => alert('Feature di acquisto crediti in arrivo!')}
         credits={userCredits}
       />
-      
-      
+
+
       {/* Animated Background */}
       <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-purple-900/10 to-blue-900/10"></div>
-      
+
       {/* Header */}
       <header className={`relative z-10 ${user && !loading ? 'pt-4 pb-2' : 'pt-8 pb-4'}`}>
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
@@ -1603,15 +1721,17 @@ const StudiusAIV2: React.FC = () => {
                   </button>
                 </div>
               </div>
-              
+
               {/* Second row - Action buttons (mobile only) */}
               <div className="flex items-center gap-2 md:hidden">
-                <button
-                  onClick={() => setShowRechargeModal(true)}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                >
-                  Ricarica Crediti
-                </button>
+                {canPurchaseRecharge && (
+                  <button
+                    onClick={() => setShowRechargeModal(true)}
+                    className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  >
+                    Ricarica Crediti
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSubscriptionModal(true)}
                   className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
@@ -1619,15 +1739,17 @@ const StudiusAIV2: React.FC = () => {
                   Abbonati
                 </button>
               </div>
-              
+
               {/* Desktop action buttons */}
               <div className="hidden md:flex absolute right-4 top-4 gap-2">
-                <button
-                  onClick={() => setShowRechargeModal(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                >
-                  Ricarica
-                </button>
+                {canPurchaseRecharge && (
+                  <button
+                    onClick={() => setShowRechargeModal(true)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                  >
+                    Ricarica
+                  </button>
+                )}
                 <button
                   onClick={() => setShowSubscriptionModal(true)}
                   className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
@@ -1649,7 +1771,7 @@ const StudiusAIV2: React.FC = () => {
               <p className="text-xl md:text-2xl text-gray-300 max-w-3xl mx-auto leading-relaxed">
                 Trasforma i tuoi PDF in materiali di studio <span className="text-purple-400 font-semibold">intelligenti</span> in secondi
               </p>
-              
+
               {/* Stats */}
               <div className="flex flex-wrap justify-center gap-8 mt-8 text-center">
                 <div className="flex items-center gap-2 text-green-400">
@@ -1729,7 +1851,7 @@ const StudiusAIV2: React.FC = () => {
             <div className="relative">
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl"></div>
-              
+
               <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
                 <div className="text-center mb-6 sm:mb-8">
                   <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl mb-4">
@@ -1744,11 +1866,10 @@ const StudiusAIV2: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-3">
                     📄 File PDF
                   </label>
-                  <div className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 ${
-                    file 
-                      ? 'border-green-400 bg-green-400/10' 
+                  <div className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 ${file
+                      ? 'border-green-400 bg-green-400/10'
                       : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
-                  }`}>
+                    }`}>
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -1756,7 +1877,7 @@ const StudiusAIV2: React.FC = () => {
                       onChange={handleFileUpload}
                       className="hidden"
                     />
-                    
+
                     {!file ? (
                       <>
                         <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center">
@@ -1781,7 +1902,7 @@ const StudiusAIV2: React.FC = () => {
                             <p className="text-green-400 text-xs sm:text-sm">File caricato con successo!</p>
                           </div>
                         </div>
-                        
+
                         <button
                           onClick={() => {
                             setFile(null);
@@ -1861,9 +1982,7 @@ const StudiusAIV2: React.FC = () => {
                         <span className="font-bold">✨ Genera materiali di studio AI</span>
                         <Rocket className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
                       </div>
-                      <div className="text-sm opacity-75">
-                        (usa crediti)
-                      </div>
+
                     </div>
                   )}
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0 group-hover:opacity-20 transition-opacity rounded-2xl"></div>
@@ -1950,7 +2069,7 @@ const StudiusAIV2: React.FC = () => {
                 <span>Scarica Flashcard</span>
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
-              
+
               {/* Advanced Downloads */}
               <button
                 onClick={downloadAudio}
@@ -1966,8 +2085,8 @@ const StudiusAIV2: React.FC = () => {
                 )}
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
-              
-              
+
+
               {/* Tutor Button */}
               {results.sessionId && (
                 <button
@@ -1979,7 +2098,7 @@ const StudiusAIV2: React.FC = () => {
                   <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </button>
               )}
-              
+
               <button
                 onClick={() => setShowHistory(true)}
                 className="relative overflow-hidden bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-emerald-700 hover:to-teal-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
@@ -1988,7 +2107,7 @@ const StudiusAIV2: React.FC = () => {
                 <span>Storico</span>
                 <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               </button>
-              
+
               <button
                 onClick={() => {
                   resetSession(); // Reset entire session
@@ -2015,11 +2134,10 @@ const StudiusAIV2: React.FC = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 min-w-[120px] sm:min-w-[140px] py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-medium text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${
-                          activeTab === tab.id
+                        className={`flex-1 min-w-[120px] sm:min-w-[140px] py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-medium text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${activeTab === tab.id
                             ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
                             : 'text-gray-300 hover:text-white hover:bg-white/10'
-                        }`}
+                          }`}
                       >
                         <IconComponent size={16} className="sm:w-4 sm:h-4" />
                         <span className="text-[10px] sm:text-sm">{tab.label}</span>
@@ -2034,7 +2152,7 @@ const StudiusAIV2: React.FC = () => {
             <div className="relative">
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-3xl blur-xl"></div>
-              
+
               <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
                 {activeTab === 'riassunto_breve' && (
                   <div>
@@ -2047,17 +2165,17 @@ const StudiusAIV2: React.FC = () => {
                         <p className="text-xs sm:text-sm text-gray-400">Panoramica essenziale dei concetti chiave</p>
                       </div>
                     </div>
-                    
+
                     {/* Audio Player - Separate row on mobile */}
                     <div className="mb-4 sm:mb-0 sm:absolute sm:top-6 sm:right-6">
-                      <AudioPlayer 
+                      <AudioPlayer
                         text={renderContent(results.riassunto_breve)}
-                        language={targetLanguage === 'Auto' ? 'it-IT' : 
+                        language={targetLanguage === 'Auto' ? 'it-IT' :
                           targetLanguage === 'Italiano' ? 'it-IT' :
-                          targetLanguage === 'Inglese' ? 'en-US' :
-                          targetLanguage === 'Spagnolo' ? 'es-ES' :
-                          targetLanguage === 'Francese' ? 'fr-FR' :
-                          targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
+                            targetLanguage === 'Inglese' ? 'en-US' :
+                              targetLanguage === 'Spagnolo' ? 'es-ES' :
+                                targetLanguage === 'Francese' ? 'fr-FR' :
+                                  targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
                         }
                       />
                     </div>
@@ -2078,17 +2196,17 @@ const StudiusAIV2: React.FC = () => {
                         <p className="text-xs sm:text-sm text-gray-400">Materiale di studio universitario completo</p>
                       </div>
                     </div>
-                    
+
                     {/* Audio Player - Separate row on mobile */}
                     <div className="mb-4 sm:mb-0 sm:absolute sm:top-6 sm:right-6">
-                      <AudioPlayer 
+                      <AudioPlayer
                         text={renderContent(results.riassunto_esteso)}
-                        language={targetLanguage === 'Auto' ? 'it-IT' : 
+                        language={targetLanguage === 'Auto' ? 'it-IT' :
                           targetLanguage === 'Italiano' ? 'it-IT' :
-                          targetLanguage === 'Inglese' ? 'en-US' :
-                          targetLanguage === 'Spagnolo' ? 'es-ES' :
-                          targetLanguage === 'Francese' ? 'fr-FR' :
-                          targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
+                            targetLanguage === 'Inglese' ? 'en-US' :
+                              targetLanguage === 'Spagnolo' ? 'es-ES' :
+                                targetLanguage === 'Francese' ? 'fr-FR' :
+                                  targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
                         }
                       />
                     </div>
@@ -2149,22 +2267,20 @@ const StudiusAIV2: React.FC = () => {
                     <div className="bg-white/5 rounded-2xl p-2 border border-white/10 mb-6 flex gap-2">
                       <button
                         onClick={() => setExamSubTab('scritto')}
-                        className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
-                          examSubTab === 'scritto'
+                        className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${examSubTab === 'scritto'
                             ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
+                          }`}
                       >
                         <FileText size={18} />
                         <span>Esame Scritto</span>
                       </button>
                       <button
                         onClick={() => setExamSubTab('orale')}
-                        className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${
-                          examSubTab === 'orale'
+                        className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${examSubTab === 'orale'
                             ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
-                        }`}
+                          }`}
                       >
                         <MessageCircle size={18} />
                         <span>Esame Orale</span>
@@ -2184,9 +2300,9 @@ const StudiusAIV2: React.FC = () => {
                               <p className="text-gray-400">Quiz di base e simulazioni personalizzabili</p>
                             </div>
                           </div>
-                          
-                          <ExamSimulatorView 
-                            questions={results.quiz} 
+
+                          <ExamSimulatorView
+                            questions={results.quiz}
                             docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                             authToken={token || undefined}
                           />
@@ -2204,13 +2320,18 @@ const StudiusAIV2: React.FC = () => {
                               <p className="text-gray-400">Simulazione di colloquio con valutazione AI</p>
                             </div>
                           </div>
-                          
-                          
+
+
                           <OralExamSection
                             docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                             authToken={token || undefined}
                             targetLanguage={targetLanguage === 'Auto' ? 'Italiano' : targetLanguage}
                             onBack={() => setActiveTab('riassunto_breve')}
+                            onCreditsUpdate={(newCredits) => {
+                              console.log('🔥 Page received credit update:', newCredits);
+                              setUserCredits(newCredits);
+                              updateCredits(newCredits);
+                            }}
                           />
                         </div>
                       )}
@@ -2228,7 +2349,7 @@ const StudiusAIV2: React.FC = () => {
                         <h3 className="text-2xl font-bold text-white">Studia in 1 ora</h3>
                         <p className="text-gray-400">Piano strategico per imparare rapidamente</p>
                       </div>
-                      
+
                       {/* Language Selector */}
                       <div className="flex items-center gap-3">
                         <label className="text-sm font-medium text-gray-300">
@@ -2248,22 +2369,22 @@ const StudiusAIV2: React.FC = () => {
                         </select>
                       </div>
                     </div>
-                    
-                    
+
+
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-8">
                       {/* Piano Studio Rapido */}
-                      <StudyPlanSection 
+                      <StudyPlanSection
                         docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                         authToken={token || undefined}
                       />
-                      
+
                       {/* Domande Probabili */}
                       <ProbableQuestionsSection
                         docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                         authToken={token || undefined}
                         sessionId={results?.sessionId}
                       />
-                      
+
                       {/* Guida Originale */}
                       <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm p-6 rounded-2xl mb-6 border border-green-500/30">
                         <h4 className="text-lg font-semibold text-green-300 mb-3 flex items-center gap-2">
@@ -2365,7 +2486,7 @@ const StudiusAIV2: React.FC = () => {
                         <p className="text-gray-400">Il tuo assistente di studio personalizzato</p>
                       </div>
                     </div>
-                    
+
                     {/* Back to Tabs Button */}
                     <button
                       onClick={() => {
@@ -2381,16 +2502,17 @@ const StudiusAIV2: React.FC = () => {
                       <span>← Torna ai Tabs</span>
                     </button>
                   </div>
-                  
-                  
+
+
                   <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                    <TutorChat 
+                    <TutorChat
                       docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                       sessionId={results.sessionId}
                       authToken={token || undefined}
                       onCreditsUpdate={(newCredits) => updateCredits(newCredits)}
+                      documentId={results.sessionId}
                     />
-                    
+
                   </div>
                 </div>
 
@@ -2420,6 +2542,7 @@ const StudiusAIV2: React.FC = () => {
         required={creditError?.required || 0}
         current={creditError?.current || 0}
         costDescription={creditError?.costDescription}
+        canPurchaseRecharge={canPurchaseRecharge}
         onRecharge={() => {
           setShowInsufficientCreditsModal(false);
           setCreditError(null);

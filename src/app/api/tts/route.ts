@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { verifyAuth, deductCredits } from '@/lib/middleware';
+import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
+import { supabase } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -21,12 +22,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Deduci crediti per il download audio
-    const newCreditBalance = await deductCredits(
-      user.id, 
-      CreditCosts.audioDownload, 
-      'Download audio MP3'
-    );
+    // Verifica e deduci crediti per il download audio
+    const cost = CreditCosts.audioDownload;
+    
+    if (user.credits < cost) {
+      return NextResponse.json(
+        { 
+          error: 'Crediti insufficienti per il download audio',
+          required: cost,
+          available: user.credits,
+          type: 'insufficient_credits' 
+        },
+        { status: 402 }
+      );
+    }
+    
+    const { data: creditResult, error: creditError } = await supabase
+      .rpc('consume_credits', {
+        p_user_id: user.id,
+        p_amount: cost,
+        p_description: 'Download audio MP3',
+        p_feature_type: 'audio'
+      });
+    
+    if (creditError || !creditResult?.success) {
+      console.error('Credit deduction error:', creditError || creditResult);
+      return NextResponse.json(
+        { error: 'Errore nella detrazione dei crediti' },
+        { status: 500 }
+      );
+    }
+    
+    const newCreditBalance = creditResult.new_balance;
 
     if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json(

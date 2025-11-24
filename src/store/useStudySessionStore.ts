@@ -272,23 +272,25 @@ export const useStudySessionStore = create<StudySessionState>()(
       
       // Load from history
       loadFromHistory: (historyData) => {
+        // Handle both old localStorage format and new database format
+        const isNewFormat = historyData.riassunto_breve !== undefined;
+        
         set({
           sessionId: historyData.sessionId || historyData.id,
           documentId: historyData.id,
-          docContext: historyData.extractedText || historyData.docContext,
+          docContext: historyData.pdf_text || historyData.extractedText || historyData.docContext,
           results: {
-            riassunto_breve: historyData.summaryShort,
-            riassunto_esteso: historyData.summaryExtended,
-            mappa_concettuale: historyData.conceptMap,
-            flashcard: historyData.flashcards,
-            quiz: historyData.quizData,
-            guida_esame: historyData.studyInOneHour,
+            riassunto_breve: isNewFormat ? historyData.riassunto_breve : historyData.summaryShort,
+            riassunto_esteso: isNewFormat ? historyData.riassunto_esteso : historyData.summaryExtended,
+            mappa_concettuale: isNewFormat ? historyData.mappa_concettuale : historyData.conceptMap,
+            flashcard: isNewFormat ? historyData.flashcard : historyData.flashcards,
+            quiz: isNewFormat ? historyData.quiz : historyData.quizData,
+            guida_esame: isNewFormat ? historyData.guida_esame : historyData.studyInOneHour,
             sessionId: historyData.sessionId || historyData.id
           },
           tutorMessages: historyData.tutorMessages || [],
-          // Opzionale: ripristina anche examState se salvato
-          examState: historyData.examState || initialExamState,
           // Restore other states if saved in history
+          examState: historyData.examState || initialExamState,
           flashcardState: historyData.flashcardState || initialFlashcardState,
           quizBasicState: historyData.quizBasicState || initialQuizBasicState, 
           studyGuideState: historyData.studyGuideState || initialStudyGuideState

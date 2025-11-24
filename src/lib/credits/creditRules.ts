@@ -13,7 +13,7 @@ export const CreditCosts = {
 
   // Esame orale - REGOLE DEFINITIVE
   oralExamFirst: 0,     // prima sessione sempre gratis
-  oralExam: 10,         // sessioni successive 10 crediti
+  oralExam: 25,         // sessioni successive 25 crediti
   
   // Master in 60 minuti - REGOLE DEFINITIVE
   studyPlanFree: 0,        // Piano Studio Rapido sempre gratis
@@ -22,8 +22,8 @@ export const CreditCosts = {
   probablePaid: 5,         // successive generazioni domande probabili
 
   // Tutor AI - REGOLE DEFINITIVE
-  tutorFreeMessages: 5,    // primi 5 messaggi gratis per sessione
-  tutorMessageCost: 2,     // dal 6° messaggio in poi
+  tutorFreeMessages: 3,    // primi 3 messaggi gratis per utente
+  tutorMessageCost: 2,     // dal 4° messaggio in poi
 
   // Audio & Flashcards - REGOLE DEFINITIVE
   audioPlay: 0,            // ascolto nel browser sempre gratis

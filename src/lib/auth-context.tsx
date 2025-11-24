@@ -35,13 +35,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   // Function to initialize user profile and get credits
   const initUserProfile = async (userId: string): Promise<number> => {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+      
       const response = await fetch('/api/profile/init', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ userId }),
+        signal: controller.signal
       });
+
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const data = await response.json();
@@ -51,7 +57,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return 120;
       }
     } catch (error) {
-      console.error('Error initializing profile:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.warn('Profile init request timed out');
+      } else {
+        console.error('Error initializing profile:', error);
+      }
       return 120;
     }
   };
@@ -74,22 +84,32 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   useEffect(() => {
+    // Safety timeout to prevent infinite loading
+    const timeoutId = setTimeout(() => {
+      console.warn('Auth initialization timeout reached, forcing isLoading to false');
+      setIsLoading(false);
+    }, 10000); // 10 seconds timeout
+
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        try {
-          const userObj = await createUserFromSupabase(session.user);
-          setUser(userObj);
-          setToken(session.access_token);
-          localStorage.setItem('user', JSON.stringify(userObj));
-        } catch (error) {
-          console.error('Error creating user from Supabase:', error);
-          setIsLoading(false);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          try {
+            const userObj = await createUserFromSupabase(session.user);
+            setUser(userObj);
+            setToken(session.access_token);
+            localStorage.setItem('user', JSON.stringify(userObj));
+          } catch (error) {
+            console.error('Error creating user from Supabase:', error);
+          }
         }
+      } catch (error) {
+        console.error('Error getting initial session:', error);
       }
       
+      clearTimeout(timeoutId);
       setIsLoading(false);
     };
 
@@ -120,22 +140,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
     );
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeoutId);
+    };
   }, []);
 
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       console.log('Attempting login for:', email);
+      console.log('Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL);
       
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      console.log('Supabase login response:', { data: data?.user?.id, error: error?.message });
+
       if (error) {
         console.error('Supabase login error:', error);
-        return { success: false, error: 'Email o password non corrette' };
+        // Return specific error message from Supabase instead of generic one
+        return { success: false, error: error.message || 'Email o password non corrette' };
       }
 
       if (data.user && data.session) {

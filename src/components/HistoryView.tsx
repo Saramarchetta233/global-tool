@@ -1,37 +1,74 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { FileText, Calendar, Clock, Eye, Trash2, Search } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
-import { getUserStudySessions, StudyHistory, deleteStudySession } from '@/lib/study-history';
 
 interface HistoryViewProps {
   onSelectDocument: (document: any) => void;
 }
 
+interface HistoryDocument {
+  id: string;
+  fileName: string;
+  title: string;
+  processedAt: string;
+  lastUsedAt: string;
+  pageCount?: number;
+  fileSize?: number;
+  riassunto_breve: string;
+  riassunto_esteso: string;
+  mappa_concettuale: any[];
+  flashcard: any[];
+  quiz: any[];
+  guida_esame: string;
+  sessionId: string;
+}
+
 const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
-  const [history, setHistory] = useState<StudyHistory[]>([]);
+  const [history, setHistory] = useState<HistoryDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const { user, token } = useAuth();
+  const fetchedRef = useRef(false);
 
   useEffect(() => {
-    fetchHistory();
-  }, [user]);
-
-  const fetchHistory = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      const sessions = await getUserStudySessions(user.id);
-      setHistory(sessions);
-    } catch (error) {
-      console.error('Error fetching history:', error);
-    } finally {
+    if (!user?.id || !token) {
+      setHistory([]);
       setLoading(false);
+      return;
     }
-  };
+
+    const userId = user.id;
+    const authToken = token;
+
+    const fetchHistory = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await fetch('/api/history', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${authToken}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHistory(data.history || []);
+        } else {
+          setHistory([]);
+        }
+      } catch (error) {
+        setHistory([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, []); // Empty dependency array to run only once
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -45,16 +82,16 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
   };
 
   const filteredHistory = history.filter(item =>
-    item.docTitle.toLowerCase().includes(searchTerm.toLowerCase())
+    (item.title || item.fileName || 'Document').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleDelete = async (sessionId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     if (confirm('Sei sicuro di voler eliminare questa sessione?')) {
-      const success = await deleteStudySession(sessionId);
-      if (success) {
-        fetchHistory(); // Refresh the list
-      }
+      // TODO: Implement delete API endpoint
+      console.log('Delete functionality to be implemented for sessionId:', sessionId);
+      // For now, just remove from local state
+      setHistory(prev => prev.filter(item => item.sessionId !== sessionId));
     }
   };
 
@@ -122,14 +159,19 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
                     </div>
                     <div>
                       <h4 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors">
-                        {item.docTitle}
+                        {item.title || item.fileName}
                       </h4>
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         <Calendar className="w-4 h-4" />
-                        <span>{formatDate(item.createdAt)}</span>
-                        {item.targetLanguage !== 'Auto' && (
-                          <span className="bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded text-xs">
-                            {item.targetLanguage}
+                        <span>{formatDate(item.processedAt)}</span>
+                        {item.pageCount && (
+                          <span className="bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded text-xs">
+                            {item.pageCount} pagine
+                          </span>
+                        )}
+                        {item.fileSize && (
+                          <span className="bg-gray-500/20 text-gray-300 px-2 py-0.5 rounded text-xs">
+                            {(item.fileSize / 1024 / 1024).toFixed(1)} MB
                           </span>
                         )}
                       </div>
@@ -137,7 +179,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
                   </div>
                   
                   <p className="text-gray-300 text-sm line-clamp-2 mb-3">
-                    {item.summaryShort.substring(0, 150)}...
+                    {item.riassunto_breve?.substring(0, 150) || 'Nessuna anteprima disponibile'}...
                   </p>
 
                   {/* Content indicators */}
@@ -146,24 +188,24 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
                       <FileText className="w-3 h-3" />
                       <span>Riassunti</span>
                     </div>
-                    {item.flashcards.length > 0 && (
+                    {(item.flashcard?.length || 0) > 0 && (
                       <div className="flex items-center gap-1 bg-purple-500/20 text-purple-300 px-2 py-1 rounded-md text-xs">
-                        <span>{item.flashcards.length} Flashcard</span>
+                        <span>{item.flashcard.length} Flashcard</span>
                       </div>
                     )}
-                    {item.quizData.length > 0 && (
+                    {(item.quiz?.length || 0) > 0 && (
                       <div className="flex items-center gap-1 bg-green-500/20 text-green-300 px-2 py-1 rounded-md text-xs">
-                        <span>{item.quizData.length} Quiz</span>
+                        <span>{item.quiz.length} Quiz</span>
                       </div>
                     )}
-                    {item.conceptMap.length > 0 && (
+                    {(item.mappa_concettuale?.length || 0) > 0 && (
                       <div className="flex items-center gap-1 bg-yellow-500/20 text-yellow-300 px-2 py-1 rounded-md text-xs">
                         <span>Mappa</span>
                       </div>
                     )}
-                    {(item.tutorMessages?.length || 0) > 0 && (
-                      <div className="flex items-center gap-1 bg-cyan-500/20 text-cyan-300 px-2 py-1 rounded-md text-xs">
-                        <span>{item.tutorMessages?.length} Chat</span>
+                    {item.guida_esame && (
+                      <div className="flex items-center gap-1 bg-orange-500/20 text-orange-300 px-2 py-1 rounded-md text-xs">
+                        <span>Guida Esame</span>
                       </div>
                     )}
                   </div>
@@ -173,18 +215,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      // Convert StudyHistory to old format for compatibility
-                      const convertedItem = {
-                        id: item.id,
-                        riassunto_breve: item.summaryShort,
-                        riassunto_esteso: item.summaryExtended,
-                        mappa_concettuale: item.conceptMap,
-                        flashcard: item.flashcards,
-                        quiz: item.quizData,
-                        guida_esame: item.studyInOneHour,
-                        sessionId: item.id
-                      };
-                      onSelectDocument(convertedItem);
+                      // Document is already in the correct format from API
+                      onSelectDocument(item);
                     }}
                     className="p-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-colors"
                   >

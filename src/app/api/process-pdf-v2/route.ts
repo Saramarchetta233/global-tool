@@ -8,7 +8,7 @@ import {
   createQuizPrompt,
   createExamGuidePrompt
 } from '@/lib/prompts';
-import { supabase } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
 import crypto from 'crypto';
 
@@ -66,7 +66,7 @@ async function extractTextFromPDF(buffer: ArrayBuffer, fileName: string): Promis
   }
 }
 
-async function generateStudyMaterials(text: string, language: string, userId: string, targetLanguage?: string) {
+async function generateStudyMaterials(text: string, language: string, userId: string, targetLanguage?: string, fileName?: string, pageCount?: number, fileSize?: number) {
   const languageMap: { [key: string]: string } = {
     'Italiano': 'Italian',
     'Inglese': 'English', 
@@ -263,25 +263,60 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       sessionId: undefined // Will be set below
     };
 
-    // Create tutor session automatically
+    // Create tutor session automatically with complete document info
     try {
       const sessionId = crypto.randomUUID();
-      await supabase
+      
+      // Create clean title from filename
+      const cleanTitle = fileName ? 
+        fileName.replace('.pdf', '').replace(/[_-]/g, ' ').trim() : 
+        'Documento';
+      
+      console.log('💾 Saving tutor session:', {
+        sessionId,
+        userId,
+        fileName,
+        cleanTitle,
+        pageCount,
+        fileSize
+      });
+      
+      const { data: insertData, error: insertError } = await supabaseAdmin
         .from('tutor_sessions')
         .insert({
           id: sessionId,
           user_id: userId,
+          file_name: fileName || 'documento.pdf', // Save original filename
+          title: cleanTitle, // Clean title for display
           pdf_text: text,
+          page_count: pageCount || null,
+          file_size: fileSize || null,
           riassunto_breve: result.riassunto_breve,
           riassunto_esteso: result.riassunto_esteso,
+          mappa_concettuale: result.mappa_concettuale,
           flashcard: result.flashcard,
-          created_at: new Date().toISOString()
-        });
+          quiz: result.quiz,
+          guida_esame: result.guida_esame,
+          created_at: new Date().toISOString(),
+          last_used_at: new Date().toISOString()
+        })
+        .select();
       
+      if (insertError) {
+        console.error('❌ Database insert error:', insertError);
+        throw insertError;
+      }
+      
+      console.log('✅ Tutor session saved successfully:', insertData);
       result.sessionId = sessionId;
-      console.log(`Created tutor session: ${sessionId}`);
+      console.log(`✅ Created tutor session: ${sessionId} for file: ${fileName}`);
     } catch (sessionError) {
-      console.error('Failed to create tutor session:', sessionError);
+      console.error('❌ Failed to create tutor session:', sessionError);
+      console.error('❌ Session error details:', {
+        error: sessionError,
+        userId,
+        fileName
+      });
       // Don't fail the whole request for session creation issues
     }
 
@@ -306,6 +341,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
 const TOTAL_CREDITS_NEEDED = 25; // extraction(5) + summary(10) + flashcards(8) + quiz(8) + map(6) - simplified as one operation
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 PDF-V2 API called');
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -313,6 +349,13 @@ export async function POST(request: NextRequest) {
     const targetLanguage = formData.get('targetLanguage') as string || language;
     const userId = formData.get('userId') as string;
     const isPremium = formData.get('isPremium') === 'true';
+    
+    console.log('📝 PDF processing started:', {
+      fileName: file.name,
+      userId,
+      language,
+      targetLanguage
+    });
 
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
@@ -378,7 +421,15 @@ export async function POST(request: NextRequest) {
     console.log(`Credits consumed: ${creditCost}, new balance: ${creditResult.newBalance}`);
 
     // Generate study materials with OpenAI
-    const studyMaterials = await generateStudyMaterials(extractedText, language, userId, targetLanguage);
+    const studyMaterials = await generateStudyMaterials(
+      extractedText, 
+      language, 
+      userId, 
+      targetLanguage,
+      file.name, // Pass filename to save in database
+      estimatedPages,
+      file.size
+    );
 
     return NextResponse.json({
       ...studyMaterials,

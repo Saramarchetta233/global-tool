@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase, supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
   try {
@@ -28,13 +28,15 @@ export async function POST(req: Request) {
       );
     }
 
-    // Se il profilo non esiste, crealo con 120 crediti
+    // Se il profilo non esiste, crealo con 120 crediti di benvenuto
     if (!profile) {
+      // Crea profilo con crediti iniziali usando la nuova funzione
       const { error: insertError } = await supabase
         .from("profiles")
         .insert({ 
           user_id: userId, 
-          credits: 120 
+          credits: 120,
+          subscription_type: 'free' // Default to free plan
         });
 
       if (insertError) {
@@ -45,10 +47,28 @@ export async function POST(req: Request) {
         );
       }
 
+      // Log della transazione di benvenuto usando la funzione dedicata
+      if (supabaseAdmin) {
+        try {
+          await supabaseAdmin.rpc('assign_credits', {
+            p_user_id: userId,
+            p_amount: 0, // 0 perché i crediti sono già stati assegnati nell'insert sopra
+            p_transaction_type: 'signup_bonus',
+            p_description: 'Crediti di benvenuto - 120 crediti gratuiti',
+            p_subscription_type: 'free'
+          });
+          console.log('✅ Signup bonus transaction logged');
+        } catch (logError) {
+          console.error('⚠️ Failed to log signup transaction:', logError);
+          // Non bloccare la creazione del profilo se il log fallisce
+        }
+      }
+
       return NextResponse.json({ 
         ok: true, 
         credits: 120,
-        action: "created" 
+        action: "created",
+        signupBonus: true
       });
     }
 

@@ -18,6 +18,20 @@ if (typeof window !== 'undefined') {
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Server-side client with service role key (bypasses RLS)
+export const supabaseAdmin = process.env.SUPABASE_SERVICE_ROLE_KEY 
+  ? createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+  : null;
+
 // Helper function to check if Supabase is properly configured
 export const isSupabaseConfigured = () => {
   return !!(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);

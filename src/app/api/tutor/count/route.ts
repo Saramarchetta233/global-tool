@@ -1,32 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
-import { supabase } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(request: NextRequest) {
   try {
     // Verifica autenticazione
     const user = await verifyAuth(request);
     
-    // Conta i messaggi tutor già utilizzati dall'utente
-    // Contiamo SOLO le voci con feature_type 'tutor' per un conteggio preciso dei messaggi
-    const { data: tutorMessages, error } = await supabase
-      .from('credit_logs')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('feature_type', 'tutor')
-      .order('created_at', { ascending: false });
+    // NUOVA LOGICA: conta messaggi dalla tabella tutor_messages
+    if (!supabaseAdmin) {
+      console.error('supabaseAdmin not available');
+      return NextResponse.json({ 
+        messageCount: 0,
+        freeMessagesRemaining: CreditCosts.tutorFreeMessages, 
+        isWithinFreeLimit: true 
+      });
+    }
+
+    const { count, error } = await supabaseAdmin
+      .from('tutor_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id);
 
     if (error) {
       console.error('Error fetching tutor message count:', error);
-      return NextResponse.json({ freeMessagesRemaining: 5, isWithinFreeLimit: true });
+      return NextResponse.json({ 
+        messageCount: 0,
+        freeMessagesRemaining: CreditCosts.tutorFreeMessages, 
+        isWithinFreeLimit: true 
+      });
     }
 
-    const messageCount = tutorMessages?.length || 0;
+    const messageCount = count ?? 0;
     const isWithinFreeLimit = messageCount < CreditCosts.tutorFreeMessages;
     const freeMessagesRemaining = isWithinFreeLimit 
       ? CreditCosts.tutorFreeMessages - messageCount 
       : 0;
+
+    console.log('📊 Tutor count response:', {
+      messageCount,
+      freeMessagesRemaining,
+      isWithinFreeLimit,
+      tutorFreeMessages: CreditCosts.tutorFreeMessages
+    });
 
     return NextResponse.json({
       messageCount,
@@ -36,6 +53,10 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Tutor count API error:', error);
-    return NextResponse.json({ freeMessagesRemaining: 5, isWithinFreeLimit: true });
+    return NextResponse.json({ 
+      messageCount: 0,
+      freeMessagesRemaining: CreditCosts.tutorFreeMessages, 
+      isWithinFreeLimit: true 
+    });
   }
 }

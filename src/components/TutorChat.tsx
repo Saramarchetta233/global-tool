@@ -15,52 +15,102 @@ interface TutorChatProps {
   sessionId?: string;
   authToken?: string;
   onCreditsUpdate?: (newCredits: number) => void;
+  documentId?: string;
 }
 
 const TutorChat: React.FC<TutorChatProps> = ({ 
   docContext, 
   sessionId, 
   authToken,
-  onCreditsUpdate 
+  onCreditsUpdate,
+  documentId 
 }) => {
-  const [messages, setMessages] = useState<Message[]>(() => [{
-    id: 'welcome-' + Date.now(),
-    text: `Ciao! Sono il tuo tutor AI. ${docContext ? 'Ho analizzato il documento che hai caricato e sono pronto ad aiutarti con qualsiasi domanda.' : 'Sono pronto ad aiutarti.'} Puoi chiedermi spiegazioni, approfondimenti, o aiuto per memorizzare i concetti. Come posso aiutarti?`,
-    isUser: false,
-    timestamp: new Date()
-  }]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [freeMessagesRemaining, setFreeMessagesRemaining] = useState<number>(5);
+  const [chatLoading, setChatLoading] = useState(false);
+  const [freeMessagesRemaining, setFreeMessagesRemaining] = useState<number>(3);
   const [isWithinFreeLimit, setIsWithinFreeLimit] = useState<boolean>(true);
+  const [messageCount, setMessageCount] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load initial message count on mount
+  // Load chat history and message count on mount
   useEffect(() => {
-    const loadMessageCount = async () => {
-      if (!authToken) return;
+    const loadChatData = async () => {
+      if (!authToken || !documentId) {
+        // Se non c'è documentId, mostra solo il messaggio di benvenuto
+        setMessages([{
+          id: 'welcome-' + Date.now(),
+          text: `Ciao! Sono il tuo tutor AI. ${docContext ? 'Ho analizzato il documento che hai caricato e sono pronto ad aiutarti con qualsiasi domanda.' : 'Sono pronto ad aiutarti.'} Puoi chiedermi spiegazioni, approfondimenti, o aiuto per memorizzare i concetti. Come posso aiutarti?`,
+          isUser: false,
+          timestamp: new Date()
+        }]);
+        return;
+      }
+      
+      setChatLoading(true);
       
       try {
-        // Make a dummy request to get current message count without sending a message
-        const response = await fetch('/api/tutor/count', {
-          method: 'GET',
-          headers: {
-            'Authorization': `Bearer ${authToken}`
+        // Carica sia la cronologia chat che il conteggio messaggi in parallelo
+        const [chatResponse, countResponse] = await Promise.all([
+          fetch(`/api/tutor-chat-history?documentId=${documentId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          }),
+          fetch('/api/tutor/count', {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          })
+        ]);
+
+        // Gestisci cronologia chat
+        if (chatResponse.ok) {
+          const chatData = await chatResponse.json();
+          console.log('📚 Chat history loaded:', chatData.messageCount, 'messages');
+          
+          if (chatData.history && chatData.history.length > 0) {
+            // Converti cronologia in formato Message[]
+            const historyMessages: Message[] = chatData.history.map((msg: any) => ({
+              id: msg.id,
+              text: msg.content,
+              isUser: msg.role === 'user',
+              timestamp: new Date(msg.timestamp)
+            }));
+            setMessages(historyMessages);
+          } else {
+            // Nessuna cronologia, mostra messaggio di benvenuto
+            setMessages([{
+              id: 'welcome-' + Date.now(),
+              text: `Ciao! Sono il tuo tutor AI. ${docContext ? 'Ho analizzato il documento che hai caricato e sono pronto ad aiutarti con qualsiasi domanda.' : 'Sono pronto ad aiutarti.'} Puoi chiedermi spiegazioni, approfondimenti, o aiuto per memorizzare i concetti. Come posso aiutarti?`,
+              isUser: false,
+              timestamp: new Date()
+            }]);
           }
-        });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setFreeMessagesRemaining(data.freeMessagesRemaining || 5);
-          setIsWithinFreeLimit(data.isWithinFreeLimit !== false);
         }
+
+        // Gestisci conteggio messaggi
+        if (countResponse.ok) {
+          const countData = await countResponse.json();
+          console.log('🔄 Initial tutor count loaded:', countData);
+          setMessageCount(countData.messageCount || 0);
+          setFreeMessagesRemaining(countData.freeMessagesRemaining || 3);
+          setIsWithinFreeLimit(countData.isWithinFreeLimit !== false);
+        }
+        
       } catch (error) {
-        console.error('Error loading message count:', error);
+        console.error('Error loading chat data:', error);
+        // Fallback al messaggio di benvenuto
+        setMessages([{
+          id: 'welcome-' + Date.now(),
+          text: `Ciao! Sono il tuo tutor AI. ${docContext ? 'Ho analizzato il documento che hai caricato e sono pronto ad aiutarti con qualsiasi domanda.' : 'Sono pronto ad aiutarti.'} Puoi chiedermi spiegazioni, approfondimenti, o aiuto per memorizzare i concetti. Come posso aiutarti?`,
+          isUser: false,
+          timestamp: new Date()
+        }]);
+      } finally {
+        setChatLoading(false);
       }
     };
 
-    loadMessageCount();
-  }, [authToken]);
+    loadChatData();
+  }, [authToken, documentId, docContext]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -98,12 +148,6 @@ const TutorChat: React.FC<TutorChatProps> = ({
       const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true';
       const endpoint = isDemoMode ? '/api/demo-tutor' : '/api/tutor';
       
-      console.log("TutorChat sta inviando:", {
-        message: userMessage,
-        docContext: docContext,
-        language: "Italiano"
-      });
-      
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -114,11 +158,13 @@ const TutorChat: React.FC<TutorChatProps> = ({
           message: userMessage,
           docContext: docContext,
           language: 'Italiano',
-          sessionId: sessionId
+          sessionId: sessionId,
+          documentId: documentId
         })
       });
-
+      
       const data = await response.json();
+      
 
       if (response.ok) {
         // Update credits if callback provided
@@ -126,12 +172,14 @@ const TutorChat: React.FC<TutorChatProps> = ({
           onCreditsUpdate(data.creditsRemaining || data.newCreditBalance);
         }
 
-        // Update free messages tracking
-        if (data.isWithinFreeLimit !== undefined) {
-          setIsWithinFreeLimit(data.isWithinFreeLimit);
-        }
-        if (data.freeMessagesRemaining !== undefined) {
-          setFreeMessagesRemaining(data.freeMessagesRemaining);
+        // Update tracking based on new API response
+        console.log('📊 Tutor response data:', { messageCount: data.messageCount, isWithinFreeLimit: data.isWithinFreeLimit });
+        
+        if (data.messageCount !== undefined) {
+          setMessageCount(data.messageCount);
+          const remaining = Math.max(0, 3 - data.messageCount);
+          setFreeMessagesRemaining(remaining);
+          setIsWithinFreeLimit(data.messageCount < 3);
         }
 
         // Add AI response
@@ -144,7 +192,13 @@ const TutorChat: React.FC<TutorChatProps> = ({
         // Handle errors with specific messages
         let errorMessage = 'Mi dispiace, c\'è stato un errore. Riprova più tardi.';
 
-        if (response.status === 402) {
+        if (response.status === 402 && data.error === 'LIMIT_REACHED') {
+          // Questo è il limite dei messaggi gratuiti
+          errorMessage = data.message || 'Hai finito i messaggi gratuiti. Puoi continuare per 2 crediti per messaggio.';
+          // Aggiorna lo stato per mostrare che siamo fuori dal limite gratuito
+          setIsWithinFreeLimit(false);
+          setFreeMessagesRemaining(0);
+        } else if (response.status === 402) {
           errorMessage = data.message || 'Crediti insufficienti per usare il Tutor AI.';
         } else if (response.status === 400) {
           errorMessage = data.message || 'Richiesta non valida inviata al Tutor AI.';
@@ -199,59 +253,70 @@ const TutorChat: React.FC<TutorChatProps> = ({
     <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px]">
       {/* Messages Container */}
       <div className="flex-1 overflow-y-auto mb-4 space-y-3 sm:space-y-4 pr-1 sm:pr-2">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
-          >
-            <div
-              className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 sm:px-6 py-3 sm:py-4 ${
-                message.isUser
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                  : 'bg-white/10 backdrop-blur-xl border border-white/20 text-gray-200'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                {!message.isUser && (
-                  <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
-                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                  </div>
-                )}
-                {message.isUser && (
-                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 order-1">
-                    <User className="w-5 h-5 text-white" />
-                  </div>
-                )}
-                <div className={`flex-1 ${message.isUser ? 'order-0' : ''}`}>
-                  <p className="text-sm lg:text-base leading-relaxed whitespace-pre-wrap">
-                    {message.text}
-                  </p>
-                  <p className={`text-xs mt-2 ${message.isUser ? 'text-purple-200' : 'text-gray-400'}`}>
-                    {message.timestamp.toLocaleTimeString()}
-                  </p>
-                </div>
-              </div>
+        {chatLoading ? (
+          <div className="flex justify-center items-center h-32">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />
+              <span className="text-gray-300">Caricamento chat...</span>
             </div>
           </div>
-        ))}
-        
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 max-w-[85%] sm:max-w-[80%]">
-              <div className="flex items-center gap-3">
-                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                  <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
-                  <span className="text-gray-300 text-sm">Il tutor sta pensando...</span>
+        ) : (
+          <>
+            {messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
+              >
+                <div
+                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 sm:px-6 py-3 sm:py-4 ${
+                    message.isUser
+                      ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
+                      : 'bg-white/10 backdrop-blur-xl border border-white/20 text-gray-200'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    {!message.isUser && (
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
+                        <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      </div>
+                    )}
+                    {message.isUser && (
+                      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 order-1">
+                        <User className="w-5 h-5 text-white" />
+                      </div>
+                    )}
+                    <div className={`flex-1 ${message.isUser ? 'order-0' : ''}`}>
+                      <p className="text-sm lg:text-base leading-relaxed whitespace-pre-wrap">
+                        {message.text}
+                      </p>
+                      <p className={`text-xs mt-2 ${message.isUser ? 'text-purple-200' : 'text-gray-400'}`}>
+                        {message.timestamp.toLocaleTimeString()}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </div>
+            ))}
+            
+            {loading && (
+              <div className="flex justify-start">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 max-w-[85%] sm:max-w-[80%]">
+                  <div className="flex items-center gap-3">
+                    <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
+                      <span className="text-gray-300 text-sm">Il tutor sta pensando...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            <div ref={messagesEndRef} />
+          </>
         )}
-        
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
@@ -266,7 +331,7 @@ const TutorChat: React.FC<TutorChatProps> = ({
                 placeholder={
                   isWithinFreeLimit 
                     ? `Fai una domanda al tutor... (${freeMessagesRemaining} messaggi gratis rimasti)`
-                    : "Fai una domanda al tutor... (2 crediti)"
+                    : "Fai una domanda al tutor... (2 crediti per messaggio)"
                 }
                 className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-400 resize-none focus:outline-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px]"
                 disabled={loading}
