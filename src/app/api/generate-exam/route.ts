@@ -4,6 +4,9 @@ import { verifyAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 import { getExamCost, getExamCostDescription } from '@/lib/credits/creditRules';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
