@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { withCredits } from '@/lib/middleware';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 export const GET = async (request: NextRequest) => {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');

@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Force dynamic rendering
+export const dynamic = 'force-dynamic';
+
 // Pacchetti di ricarica disponibili
 const RECHARGE_PACKAGES = {
   '1000': { credits: 1000, price: 9.99 },
