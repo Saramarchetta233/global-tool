@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import '@/lib/redis-cache'; // Inizializza il cache Redis
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

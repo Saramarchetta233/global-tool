@@ -4,6 +4,7 @@ import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { createTutorPrompt } from '@/lib/prompts';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import '@/lib/redis-cache'; // Inizializza il cache Redis
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
