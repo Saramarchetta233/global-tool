@@ -292,14 +292,35 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ Chat messages saved for document:', documentId);
         
-        // CACHE la nuova informazione con Redis
+        // CACHE la nuova informazione con Redis SOLO se il salvataggio ha avuto successo
         console.log('🚀 [REDIS_CACHE] Caching updated tutor count for immediate reads...');
+        
+        // IMPORTANTE: Aggiorna cache SOLO dopo il salvataggio confermato nel database
+        const tempCacheKey = `tutor_messages_${user.id}_${documentId}`;
+        
+        // Verifica PRIMA quanti messaggi ci sono realmente nel database
+        const { count: actualDbCount, error: verifyCountError } = await supabaseAdmin
+          .from('tutor_chat_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('document_id', documentId)
+          .eq('role', 'user');
+
+        if (verifyCountError) {
+          console.error('❌ [CACHE_ERROR] Could not verify database count before caching:', verifyCountError);
+          throw new Error('Database verification failed');
+        }
+
+        const actualCount = actualDbCount ?? 0;
+        console.log('🔍 [CACHE_VERIFICATION] Actual database count before caching:', {
+          originalMessageCount: messageCount,
+          actualDbCount: actualCount,
+          expectedDbCount: messageCount + 1
+        });
+        
         try {
-          const tempCacheKey = `tutor_messages_${user.id}_${documentId}`;
-          const newCount = messageCount + 1; // +1 perché abbiamo appena aggiunto il messaggio
-          
-          await cache.set(tempCacheKey, newCount, 30 * 24 * 60 * 60 * 1000); // 30 giorni
-          console.log('🚀 [REDIS_CACHE] Cached tutor count:', newCount, 'for key:', tempCacheKey);
+          await cache.set(tempCacheKey, actualCount, 30 * 24 * 60 * 60 * 1000); // 30 giorni
+          console.log('🚀 [REDIS_CACHE] Cached tutor count:', actualCount, 'for key:', tempCacheKey);
           
           // NUOVO: Cache anche i messaggi stessi per lo storico
           // Prima invalida il vecchio cache per forzare un refresh
@@ -407,12 +428,35 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Calcola statistiche finali
-    const newMessageCount = messageCount + 1;
-    const isWithinFreeLimit = newMessageCount <= CreditCosts.tutorFreeMessages;
+    // Calcola statistiche finali - usa il conteggio REALE dal database se disponibile
+    let finalMessageCount = messageCount + 1; // Default assumption
+    
+    // Se abbiamo salvato i messaggi con successo, usa il conteggio reale dal database
+    if (documentId && supabaseAdmin) {
+      try {
+        const { count: finalDbCount, error: finalCountError } = await supabaseAdmin
+          .from('tutor_chat_messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+          .eq('document_id', documentId)
+          .eq('role', 'user');
+
+        if (!finalCountError && finalDbCount !== null) {
+          finalMessageCount = finalDbCount;
+          console.log('📊 [FINAL_COUNT] Using real database count:', finalMessageCount);
+        } else {
+          console.log('⚠️ [FINAL_COUNT] Could not get final count, using estimated:', finalMessageCount);
+        }
+      } catch (error) {
+        console.log('⚠️ [FINAL_COUNT] Error getting final count:', error);
+      }
+    }
+
+    const isWithinFreeLimit = finalMessageCount <= CreditCosts.tutorFreeMessages;
 
     console.log('✅ Tutor AI processed successfully:', {
-      messageCount: newMessageCount,
+      estimatedCount: messageCount + 1,
+      actualCount: finalMessageCount,
       cost,
       newBalance: newCreditBalance,
       isWithinFreeLimit
@@ -422,9 +466,9 @@ export async function POST(request: NextRequest) {
       reply,
       newCreditBalance,
       creditsUsed: cost,
-      messageCount: newMessageCount,
+      messageCount: finalMessageCount,
       isWithinFreeLimit,
-      freeMessagesRemaining: Math.max(0, CreditCosts.tutorFreeMessages - newMessageCount)
+      freeMessagesRemaining: Math.max(0, CreditCosts.tutorFreeMessages - finalMessageCount)
     });
 
   } catch (error) {

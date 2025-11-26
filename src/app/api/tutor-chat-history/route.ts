@@ -54,13 +54,45 @@ export async function GET(request: NextRequest) {
       });
     }
     
+    // Debug: Prima vediamo quanti messaggi ci sono per questo utente
+    console.log('🔍 [CRITICAL_HISTORY_DEBUG] Checking all messages for user before filtering:', {
+      userId: user.id,
+      documentId: documentId.substring(0, 8) + '...'
+    });
+
+    const { data: allUserMessages, error: debugError } = await supabaseAdmin
+      .from('tutor_chat_messages')
+      .select('id, user_id, document_id, role, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    console.log('🔍 [CRITICAL_HISTORY_DEBUG] All recent messages for this user:', {
+      debugError: debugError?.message || 'none',
+      totalUserMessages: allUserMessages?.length || 0,
+      messagesByDocument: allUserMessages?.reduce((acc: any, msg: any) => {
+        const docId = msg.document_id.substring(0, 8) + '...';
+        acc[docId] = (acc[docId] || 0) + 1;
+        return acc;
+      }, {}) || {}
+    });
+
     // Recupera tutti i messaggi per questo utente e documento
+    console.log('🔍 [CRITICAL_HISTORY_DEBUG] Getting messages for specific document...');
     const { data: messages, error } = await supabaseAdmin
       .from('tutor_chat_messages')
-      .select('id, role, content, created_at')
+      .select('id, role, content, created_at, user_id, document_id')
       .eq('user_id', user.id)
       .eq('document_id', documentId)
       .order('created_at', { ascending: true });
+
+    console.log('🔍 [CRITICAL_HISTORY_DEBUG] Specific document query result:', {
+      error: error?.message || 'none',
+      messagesFound: messages?.length || 0,
+      expectedDocumentId: documentId,
+      actualDocumentIds: [...new Set(messages?.map(m => m.document_id) || [])],
+      messageRoles: messages?.map(m => m.role) || []
+    });
 
     if (error) {
       console.error('Error loading chat history:', error);

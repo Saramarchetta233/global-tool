@@ -68,7 +68,21 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Query IDENTICA a quella del route.ts per consistenza
+    // Debug aggiuntivo per confrontare con history
+    console.log('🔍 [CRITICAL_COUNT_DEBUG] About to count messages with filters:', {
+      userId: user.id,
+      documentId: documentId.substring(0, 8) + '...',
+      role: 'user'
+    });
+
+    // Prima verifica: count di TUTTI i messaggi (user + assistant) per questo documento
+    const { count: totalCount, error: totalCountError } = await supabaseAdmin
+      .from('tutor_chat_messages')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('document_id', documentId);
+
+    // Seconda verifica: count solo messaggi USER
     const { count, error: countError } = await supabaseAdmin
       .from('tutor_chat_messages')
       .select('id', { count: 'exact', head: true })
@@ -76,15 +90,20 @@ export async function GET(request: NextRequest) {
       .eq('document_id', documentId)
       .eq('role', 'user'); // Conta solo messaggi utente per evitare doppi conteggi
 
-    console.log('[CHECK_FIRST_TIME_RESULT] Tutor count query:', { 
-      userId: user.id, 
-      count: count ?? 0, 
-      error: countError 
+    console.log('🔍 [CRITICAL_COUNT_DEBUG] Count comparison results:', { 
+      userId: user.id,
+      documentId: documentId.substring(0, 8) + '...',
+      totalMessages: totalCount ?? 0,
+      userMessages: count ?? 0,
+      expectedRatio: 'userMessages should be ~half of totalMessages',
+      countError: countError?.message || 'none',
+      totalCountError: totalCountError?.message || 'none'
     });
 
-    console.log('📊 [CRITICAL_FIX_TUTOR_COUNT] Query result:', {
+    console.log('📊 [CRITICAL_FIX_TUTOR_COUNT] Final count result:', {
       error: countError?.message || 'none',
-      messagesFound: count ?? 0
+      userMessagesFound: count ?? 0,
+      totalMessagesFound: totalCount ?? 0
     });
 
     if (countError) {
