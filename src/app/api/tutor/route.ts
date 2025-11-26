@@ -322,31 +322,32 @@ export async function POST(request: NextRequest) {
           await cache.set(tempCacheKey, actualCount, 30 * 24 * 60 * 60 * 1000); // 30 giorni
           console.log('🚀 [REDIS_CACHE] Cached tutor count:', actualCount, 'for key:', tempCacheKey);
           
-          // NUOVO: Cache anche i messaggi stessi per lo storico
-          // Prima invalida il vecchio cache per forzare un refresh
-          const historyCacheKey = `tutor_history_${user.id}_${documentId}`;
-          (global as any).tempHistoryCache = (global as any).tempHistoryCache || new Map();
-          
-          // IMPORTANTE: Non usare il cache esistente, forza refresh dal database
-          console.log('🔄 [CACHE_INVALIDATE] Invalidating old chat history cache to force fresh read...');
-          (global as any).tempHistoryCache.delete(historyCacheKey);
-          
-          // Ottieni i messaggi aggiornati direttamente dal database
-          const { data: freshMessages, error: freshError } = await supabaseAdmin
-            .from('tutor_chat_messages')
-            .select('id, role, content, created_at, user_id, document_id')
-            .eq('user_id', user.id)
-            .eq('document_id', documentId)
-            .order('created_at', { ascending: true });
-          
-          if (!freshError && freshMessages) {
-            console.log('💾 [FRESH_CACHE] Caching fresh messages from database:', freshMessages.length);
-            (global as any).tempHistoryCache.set(historyCacheKey, {
-              messages: freshMessages,
-              expires: Date.now() + (90 * 24 * 60 * 60 * 1000) // 90 giorni = 3 mesi
-            });
-          } else {
-            console.log('⚠️ [FRESH_CACHE] Failed to get fresh messages, cache invalidated but not updated');
+          // AGGIORNA cache Redis per lo storico messaggi
+          console.log('🚀 [REDIS_HISTORY_UPDATE] Updating Redis history cache...');
+          try {
+            const historyCacheKey = `tutor_history_${user.id}_${documentId}`;
+            
+            // Invalida il vecchio cache
+            await cache.delete(historyCacheKey);
+            console.log('🔄 [REDIS_INVALIDATE] Invalidated old history cache');
+            
+            // Ottieni i messaggi freschi dal database
+            const { data: freshMessages, error: freshError } = await supabaseAdmin
+              .from('tutor_chat_messages')
+              .select('id, role, content, created_at, user_id, document_id')
+              .eq('user_id', user.id)
+              .eq('document_id', documentId)
+              .order('created_at', { ascending: true });
+            
+            if (!freshError && freshMessages) {
+              // Salva nel cache Redis per 90 giorni
+              await cache.set(historyCacheKey, JSON.stringify(freshMessages), 90 * 24 * 60 * 60 * 1000);
+              console.log('🚀 [REDIS_FRESH_CACHE] Cached', freshMessages.length, 'fresh messages from database');
+            } else {
+              console.log('⚠️ [REDIS_FRESH_CACHE] Failed to get fresh messages:', freshError?.message || 'unknown error');
+            }
+          } catch (historyError) {
+            console.log('⚠️ [REDIS_HISTORY_UPDATE] Error updating history cache:', historyError);
           }
         } catch (cacheError) {
           console.log('⚠️ Cache error (non-critical):', cacheError);
