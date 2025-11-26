@@ -87,11 +87,11 @@ export async function parsePdfWithLlamaParse(
     formData.append("file", blob, options.fileName);
     
     // Configuration as JSON string (required for v2 API)
-    // NOTA: Usando modalità simple per massimo risparmio crediti
-    // Simple mode consuma molto meno dei preset avanzati
+    // NOTA: Usando parse_without_ai per MASSIMO risparmio crediti
+    // parse_without_ai = estrazione testo base senza AI processing
     const configuration = {
       parse_options: {
-        parse_mode: "simple"  // Modalità più semplice ed economica
+        parse_mode: "parse_without_ai"  // La modalità PIÙ economica possibile!
       },
       output_options: {
         markdown: {}
@@ -106,7 +106,7 @@ export async function parsePdfWithLlamaParse(
     
     // Log della configurazione usata
     console.log('[LLAMA_PARSE_CONFIG]', {
-      parseMode: 'simple (economical)',
+      parseMode: 'parse_without_ai (MAXIMUM savings)',
       imageExtraction: !configuration.input_options.pdf.disable_image_extraction,
       cache: !configuration.disable_cache,
       apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : 'NOT_SET'
