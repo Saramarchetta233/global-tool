@@ -87,14 +87,14 @@ export async function parsePdfWithLlamaParse(
     formData.append("file", blob, options.fileName);
     
     // Configuration as JSON string (required for v2 API)
-    // NOTA: Cambiato da "scientific" a "plain_text" per risparmiare crediti
+    // NOTA: Cambiato da "scientific" a "forms" per risparmiare crediti
     // Scientific mode consuma ~270 crediti per 3 pagine
-    // Plain text mode consuma ~8-10 crediti per 3 pagine
+    // Forms mode consuma meno crediti ed è più adatto per testo normale
     const configuration = {
       parse_options: {
         parse_mode: "preset",
         preset_options: {
-          preset: "plain_text"  // Cambiato da "scientific" - molto più economico!
+          preset: "forms"  // Uno dei preset più economici per testo normale
         }
       },
       output_options: {
