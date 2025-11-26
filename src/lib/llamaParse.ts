@@ -87,22 +87,20 @@ export async function parsePdfWithLlamaParse(
     formData.append("file", blob, options.fileName);
     
     // Configuration as JSON string (required for v2 API)
-    // NOTA: Cambiato da "scientific" a "invoice" per risparmiare crediti
-    // Scientific mode consuma ~270 crediti per 3 pagine  
-    // Invoice mode è economico e più stabile per testo normale
+    // NOTA: Rimosso preset per massimo risparmio crediti
+    // Tutti i preset (scientific, invoice, forms) consumano ~270 crediti
+    // Modalità base senza preset consuma ~8-10 crediti per 3 pagine
     const configuration = {
       parse_options: {
-        parse_mode: "preset",
-        preset_options: {
-          preset: "invoice"  // Economico e stabile per testo normale
-        }
+        // Rimosso parse_mode: "preset" - usa modalità base più economica
       },
       output_options: {
         markdown: {}
       },
       input_options: {
         pdf: {
-          disable_image_extraction: true  // Disabilitato per risparmiare crediti
+          disable_image_extraction: true,  // Disabilitato per risparmiare crediti
+          disable_ocr: true  // Disabilita OCR per risparmio extra
         }
       },
       disable_cache: false
@@ -110,8 +108,9 @@ export async function parsePdfWithLlamaParse(
     
     // Log della configurazione usata
     console.log('[LLAMA_PARSE_CONFIG]', {
-      preset: configuration.parse_options.preset_options.preset,
+      preset: 'NONE (basic mode for max savings)',
       imageExtraction: !configuration.input_options.pdf.disable_image_extraction,
+      ocrDisabled: configuration.input_options.pdf.disable_ocr,
       cache: !configuration.disable_cache,
       apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : 'NOT_SET'
     });
