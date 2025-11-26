@@ -233,7 +233,6 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
           console.log('🔄 [CRITICAL_DEBUG] Calling checkFirstTime...');
           await checkFirstTime();
           console.log('🔄 [CRITICAL_DEBUG] checkFirstTime completed');
-          console.log('🔄 [CRITICAL_DEBUG] Current isFirstTime state AFTER recheck:', isFirstTime);
         } catch (recheckError) {
           console.error('🔄 [CRITICAL_DEBUG] Error in checkFirstTime after exam:', recheckError);
         }
