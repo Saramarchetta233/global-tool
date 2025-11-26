@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import '@/lib/redis-cache'; // Inizializza il cache Redis
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -279,33 +279,55 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       }
       
       // IMPORTANTE: Imposta il cache anche nel fallback
-      console.log('💾 [FALLBACK_CACHE] Caching updated probable_questions count after fallback update...');
+      console.log('💾 [FALLBACK_CACHE] Updating caches after fallback update...');
+      
+      // Redis cache
+      try {
+        const redisCacheKey = `probable_questions_uses_${user.id}`;
+        await cache.set(redisCacheKey, newProbableQuestionsUses, 30 * 24 * 60 * 60 * 1000);
+        console.log('🚀 [FALLBACK_REDIS] Updated Redis cache:', newProbableQuestionsUses);
+      } catch (redisError) {
+        console.log('⚠️ Fallback Redis cache error (non-critical):', redisError);
+      }
+      
+      // Memory cache
       try {
         const tempCacheKey = `probable_questions_uses_${user.id}`;
         (global as any).tempUserCache = (global as any).tempUserCache || new Map();
         (global as any).tempUserCache.set(tempCacheKey, {
           value: newProbableQuestionsUses,
-          expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
         });
-        console.log('💾 [FALLBACK_CACHE] Cached probable_questions count (fallback):', newProbableQuestionsUses, 'for key:', tempCacheKey);
+        console.log('💾 [FALLBACK_MEMORY] Updated memory cache:', newProbableQuestionsUses);
       } catch (fallbackCacheError) {
-        console.log('⚠️ Fallback cache error (non-critical):', fallbackCacheError);
+        console.log('⚠️ Fallback memory cache error (non-critical):', fallbackCacheError);
       }
     } else {
       console.log('✅ RPC increment_probable_questions_uses successful:', rpcData);
       
-      // CACHE la nuova informazione per 30 secondi per nuovi utenti (stesso fix dell'esame orale)
-      console.log('💾 [NEW_USER_CACHE] Caching updated probable_questions count for immediate reads...');
+      // CACHE la nuova informazione in Redis e memoria
+      console.log('💾 [CACHE_UPDATE] Updating all caches with new probable_questions count...');
+      
+      // Aggiorna cache Redis per 30 giorni
+      try {
+        const redisCacheKey = `probable_questions_uses_${user.id}`;
+        await cache.set(redisCacheKey, newProbableQuestionsUses, 30 * 24 * 60 * 60 * 1000);
+        console.log('🚀 [REDIS_CACHE_UPDATE] Updated Redis cache:', newProbableQuestionsUses);
+      } catch (redisError) {
+        console.log('⚠️ Redis cache update error (non-critical):', redisError);
+      }
+      
+      // Aggiorna anche cache in memoria come fallback  
       try {
         const tempCacheKey = `probable_questions_uses_${user.id}`;
         (global as any).tempUserCache = (global as any).tempUserCache || new Map();
         (global as any).tempUserCache.set(tempCacheKey, {
           value: newProbableQuestionsUses,
-          expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
         });
-        console.log('💾 [NEW_USER_CACHE] Cached probable_questions count:', newProbableQuestionsUses, 'for key:', tempCacheKey);
+        console.log('💾 [MEMORY_CACHE_UPDATE] Updated memory cache:', newProbableQuestionsUses);
       } catch (cacheError) {
-        console.log('⚠️ Cache error (non-critical):', cacheError);
+        console.log('⚠️ Memory cache error (non-critical):', cacheError);
       }
     }
 

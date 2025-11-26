@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
 import { supabaseAdmin } from '@/lib/supabase';
-import '@/lib/redis-cache'; // Inizializza il cache Redis
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -17,16 +17,42 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString()
     });
     
-    // CONTROLLA CACHE temporanea per risolvere problema isolation nuovi utenti
+    // PRIMA: Controlla cache Redis persistente
+    const redisCacheKey = `oral_exam_uses_${user.id}`;
+    try {
+      const cachedUses = await cache.get(redisCacheKey);
+      if (cachedUses !== null && cachedUses !== undefined) {
+        console.log('🚀 [REDIS_CACHE] Found cached oral_exam count:', cachedUses);
+        const uses = parseInt(cachedUses) || 0;
+        const isFirstTime = uses === 0;
+        
+        console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result (REDIS_CACHED):', { 
+          userId: user.id, 
+          oral_exam_uses: uses,
+          isFirstTime,
+          cost: isFirstTime ? 0 : 25
+        });
+        
+        return NextResponse.json({
+          isFirstTime,
+          cost: isFirstTime ? 0 : 25,
+          oralExamCount: uses
+        });
+      }
+    } catch (redisError) {
+      console.log('⚠️ Redis cache error (non-critical):', redisError);
+    }
+    
+    // SECONDA: Controlla cache temporaneo in memoria
     const tempCacheKey = `oral_exam_uses_${user.id}`;
     const cachedData = (global as any).tempUserCache?.get(tempCacheKey);
     
     if (cachedData && cachedData.expires > Date.now()) {
-      console.log('💾 [NEW_USER_CACHE] Found cached count:', cachedData.value);
+      console.log('💾 [MEMORY_CACHE] Found cached oral_exam count:', cachedData.value);
       const uses = cachedData.value;
       const isFirstTime = uses === 0;
       
-      console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result (CACHED):', { 
+      console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result (MEMORY_CACHED):', { 
         userId: user.id, 
         oral_exam_uses: uses,
         isFirstTime,
@@ -40,7 +66,7 @@ export async function GET(request: NextRequest) {
       });
     }
     
-    console.log('💾 [NEW_USER_CACHE] No valid cache found, reading from database...');
+    console.log('💾 [CACHE_MISS] No valid cache found, reading from database...');
     
     // Usa SOLO supabaseAdmin (con service role) per evitare problemi RLS
     if (!supabaseAdmin) {
@@ -132,12 +158,31 @@ export async function GET(request: NextRequest) {
     const uses = profile?.oral_exam_uses ?? 0;
     const isFirstTime = uses === 0;
     
-    console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result:', { 
+    console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result (DB_READ):', { 
       userId: user.id, 
       oral_exam_uses: uses,
       isFirstTime,
       cost: isFirstTime ? 0 : 25
     });
+    
+    // Salva nel cache Redis per 30 giorni
+    try {
+      await cache.set(redisCacheKey, uses, 30 * 24 * 60 * 60 * 1000); // 30 giorni
+      console.log('🚀 [REDIS_CACHE_SET] Cached oral_exam count:', uses);
+    } catch (cacheError) {
+      console.log('⚠️ Redis cache set error (non-critical):', cacheError);
+    }
+    
+    // Salva anche nel cache temporaneo come fallback
+    try {
+      (global as any).tempUserCache = (global as any).tempUserCache || new Map();
+      (global as any).tempUserCache.set(tempCacheKey, {
+        value: uses,
+        expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
+      });
+    } catch (memoryError) {
+      console.log('⚠️ Memory cache set error (non-critical):', memoryError);
+    }
     
     return NextResponse.json({
       isFirstTime,

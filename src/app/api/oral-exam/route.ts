@@ -3,7 +3,7 @@ import OpenAI from 'openai';
 import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import '@/lib/redis-cache'; // Inizializza il cache Redis
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -346,19 +346,29 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
           } else {
             console.log('✅ Oral exam session created:', sessionData?.id);
         
-        // CACHE la nuova informazione per 30 secondi per nuovi utenti
-        console.log('💾 [NEW_USER_CACHE] Caching updated count for immediate reads...');
+        // CACHE la nuova informazione in Redis e memoria per 30 giorni
+        console.log('💾 [CACHE_UPDATE] Updating all caches with new oral_exam count...');
+        
+        // Aggiorna cache Redis per 30 giorni
         try {
-          // Usa una cache in-memory temporanea per bypassare il problema di isolation
+          const redisCacheKey = `oral_exam_uses_${user.id}`;
+          await cache.set(redisCacheKey, newOralExamUses, 30 * 24 * 60 * 60 * 1000);
+          console.log('🚀 [REDIS_CACHE_UPDATE] Updated Redis cache:', newOralExamUses);
+        } catch (redisError) {
+          console.log('⚠️ Redis cache update error (non-critical):', redisError);
+        }
+        
+        // Aggiorna anche cache in memoria come fallback
+        try {
           const tempCacheKey = `oral_exam_uses_${user.id}`;
           (global as any).tempUserCache = (global as any).tempUserCache || new Map();
           (global as any).tempUserCache.set(tempCacheKey, {
             value: newOralExamUses,
-            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+            expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
           });
-          console.log('💾 [NEW_USER_CACHE] Cached count:', newOralExamUses, 'for key:', tempCacheKey);
+          console.log('💾 [MEMORY_CACHE_UPDATE] Updated memory cache:', newOralExamUses);
         } catch (cacheError) {
-          console.log('⚠️ Cache error (non-critical):', cacheError);
+          console.log('⚠️ Memory cache error (non-critical):', cacheError);
         }
           }
         }
