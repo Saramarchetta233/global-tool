@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -10,40 +10,24 @@ export async function GET(request: NextRequest) {
     // Verifica autenticazione
     const user = await verifyAuth(request);
     
-    console.log('🔍 check-first-time: Using session counting for user:', user.id);
+    const queryStartTime = Date.now();
+    console.log('🔍 check-first-time: Reading oral_exam_uses from profile for user:', {
+      userId: user.id,
+      timestamp: new Date().toISOString()
+    });
     
-    // USA LA STESSA LOGICA DELL'API PRINCIPALE: conta le sessioni esistenti
-    try {
-      if (!supabaseAdmin) {
-        console.log('📝 check-first-time: supabaseAdmin not available, assuming first exam');
-        return NextResponse.json({
-          isFirstTime: true,
-          cost: 0,
-          oralExamCount: 0
-        });
-      }
+    // CONTROLLA CACHE temporanea per risolvere problema isolation nuovi utenti
+    const tempCacheKey = `oral_exam_uses_${user.id}`;
+    const cachedData = (global as any).tempUserCache?.get(tempCacheKey);
+    
+    if (cachedData && cachedData.expires > Date.now()) {
+      console.log('💾 [NEW_USER_CACHE] Found cached count:', cachedData.value);
+      const uses = cachedData.value;
+      const isFirstTime = uses === 0;
       
-      const { count: oralExamCount, error: countError } = await supabaseAdmin
-        .from('oral_exam_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (countError) {
-        console.log('📝 check-first-time: oral_exam_sessions table not found, assuming first exam');
-        // Se la tabella non esiste, è sicuramente il primo esame
-        return NextResponse.json({
-          isFirstTime: true,
-          cost: 0,
-          oralExamCount: 0
-        });
-      }
-
-      const sessionCount = oralExamCount || 0;
-      const isFirstTime = sessionCount === 0;
-      
-      console.log('🔍 check-first-time result:', {
-        userId: user.id,
-        sessionCount,
+      console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result (CACHED):', { 
+        userId: user.id, 
+        oral_exam_uses: uses,
         isFirstTime,
         cost: isFirstTime ? 0 : 25
       });
@@ -51,48 +35,122 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         isFirstTime,
         cost: isFirstTime ? 0 : 25,
-        oralExamCount: sessionCount
-      });
-      
-    } catch (sessionCountError) {
-      // Fallback: se oral_exam_sessions non esiste, usa la logica vecchia
-      console.log('📝 check-first-time: Fallback to profile flags due to error:', sessionCountError);
-      
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('oral_exam_uses, has_used_oral_once')
-        .eq('user_id', user.id)
-        .single();
-      
-      if (profileError) {
-        console.error('❌ check-first-time: Error with both approaches:', profileError);
-        // In caso di errore totale, considera come primo esame per sicurezza
-        return NextResponse.json({
-          isFirstTime: true,
-          cost: 0,
-          oralExamCount: 0
-        });
-      }
-      
-      let oralUses = profile?.oral_exam_uses;
-      if (oralUses === null || oralUses === undefined) {
-        oralUses = profile?.has_used_oral_once ? 1 : 0;
-      }
-      
-      const isFirstTime = (oralUses === 0);
-      
-      return NextResponse.json({
-        isFirstTime,
-        cost: isFirstTime ? 0 : 25,
-        oralExamCount: oralUses
+        oralExamCount: uses
       });
     }
+    
+    console.log('💾 [NEW_USER_CACHE] No valid cache found, reading from database...');
+    
+    // Usa SOLO supabaseAdmin (con service role) per evitare problemi RLS
+    if (!supabaseAdmin) {
+      console.error('[CHECK_FIRST_TIME_ERROR] supabaseAdmin not available');
+      return NextResponse.json({
+        error: true,
+        message: 'Service unavailable',
+        isFirstTime: null,
+        cost: null,
+        oralExamCount: null
+      }, { status: 500 });
+    }
+    
+    // CACHE BUSTING: Usa order by per forzare una query fresh
+    console.log('🚨 [CACHE_BUST] Forcing fresh query with order by...');
+    
+    // Query con order by per evitare cache + limit per sicurezza
+    const { data: profiles, error } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, oral_exam_uses, credits, created_at, updated_at')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+      
+    const profile = profiles?.[0] || null;
+
+    const queryDuration = Date.now() - queryStartTime;
+    console.log('[CHECK_FIRST_TIME_PROFILE]', {
+      userId: user.id,
+      profile,
+      error,
+      queryDurationMs: queryDuration,
+      cacheWarning: queryDuration < 10 ? 'POSSIBLE_CACHE_HIT' : 'NORMAL_DB_QUERY'
+    });
+
+    if (error) {
+      console.error('[CHECK_FIRST_TIME_ERROR] profile query failed', error);
+      // In caso di errore, per sicurezza NON considerare più gratis
+      return NextResponse.json({
+        isFirstTime: false,
+        cost: 25,
+        oralExamCount: 0
+      }, { status: 200 });
+    }
+
+    // DEBUG: Se il valore è 0, controlliamo se esiste davvero nel database
+    if ((profile?.oral_exam_uses ?? 0) === 0) {
+      console.log('🚨 [CRITICAL_DEBUG] oral_exam_uses is 0, checking database directly...');
+      
+      // Query di verifica con ordering per timestamp
+      const { data: debugProfiles, error: debugError } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id, oral_exam_uses, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false });
+        
+      console.log('🚨 [CRITICAL_DEBUG] All profiles for this user:', {
+        profiles: debugProfiles,
+        error: debugError?.message || 'none'
+      });
+      
+      // Query di verifica per vedere se esistono più righe
+      const { count: profileCount } = await supabaseAdmin
+        .from('profiles')
+        .select('user_id', { count: 'exact', head: true })
+        .eq('user_id', user.id);
+        
+      console.log('🚨 [CRITICAL_DEBUG] Profile count for user:', profileCount);
+    
+    // DEBUG: Controlla se ci sono sessioni di esame orale per questo utente
+    const { data: oralSessions, error: sessionsError } = await supabaseAdmin
+      .from('oral_exam_sessions')
+      .select('id, session_data, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(5);
+      
+    console.log('🚨 [CRITICAL_DEBUG] Oral exam sessions for this user:', {
+      sessionsCount: oralSessions?.length || 0,
+      sessions: oralSessions?.map(s => ({
+        id: s.id,
+        was_free: s.session_data?.was_free,
+        created_at: s.created_at
+      })) || [],
+      error: sessionsError?.message || 'none'
+    });
+    }
+
+    const uses = profile?.oral_exam_uses ?? 0;
+    const isFirstTime = uses === 0;
+    
+    console.log('[CHECK_FIRST_TIME_RESULT] Oral exam result:', { 
+      userId: user.id, 
+      oral_exam_uses: uses,
+      isFirstTime,
+      cost: isFirstTime ? 0 : 25
+    });
+    
+    return NextResponse.json({
+      isFirstTime,
+      cost: isFirstTime ? 0 : 25,
+      oralExamCount: uses
+    });
 
   } catch (error) {
-    console.error('Check first time oral exam error:', error);
-    return NextResponse.json(
-      { error: 'Failed to check oral exam status' },
-      { status: 500 }
-    );
+    console.error('[CHECK_FIRST_TIME_ERROR] Unexpected error:', error);
+    // In caso di errore, per sicurezza NON considerare più gratis
+    return NextResponse.json({
+      isFirstTime: false,
+      cost: 25,
+      oralExamCount: 0
+    }, { status: 200 });
   }
 }

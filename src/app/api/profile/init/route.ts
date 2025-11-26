@@ -2,8 +2,22 @@ import { NextResponse } from "next/server";
 import { supabase, supabaseAdmin } from "@/lib/supabase";
 
 export async function POST(req: Request) {
+  console.log('🔍 [PROFILE_INIT] Profile init request received');
+  
   try {
-    const { userId } = await req.json();
+    // Handle empty or invalid JSON
+    let body;
+    try {
+      body = await req.json();
+    } catch (jsonError) {
+      console.error('Invalid JSON in profile init request:', jsonError);
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" }, 
+        { status: 400 }
+      );
+    }
+    
+    const { userId } = body;
     
     if (!userId) {
       return NextResponse.json(
@@ -12,8 +26,10 @@ export async function POST(req: Request) {
       );
     }
 
-    // Controlla se esiste già un profilo per questo user_id
-    const { data: profile, error } = await supabase
+    console.log('🔍 [PROFILE_INIT] Checking profile for userId:', userId);
+    
+    // Usa supabaseAdmin per evitare problemi RLS con nuovi utenti
+    const { data: profile, error } = await (supabaseAdmin || supabase)
       .from("profiles")
       .select("id, credits")
       .eq("user_id", userId)
@@ -30,22 +46,41 @@ export async function POST(req: Request) {
 
     // Se il profilo non esiste, crealo con 120 crediti di benvenuto
     if (!profile) {
-      // Crea profilo con crediti iniziali usando la nuova funzione
-      const { error: insertError } = await supabase
+      console.log('🔍 [PROFILE_INIT] Creating new profile for userId:', userId);
+      
+      // Usa upsert per gestire le chiamate concorrenti
+      const { data: upsertedProfile, error: upsertError } = await (supabaseAdmin || supabase)
         .from("profiles")
-        .insert({ 
+        .upsert({ 
           user_id: userId, 
           credits: 120,
-          subscription_type: 'free' // Default to free plan
-        });
+          subscription_type: 'free',
+          oral_exam_uses: 0,
+          probable_questions_uses: 0,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }, {
+          onConflict: 'user_id', // Se esiste già un profilo con questo user_id, aggiorna
+          ignoreDuplicates: false // Assicurati che venga aggiornato
+        })
+        .select()
+        .single();
 
-      if (insertError) {
-        console.error("Error creating profile:", insertError);
+      if (upsertError) {
+        console.error("[PROFILE_INIT_ERROR] Failed to create/update profile:", {
+          error: upsertError,
+          code: upsertError.code,
+          message: upsertError.message,
+          details: upsertError.details,
+          userId
+        });
         return NextResponse.json(
-          { error: "Failed to create profile" }, 
+          { error: "Failed to create profile", details: upsertError.message }, 
           { status: 500 }
         );
       }
+
+      console.log('✅ [PROFILE_INIT] Profile created/updated successfully:', { userId, credits: upsertedProfile?.credits });
 
       // Log della transazione di benvenuto usando la funzione dedicata
       if (supabaseAdmin) {
@@ -74,7 +109,7 @@ export async function POST(req: Request) {
 
     // Se esiste ma i crediti sono null, portali a 120 (solo se null, non se 0)
     if (profile.credits === null) {
-      const { error: updateError } = await supabase
+      const { error: updateError } = await (supabaseAdmin || supabase)
         .from("profiles")
         .update({ credits: 120 })
         .eq("user_id", userId);

@@ -31,68 +31,73 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // NUOVA LOGICA: conta quante volte l'utente ha già usato le "Domande Probabili" (per utente, non per sessione)
+    // USA SOLO IL PROFILO (come per l'esame orale)
     let cost = 0;
     let newCreditBalance = user.credits;
     let isFirstTime = true;
     let probableCount = 0;
+    let wasFirstTime = false;
 
-    console.log('🔍 Counting existing probable question generations for user:', user.id);
+    console.log('📊 [PROBABLE_PROFILE_READ] Reading probable_questions_uses from profile...', {
+      userId: user.id,
+      userIdType: typeof user.id
+    });
     
+    // Usa SOLO supabaseAdmin per evitare problemi RLS
     if (!supabaseAdmin) {
-      console.error('❌ supabaseAdmin not available - assuming first time');
-      cost = 0;
-      isFirstTime = true;
-    } else {
-      const { count, error: countError } = await supabaseAdmin
-        .from('probable_question_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
+      console.error('[PROBABLE_ERROR] supabaseAdmin not available');
+      return NextResponse.json(
+        { error: 'Service unavailable' },
+        { status: 500 }
+      );
+    }
+    
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, probable_questions_uses, credits, created_at, updated_at')
+      .eq('user_id', user.id)
+      .single();
 
-      if (countError) {
-        console.error('[PROBABLE_Q_COUNT_ERROR]', { userId: user.id, countError });
-        // Se la tabella non esiste, assumiamo sia la prima volta
-        console.log('📝 probable_question_sessions table not found, assuming first time');
-        cost = 0;
-        isFirstTime = true;
-      } else {
-        probableCount = count ?? 0;
-        
-        console.log('[PROBABLE_Q_DEBUG_COUNT]', {
-          userId: user.id,
-          probableCount,
-        });
-        
-        // LOGICA: prima volta gratis, dalla seconda in poi 5 crediti
-        if (probableCount === 0) {
-          cost = 0;      // PRIMA VOLTA → GRATIS
-          isFirstTime = true;
-          console.log('🎉 First probable questions generation detected - making it FREE');
-        } else {
-          cost = 5;      // DALLA SECONDA IN POI → 5 CREDITI
-          isFirstTime = false;
-          console.log(`💳 Subsequent probable questions (#${probableCount + 1}) - charging 5 credits`);
-        }
-      }
+    console.log('📊 [PROBABLE_PROFILE_READ] Profile read result:', {
+      userId: user.id,
+      profile,
+      profileError: profileError?.message || 'none',
+      errorCode: profileError?.code
+    });
+
+    if (profileError) {
+      console.error('[PROBABLE_ERROR] Error reading profile:', {
+        userId: user.id,
+        error: profileError
+      });
+      return NextResponse.json(
+        { error: 'Failed to check probable questions status' },
+        { status: 500 }
+      );
+    }
+
+    probableCount = profile?.probable_questions_uses ?? 0;
+    
+    console.log('[PROBABLE_Q_DEBUG_COUNT]', {
+      userId: user.id,
+      probableCount,
+    });
+    
+    // LOGICA: prima volta gratis, dalla seconda in poi 5 crediti
+    if (probableCount === 0) {
+      cost = 0;      // PRIMA VOLTA → GRATIS
+      isFirstTime = true;
+      wasFirstTime = true;
+      console.log('🎉 First probable questions generation detected - making it FREE');
+    } else {
+      cost = 5;      // DALLA SECONDA IN POI → 5 CREDITI
+      isFirstTime = false;
+      wasFirstTime = false;
+      console.log(`💳 Subsequent probable questions (#${probableCount + 1}) - charging 5 credits`);
     }
 
     // Se cost > 0, controlla crediti e scala
     if (cost > 0) {
-      // Recupera crediti attuali
-      const { data: profile, error: profileError } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('user_id', user.id)
-        .single();
-
-      if (profileError) {
-        console.error('❌ Error fetching user credits:', profileError);
-        return NextResponse.json(
-          { error: 'Errore nel recupero del profilo utente' },
-          { status: 500 }
-        );
-      }
-
       const currentCredits = profile?.credits || user.credits;
       
       if (currentCredits < cost) {
@@ -129,12 +134,6 @@ export async function POST(request: NextRequest) {
       console.log('✅ Credits consumed:', { cost, newBalance: newCreditBalance });
     } else {
       // Prima volta gratis - nessuna variazione crediti
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('credits')
-        .eq('user_id', user.id)
-        .single();
-      
       newCreditBalance = profile?.credits || user.credits;
       console.log('✅ First generation - no credits consumed');
     }
@@ -242,50 +241,99 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       }
     }
 
-    // SALVA la nuova sessione nella tabella probable_question_sessions
-    console.log('[PROBABLE_Q_DEBUG_BEFORE_INSERT]', {
-      userId: user.id,
-      cost,
-      isFirstTime,
-      sessionId
-    });
+    // USA UNA FUNZIONE RPC per garantire atomicità e persistenza (come per l'esame orale)
+    console.log('💾 [PROBABLE_UPDATE] Using RPC function to increment probable_questions_uses...');
     
-    if (!supabaseAdmin) {
-      console.log('⚠️ Skipping session insert - supabaseAdmin not available');
-    } else {
-      const { data: sessionData, error: sessionError } = await supabaseAdmin
-        .from('probable_question_sessions')
-        .insert({
-          user_id: user.id,
-          document_id: null, // potremmo aggiungere il document_id se necessario
-          session_data: {
-            questions: questionsData.questions || [],
-            sessionId,
-            cost,
-            was_free: isFirstTime,
-            generated_at: new Date().toISOString()
-          },
-          cost,
-          was_free: isFirstTime
-        })
-        .select('id')
-        .single();
-
-      console.log('[PROBABLE_Q_DEBUG_AFTER_INSERT]', {
-        userId: user.id,
-        sessionError,
-        sessionData,
+    const newProbableQuestionsUses = (probableCount || 0) + 1;
+    
+    const { data: rpcData, error: rpcError } = await supabaseAdmin
+      .rpc('increment_probable_questions_uses', {
+        p_user_id: user.id
       });
-
-      if (sessionError) {
-        console.error('[PROBABLE_Q_INSERT_FAILED]', sessionError);
+      
+    if (rpcError) {
+      console.error('❌ RPC increment_probable_questions_uses failed:', rpcError);
+      
+      // FALLBACK: Update normale
+      const { data: updateData, error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ 
+          probable_questions_uses: newProbableQuestionsUses,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', user.id)
+        .select('user_id, probable_questions_uses, updated_at');
+        
+      console.log('📝 [FALLBACK_UPDATE] Profile update result:', {
+        userId: user.id,
+        updateData,
+        updateError: updateError?.message || 'none'
+      });
+      
+      if (updateError) {
         return NextResponse.json(
-          { error: 'PROBABLE_Q_SESSION_INSERT_FAILED', details: sessionError.message },
+          { error: 'Failed to update profile' },
           { status: 500 }
         );
-      } else {
-        console.log('✅ Probable questions session created:', sessionData?.id);
       }
+      
+      // IMPORTANTE: Imposta il cache anche nel fallback
+      console.log('💾 [FALLBACK_CACHE] Caching updated probable_questions count after fallback update...');
+      try {
+        const tempCacheKey = `probable_questions_uses_${user.id}`;
+        (global as any).tempUserCache = (global as any).tempUserCache || new Map();
+        (global as any).tempUserCache.set(tempCacheKey, {
+          value: newProbableQuestionsUses,
+          expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+        });
+        console.log('💾 [FALLBACK_CACHE] Cached probable_questions count (fallback):', newProbableQuestionsUses, 'for key:', tempCacheKey);
+      } catch (fallbackCacheError) {
+        console.log('⚠️ Fallback cache error (non-critical):', fallbackCacheError);
+      }
+    } else {
+      console.log('✅ RPC increment_probable_questions_uses successful:', rpcData);
+      
+      // CACHE la nuova informazione per 30 secondi per nuovi utenti (stesso fix dell'esame orale)
+      console.log('💾 [NEW_USER_CACHE] Caching updated probable_questions count for immediate reads...');
+      try {
+        const tempCacheKey = `probable_questions_uses_${user.id}`;
+        (global as any).tempUserCache = (global as any).tempUserCache || new Map();
+        (global as any).tempUserCache.set(tempCacheKey, {
+          value: newProbableQuestionsUses,
+          expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+        });
+        console.log('💾 [NEW_USER_CACHE] Cached probable_questions count:', newProbableQuestionsUses, 'for key:', tempCacheKey);
+      } catch (cacheError) {
+        console.log('⚠️ Cache error (non-critical):', cacheError);
+      }
+    }
+
+    // Opzionale: Salva la sessione per storico (non critico per il conteggio)
+    try {
+      if (supabaseAdmin) {
+        const { error: sessionError } = await supabaseAdmin
+          .from('probable_question_sessions')
+          .insert({
+            user_id: user.id,
+            session_data: {
+              questions: questionsData.questions || [],
+              sessionId,
+              cost,
+              was_free: wasFirstTime,
+              generated_at: new Date().toISOString()
+            },
+            cost,
+            was_free: wasFirstTime
+          });
+        
+        if (sessionError) {
+          console.log('⚠️ Session insert failed (non-critical):', sessionError);
+        } else {
+          console.log('✅ Probable questions session saved for history');
+        }
+      }
+    } catch (sessionInsertError) {
+      console.log('⚠️ Session insert error (non-critical):', sessionInsertError);
     }
 
     console.log('✅ Probable Questions processed successfully:', {
@@ -300,8 +348,7 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       questions: questionsData.questions || [],
       newCreditBalance,
       creditsUsed: cost,
-      isFirstTime,
-      wasFree: isFirstTime
+      was_free: wasFirstTime
     });
 
   } catch (error) {

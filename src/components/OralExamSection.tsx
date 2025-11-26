@@ -17,6 +17,7 @@ interface OralExamSectionProps {
   targetLanguage?: string;
   onBack?: () => void;
   onCreditsUpdate?: (newCredits: number) => void;
+  documentId?: string;
 }
 
 const OralExamSection: React.FC<OralExamSectionProps> = ({ 
@@ -24,7 +25,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   authToken, 
   targetLanguage = 'Italiano',
   onBack,
-  onCreditsUpdate
+  onCreditsUpdate,
+  documentId
 }) => {
   // Use store for oral exam state persistence
   const { examState, updateExamOralState } = useStudySessionStore();
@@ -36,6 +38,9 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   const [timerActive, setTimerActive] = useState(false);
   const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
   const [isCheckingFirstTime, setIsCheckingFirstTime] = useState(true);
+  
+  // IMPORTANTE: Non mostrare "GRATIS" mentre stiamo controllando
+  const shouldShowAsFirstTime = isFirstTime === true && !isCheckingFirstTime;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   
@@ -91,14 +96,16 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   // Function to check if it's first time oral exam
   const checkFirstTime = async () => {
     if (!authToken) {
+      console.log('🔍 [CRITICAL_DEBUG] checkFirstTime: No authToken, returning early');
       setIsCheckingFirstTime(false);
       return;
     }
     
+    console.log('🔍 [CRITICAL_DEBUG] checkFirstTime: Starting API call...');
     setIsCheckingFirstTime(true);
     
     try {
-      console.log('🔍 Checking first time status for user...');
+      console.log('🔍 [CRITICAL_DEBUG] checkFirstTime: Making fetch request...');
       const response = await fetch('/api/oral-exam/check-first-time', {
         headers: {
           'Authorization': `Bearer ${authToken}`
@@ -107,22 +114,35 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ First time check result:', data);
+        console.log('✅ [CRITICAL_DEBUG] checkFirstTime API response:', data);
+        
+        // Controlla se la risposta contiene un errore
+        if (data.error) {
+          console.error('🔍 [CRITICAL_DEBUG] checkFirstTime API returned error:', data.message);
+          // Non impostare nulla in caso di errore, lascia il valore precedente
+          return;
+        }
+        
+        console.log('✅ [CRITICAL_DEBUG] About to set isFirstTime to:', data.isFirstTime);
         setIsFirstTime(data.isFirstTime);
+        console.log('✅ [CRITICAL_DEBUG] setIsFirstTime called with:', data.isFirstTime);
+      } else {
+        console.error('🔍 [CRITICAL_DEBUG] checkFirstTime: API response not ok:', response.status);
+        // Non impostare a false di default in caso di errore
       }
     } catch (error) {
-      console.error('Error checking first time:', error);
-      // Default to not first time to be safe
-      setIsFirstTime(false);
+      console.error('🔍 [CRITICAL_DEBUG] checkFirstTime error:', error);
+      // Non impostare a false di default in caso di errore
     } finally {
       setIsCheckingFirstTime(false);
+      console.log('🔍 [CRITICAL_DEBUG] checkFirstTime completed');
     }
   };
 
-  // Check if it's first time oral exam when component loads
+  // Check if it's first time oral exam SOLO al login, non ad ogni documento
   useEffect(() => {
     checkFirstTime();
-  }, [authToken]);
+  }, [authToken]); // Solo quando cambia authToken (login/logout), NON per ogni documento
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -155,6 +175,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   const startExam = async () => {
     if (!authToken || !docContext) return;
     
+    console.log('[DEBUG_ORAL_START]', { documentId, authToken: !!authToken });
+    
     setIsLoading(true);
     updateExamOralState({ currentStep: 'questioning' });
     setTimerActive(true);
@@ -169,7 +191,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
         body: JSON.stringify({
           docContext,
           action: 'start',
-          targetLanguage
+          targetLanguage,
+          documentId
         })
       });
 
@@ -189,10 +212,30 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
         // Mostra messaggio se era gratis o a pagamento
         if (data.was_free) {
           console.log('🎉 First oral exam - FREE!');
-          // Aggiorna lo stato: non è più la prima volta
-          setIsFirstTime(false);
         } else {
           console.log(`💳 Oral exam charged: ${data.creditsUsed || 25} credits`);
+        }
+        
+        // SEMPRE ricontrolla dal server dopo aver usato l'esame per aggiornare UI
+        console.log('🔄 [CRITICAL_DEBUG] About to recheck first-time status after exam usage');
+        console.log('🔄 [CRITICAL_DEBUG] Current isFirstTime state BEFORE recheck:', isFirstTime);
+        
+        // Aggiorna subito lo stato locale per feedback immediato
+        setIsFirstTime(false);
+        console.log('🔄 [CRITICAL_DEBUG] Set isFirstTime to false locally');
+        
+        try {
+          // WORKAROUND: Aspetta che la transazione si committa nel database
+          console.log('🔄 [CRITICAL_DEBUG] Waiting 2 seconds for database transaction to commit...');
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Ricontrolla dal server per stato definitivo  
+          console.log('🔄 [CRITICAL_DEBUG] Calling checkFirstTime...');
+          await checkFirstTime();
+          console.log('🔄 [CRITICAL_DEBUG] checkFirstTime completed');
+          console.log('🔄 [CRITICAL_DEBUG] Current isFirstTime state AFTER recheck:', isFirstTime);
+        } catch (recheckError) {
+          console.error('🔄 [CRITICAL_DEBUG] Error in checkFirstTime after exam:', recheckError);
         }
       } else {
         throw new Error('Failed to start exam');
@@ -224,6 +267,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
           docContext,
           action: 'evaluate',
           userAnswer: currentAnswer,
+          documentId,
           sessionHistory: messages.map(msg => ({
             role: msg.role === 'professor' ? 'assistant' : 'user',
             content: msg.content
@@ -264,6 +308,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
         body: JSON.stringify({
           docContext,
           action: 'finish',
+          documentId,
           sessionHistory: messages.map(msg => ({
             role: msg.role === 'professor' ? 'assistant' : 'user',
             content: msg.content
@@ -390,7 +435,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                 <div className="text-sm opacity-75">
                   {isCheckingFirstTime 
                     ? 'Verificando...' 
-                    : isFirstTime 
+                    : shouldShowAsFirstTime 
                       ? 'GRATIS' 
                       : '25 crediti'
                   }

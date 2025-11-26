@@ -51,12 +51,14 @@ const TutorChat: React.FC<TutorChatProps> = ({
       setChatLoading(true);
       
       try {
+        console.log('🔍 Loading chat data for documentId:', documentId);
+        
         // Carica sia la cronologia chat che il conteggio messaggi in parallelo
         const [chatResponse, countResponse] = await Promise.all([
           fetch(`/api/tutor-chat-history?documentId=${documentId}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           }),
-          fetch('/api/tutor/count', {
+          fetch(`/api/tutor/count?documentId=${documentId}`, {
             headers: { 'Authorization': `Bearer ${authToken}` }
           })
         ]);
@@ -64,7 +66,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
         // Gestisci cronologia chat
         if (chatResponse.ok) {
           const chatData = await chatResponse.json();
-          console.log('📚 Chat history loaded:', chatData.messageCount, 'messages');
+          console.log('📚 Chat history API response:', chatData);
+          console.log('📚 Chat history loaded:', chatData.messageCount || 0, 'messages');
           
           if (chatData.history && chatData.history.length > 0) {
             // Converti cronologia in formato Message[]
@@ -84,15 +87,23 @@ const TutorChat: React.FC<TutorChatProps> = ({
               timestamp: new Date()
             }]);
           }
+        } else {
+          console.error('❌ Chat history API error:', chatResponse.status, chatResponse.statusText);
+          const errorData = await chatResponse.text();
+          console.error('❌ Chat history API error details:', errorData);
         }
 
         // Gestisci conteggio messaggi
         if (countResponse.ok) {
           const countData = await countResponse.json();
-          console.log('🔄 Initial tutor count loaded:', countData);
+          console.log('🔄 Initial tutor count API response:', countData);
           setMessageCount(countData.messageCount || 0);
           setFreeMessagesRemaining(countData.freeMessagesRemaining || 3);
           setIsWithinFreeLimit(countData.isWithinFreeLimit !== false);
+        } else {
+          console.error('❌ Count API error:', countResponse.status, countResponse.statusText);
+          const errorData = await countResponse.text();
+          console.error('❌ Count API error details:', errorData);
         }
         
       } catch (error) {
@@ -119,6 +130,26 @@ const TutorChat: React.FC<TutorChatProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const fetchTutorCount = async () => {
+    if (!authToken || !documentId) return;
+    
+    try {
+      const response = await fetch(`/api/tutor/count?documentId=${documentId}`, {
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('🔄 Updated tutor count:', data);
+        setMessageCount(data.messageCount || 0);
+        setFreeMessagesRemaining(data.freeMessagesRemaining || 3);
+        setIsWithinFreeLimit(data.isWithinFreeLimit !== false);
+      }
+    } catch (error) {
+      console.error('Error fetching tutor count:', error);
+    }
   };
 
   const addMessage = (message: Omit<Message, 'id'>) => {
@@ -181,6 +212,10 @@ const TutorChat: React.FC<TutorChatProps> = ({
           setFreeMessagesRemaining(remaining);
           setIsWithinFreeLimit(data.messageCount < 3);
         }
+        
+        // SEMPRE ricontrolla dal server dopo aver usato il tutor per aggiornare UI definitivamente
+        console.log('🔄 Rechecking tutor count after message to update UI state...');
+        await fetchTutorCount();
 
         // Add AI response
         addMessage({

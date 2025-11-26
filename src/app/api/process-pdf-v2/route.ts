@@ -302,6 +302,15 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         })
         .select();
       
+      // DEBUG: Log dell'inserimento documento
+      console.log('[DEBUG_INSERT_DOCUMENT]', { 
+        userId, 
+        sessionId, 
+        fileName, 
+        insertError, 
+        insertData: insertData ? { id: insertData[0]?.id, user_id: insertData[0]?.user_id } : null 
+      });
+      
       if (insertError) {
         console.error('❌ Database insert error:', insertError);
         throw insertError;

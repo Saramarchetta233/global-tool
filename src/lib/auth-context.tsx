@@ -31,9 +31,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const profileInitPromiseRef = React.useRef<Map<string, Promise<number>>>(new Map());
 
-  // Function to initialize user profile and get credits
+  // Function to initialize user profile and get credits (con deduplicazione)
   const initUserProfile = async (userId: string): Promise<number> => {
+    // Se c'è già una richiesta in corso per questo userId, ritorna quella
+    const existingPromise = profileInitPromiseRef.current.get(userId);
+    if (existingPromise) {
+      console.log('[PROFILE_INIT] Returning existing promise for userId:', userId);
+      return existingPromise;
+    }
+
+    // Crea una nuova promise e salvala
+    const promise = (async () => {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -63,7 +73,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
         console.error('Error initializing profile:', error);
       }
       return 120;
+    } finally {
+      // Rimuovi la promise dalla mappa dopo che è completata
+      profileInitPromiseRef.current.delete(userId);
     }
+    })();
+
+    // Salva la promise nella mappa
+    profileInitPromiseRef.current.set(userId, promise);
+    return promise;
   };
 
   // Function to create User object from Supabase user with database credits

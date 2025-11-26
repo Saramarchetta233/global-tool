@@ -131,70 +131,75 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
 
     console.log(`✅ AI response generated successfully for action: ${action}`);
 
-    // STEP 4: Gestisci i crediti con logica semplice basata sul conteggio sessioni
+    // STEP 4: Gestisci i crediti usando SOLO profiles.oral_exam_uses
     if (action === 'start') {
       console.log(`🎯 Processing credits for oral exam start - user ${user.id}`);
       
       try {
-        // 1. CONTA quante sessioni di esame orale esistono già per questo utente
-        console.log('📊 Counting existing oral exam sessions...');
+        // 1. LEGGI oral_exam_uses dal profilo utente
+        console.log('📊 [CRITICAL_READ] Reading oral_exam_uses from profile...', {
+          userId: user.id,
+          userIdType: typeof user.id
+        });
         
+        // SEMPRE usa supabaseAdmin per evitare problemi RLS
         if (!supabaseAdmin) {
-          console.error('❌ supabaseAdmin not available - missing SUPABASE_SERVICE_ROLE_KEY');
-          cost = 0;
-          wasFirstTime = true;
-        } else {
-          const { count, error: countError } = await supabaseAdmin
-            .from('oral_exam_sessions')
-            .select('id', { count: 'exact', head: true })
-            .eq('user_id', user.id);
+          console.error('❌ [CRITICAL_READ] supabaseAdmin not available for profile read!');
+          return NextResponse.json(
+            { error: 'Service unavailable for profile read' },
+            { status: 500 }
+          );
+        }
+        
+        const { data: profile, error: profileError } = await supabaseAdmin
+          .from('profiles')
+          .select('user_id, oral_exam_uses, credits, created_at, updated_at')
+          .eq('user_id', user.id)
+          .single();
 
-          if (countError) {
-            console.error('[ORAL_EXAM_COUNT_ERROR]', { userId: user.id, countError });
-            // Se la tabella non esiste, assumiamo sia il primo esame
-            console.log('📝 oral_exam_sessions table not found, assuming first exam');
-            cost = 0;
-            wasFirstTime = true;
-          } else {
-            oralExamCount = count ?? 0;
-            
-            console.log('[ORAL_EXAM_DEBUG_COUNT]', {
-              userId: user.id,
-              oralExamCount,
-            });
-            
-            // 2. DECIDI il costo basato sul conteggio
-            if (oralExamCount === 0) {
-              // PRIMO ESAME ORALE → GRATIS
-              cost = 0;
-              wasFirstTime = true;
-              console.log('🎉 First oral exam detected - making it FREE');
-            } else {
-              // DAL SECONDO IN POI → 25 CREDITI
-              cost = 25;
-              wasFirstTime = false;
-              console.log(`💳 Subsequent oral exam (#${oralExamCount + 1}) - charging 25 credits`);
-            }
-          }
+        console.log('📊 [CRITICAL_READ] Profile read result:', {
+          userId: user.id,
+          profile,
+          profileError: profileError?.message || 'none',
+          errorCode: profileError?.code
+        });
+
+        if (profileError) {
+          console.error('[ORAL_EXAM_PROFILE_ERROR]', { 
+            userId: user.id, 
+            profileError,
+            code: profileError.code,
+            message: profileError.message 
+          });
+          return NextResponse.json(
+            { error: 'Errore nel recupero del profilo utente' },
+            { status: 500 }
+          );
         }
 
-        // 3. Se cost > 0, controlla crediti e scala
+        oralExamCount = profile?.oral_exam_uses ?? 0;
+        
+        console.log('[ORAL_EXAM_DEBUG_COUNT]', {
+          userId: user.id,
+          oralExamCount,
+        });
+        
+        // 2. DECIDI il costo basato sul conteggio dal profilo
+        if (oralExamCount === 0) {
+          // PRIMO ESAME ORALE → GRATIS
+          cost = 0;
+          wasFirstTime = true;
+          console.log('🎉 First oral exam detected - making it FREE');
+        } else {
+          // DAL SECONDO IN POI → 25 CREDITI
+          cost = 25;
+          wasFirstTime = false;
+          console.log(`💳 Subsequent oral exam (#${oralExamCount + 1}) - charging 25 credits`);
+        }
+
+        // 3. Scala crediti e aggiorna oral_exam_uses
         if (cost > 0) {
-          // Recupera crediti attuali
-          const { data: profile, error: profileError } = await supabase
-            .from('profiles')
-            .select('credits')
-            .eq('user_id', user.id)
-            .single();
-
-          if (profileError) {
-            console.error('❌ Error fetching user credits:', profileError);
-            return NextResponse.json(
-              { error: 'Errore nel recupero del profilo utente' },
-              { status: 500 }
-            );
-          }
-
+          // Non è la prima volta - scala crediti
           const currentCredits = profile?.credits || user.credits;
           
           if (currentCredits < cost) {
@@ -231,17 +236,71 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
           console.log('✅ Credits consumed:', { cost, newBalance: newCreditBalance });
         } else {
           // Primo esame gratis - nessuna variazione crediti
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('credits')
-            .eq('user_id', user.id)
-            .single();
-          
           newCreditBalance = profile?.credits || user.credits;
           console.log('✅ First exam - no credits consumed');
         }
 
-        // 4. Crea una nuova entry in oral_exam_sessions per tracciare questa sessione
+        // 4. AGGIORNA oral_exam_uses nel profilo (sia per primo che per successivi)
+        console.log('📝 [CRITICAL_UPDATE] Updating oral_exam_uses in profile...', {
+          userId: user.id,
+          currentCount: oralExamCount,
+          newCount: oralExamCount + 1,
+          userIdType: typeof user.id,
+          userIdLength: user.id.length
+        });
+        
+        // SEMPRE usa supabaseAdmin per evitare problemi RLS
+        if (!supabaseAdmin) {
+          console.error('❌ [CRITICAL_UPDATE] supabaseAdmin not available for profile update!');
+          return NextResponse.json(
+            { error: 'Service unavailable for profile update' },
+            { status: 500 }
+          );
+        }
+        
+        // UPDATE con valore esplicito per evitare problemi NULL
+        const newOralExamUses = (oralExamCount || 0) + 1;
+        
+        // USA UNA FUNZIONE RPC per garantire atomicità e persistenza
+        console.log('💾 [CRITICAL_UPDATE] Using RPC function to increment oral_exam_uses...');
+        
+        const { data: rpcData, error: rpcError } = await supabaseAdmin
+          .rpc('increment_oral_exam_uses', {
+            p_user_id: user.id
+          });
+          
+        if (rpcError) {
+          console.error('❌ RPC increment_oral_exam_uses failed:', rpcError);
+          
+          // FALLBACK: Update normale
+          const { data: updateData, error: updateError } = await supabaseAdmin
+            .from('profiles')
+            .update({ 
+              oral_exam_uses: newOralExamUses,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', user.id)
+            .select('user_id, oral_exam_uses, updated_at');
+            
+          console.log('📝 [FALLBACK_UPDATE] Profile update result:', {
+            userId: user.id,
+            updateData,
+            updateError: updateError?.message || 'none'
+          });
+          
+          if (updateError) {
+            return NextResponse.json(
+              { error: 'Failed to update profile' },
+              { status: 500 }
+            );
+          }
+        } else {
+          console.log('✅ RPC increment_oral_exam_uses successful:', rpcData);
+        }
+
+        console.log('📝 [CRITICAL_UPDATE] RPC operation completed successfully');
+
+        // 5. Crea una nuova entry in oral_exam_sessions per tracciare questa sessione (opzionale)
         console.log('[ORAL_EXAM_DEBUG_BEFORE_INSERT]', {
           userId: user.id,
           cost,
@@ -249,9 +308,13 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
           action: 'start'
         });
         
+        console.log('🔍 supabaseAdmin available for insert:', !!supabaseAdmin);
+        
         if (!supabaseAdmin) {
-          console.log('⚠️ Skipping session insert - supabaseAdmin not available');
+          console.log('⚠️ PROBLEM: Skipping session insert - supabaseAdmin not available');
+          console.log('⚠️ This will cause the user to always see FREE on subsequent exams!');
         } else {
+          console.log('✅ Using supabaseAdmin for session insert');
           const { data: sessionData, error: sessionError } = await supabaseAdmin
             .from('oral_exam_sessions')
             .insert({
@@ -281,8 +344,24 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
             );
           } else {
             console.log('✅ Oral exam session created:', sessionData?.id);
+        
+        // CACHE la nuova informazione per 30 secondi per nuovi utenti
+        console.log('💾 [NEW_USER_CACHE] Caching updated count for immediate reads...');
+        try {
+          // Usa una cache in-memory temporanea per bypassare il problema di isolation
+          const tempCacheKey = `oral_exam_uses_${user.id}`;
+          (global as any).tempUserCache = (global as any).tempUserCache || new Map();
+          (global as any).tempUserCache.set(tempCacheKey, {
+            value: newOralExamUses,
+            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
+          });
+          console.log('💾 [NEW_USER_CACHE] Cached count:', newOralExamUses, 'for key:', tempCacheKey);
+        } catch (cacheError) {
+          console.log('⚠️ Cache error (non-critical):', cacheError);
+        }
           }
         }
+
 
         console.log('✅ Oral Exam credits processed successfully:', {
           wasFirstTime,

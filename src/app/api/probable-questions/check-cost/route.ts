@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
-import { supabaseAdmin } from '@/lib/supabase';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -12,39 +12,19 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 check-cost: Checking probable questions cost for user:', user.id);
     
-    // USA LA STESSA LOGICA DELL'API PRINCIPALE: conta le sessioni esistenti
-    try {
-      if (!supabaseAdmin) {
-        console.log('📝 check-cost: supabaseAdmin not available, assuming first time');
-        return NextResponse.json({
-          isFirstTime: true,
-          cost: 0,
-          probableCount: 0
-        });
-      }
-      
-      const { count: probableCount, error: countError } = await supabaseAdmin
-        .from('probable_question_sessions')
-        .select('id', { count: 'exact', head: true })
-        .eq('user_id', user.id);
-
-      if (countError) {
-        console.log('📝 check-cost: probable_question_sessions table not found, assuming first time');
-        // Se la tabella non esiste, è sicuramente la prima volta
-        return NextResponse.json({
-          isFirstTime: true,
-          cost: 0,
-          probableCount: 0
-        });
-      }
-
-      const sessionCount = probableCount ?? 0;
-      const isFirstTime = sessionCount === 0;
+    // CONTROLLA CACHE temporanea per risolvere problema isolation nuovi utenti (stesso fix dell'esame orale)
+    const tempCacheKey = `probable_questions_uses_${user.id}`;
+    const cachedData = (global as any).tempUserCache?.get(tempCacheKey);
+    
+    if (cachedData && cachedData.expires > Date.now()) {
+      console.log('💾 [NEW_USER_CACHE] Found cached probable_questions count:', cachedData.value);
+      const uses = cachedData.value;
+      const isFirstTime = uses === 0;
       const cost = isFirstTime ? 0 : 5;
       
-      console.log('🔍 check-cost result:', {
-        userId: user.id,
-        sessionCount,
+      console.log('[CHECK_FIRST_TIME_RESULT] Probable questions result (CACHED):', { 
+        userId: user.id, 
+        probable_questions_uses: uses,
         isFirstTime,
         cost
       });
@@ -52,19 +32,73 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         isFirstTime,
         cost,
-        probableCount: sessionCount
-      });
-      
-    } catch (sessionCountError) {
-      // Fallback: se probable_question_sessions non esiste, è la prima volta
-      console.log('📝 check-cost: Fallback due to error:', sessionCountError);
-      
-      return NextResponse.json({
-        isFirstTime: true,
-        cost: 0,
-        probableCount: 0
+        probableCount: uses
       });
     }
+    
+    console.log('💾 [NEW_USER_CACHE] No valid cache found for probable_questions, reading from database...');
+    
+    // USA SOLO IL PROFILO (come per l'esame orale)
+    console.log('📊 [PROBABLE_PROFILE_READ] Reading probable_questions_uses from profile...', {
+      userId: user.id,
+      userIdType: typeof user.id
+    });
+    
+    // Usa SOLO supabaseAdmin per evitare problemi RLS
+    if (!supabaseAdmin) {
+      console.error('[PROBABLE_ERROR] supabaseAdmin not available');
+      return NextResponse.json({
+        error: true,
+        message: 'Service unavailable',
+        isFirstTime: null,
+        cost: null,
+        probableCount: null
+      }, { status: 500 });
+    }
+    
+    const { data: profile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('user_id, probable_questions_uses, credits, created_at, updated_at')
+      .eq('user_id', user.id)
+      .single();
+
+    console.log('📊 [PROBABLE_PROFILE_READ] Profile read result:', {
+      userId: user.id,
+      profile,
+      profileError: profileError?.message || 'none',
+      errorCode: profileError?.code
+    });
+
+    if (profileError) {
+      console.error('[PROBABLE_ERROR] Error reading profile:', {
+        userId: user.id,
+        error: profileError
+      });
+      return NextResponse.json({
+        error: true,
+        message: 'Failed to check probable questions status',
+        isFirstTime: null,
+        cost: null,
+        probableCount: null
+      }, { status: 500 });
+    }
+
+    const uses = profile?.probable_questions_uses ?? 0;
+    const isFirstTime = uses === 0;
+    const cost = isFirstTime ? 0 : 5;
+    
+    console.log('[CHECK_FIRST_TIME_RESULT] Probable questions result:', { 
+      userId: user.id, 
+      probable_questions_uses: uses,
+      isFirstTime,
+      cost
+    });
+    
+    return NextResponse.json({
+      isFirstTime,
+      cost,
+      probableCount: uses
+    });
 
   } catch (error) {
     console.error('Check cost probable questions error:', error);
