@@ -18,13 +18,19 @@ ADD COLUMN IF NOT EXISTS lifetime_active boolean DEFAULT false;
 ALTER TABLE public.profiles 
 ADD COLUMN IF NOT EXISTS subscription_renewal_date timestamp with time zone DEFAULT NULL;
 
--- 2. AGGIORNA CONSTRAINT SU SUBSCRIPTION_TYPE
+-- 2. SISTEMA I DATI ESISTENTI PRIMA DI AGGIORNARE IL CONSTRAINT
 -- ========================================
 
--- Rimuovi il constraint esistente se esiste e aggiungine uno nuovo
+-- Prima sistema tutti i subscription_type 'free' convertendoli in NULL
+UPDATE public.profiles 
+SET subscription_type = NULL 
+WHERE subscription_type = 'free';
+
+-- Ora rimuovi il constraint esistente se esiste
 ALTER TABLE public.profiles 
 DROP CONSTRAINT IF EXISTS profiles_subscription_type_check;
 
+-- Aggiungi il nuovo constraint
 ALTER TABLE public.profiles 
 ADD CONSTRAINT profiles_subscription_type_check 
 CHECK (subscription_type IN ('monthly', 'lifetime') OR subscription_type IS NULL);

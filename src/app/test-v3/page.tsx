@@ -1861,7 +1861,7 @@ const StudiusAIV2: React.FC = () => {
                     <h3 className="text-lg font-semibold text-white">Accedi per iniziare</h3>
                   </div>
                   <p className="text-gray-300 mb-4 text-sm">
-                    Crea un account gratuito e ricevi 100 crediti per iniziare subito!
+                    Crea un account gratuito e ricevi 120 crediti per iniziare subito!
                   </p>
                   <div className="flex gap-2">
                     <button

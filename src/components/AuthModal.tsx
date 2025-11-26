@@ -104,7 +104,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'l
                 </div>
                 <div>
                   <h3 className="text-green-300 font-semibold">Bonus di Benvenuto!</h3>
-                  <p className="text-green-200 text-sm">Ricevi 100 crediti gratuiti alla registrazione</p>
+                  <p className="text-green-200 text-sm">Ricevi 120 crediti gratuiti alla registrazione</p>
                 </div>
               </div>
             </div>

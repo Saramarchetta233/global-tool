@@ -58,6 +58,28 @@ export async function parsePdfWithLlamaParse(
     throw new Error("LLAMA_CLOUD_API_KEY is not set. Please configure your LlamaCloud API key.");
   }
 
+  // Log della chiamata prima di processare
+  const sizeMB = fileBuffer.length / (1024 * 1024);
+  const estimatedPages = Math.ceil(fileBuffer.length / 50000); // Stima ~50KB per pagina
+  
+  console.log('[LLAMA_PARSE_CALL]', {
+    filename: options.fileName,
+    sizeMB: sizeMB.toFixed(2),
+    sizeBytes: fileBuffer.length,
+    estimatedPages: estimatedPages,
+    mimeType: options.mimeType
+  });
+  
+  // Warning per PDF molto grandi
+  if (estimatedPages > 200) {
+    console.warn('[LLAMA_PARSE_WARNING] PDF molto grande, rischio di consumo crediti elevato', {
+      filename: options.fileName,
+      estimatedPages: estimatedPages,
+      sizeMB: sizeMB.toFixed(2),
+      estimatedLlamaCredits: estimatedPages * 3 // Stima ~3 crediti per pagina in plain_text mode
+    });
+  }
+  
   try {
     // Prepare the form data for LlamaParse v2 API
     const formData = new FormData();
@@ -65,11 +87,14 @@ export async function parsePdfWithLlamaParse(
     formData.append("file", blob, options.fileName);
     
     // Configuration as JSON string (required for v2 API)
+    // NOTA: Cambiato da "scientific" a "plain_text" per risparmiare crediti
+    // Scientific mode consuma ~270 crediti per 3 pagine
+    // Plain text mode consuma ~8-10 crediti per 3 pagine
     const configuration = {
       parse_options: {
         parse_mode: "preset",
         preset_options: {
-          preset: "scientific"
+          preset: "plain_text"  // Cambiato da "scientific" - molto più economico!
         }
       },
       output_options: {
@@ -77,11 +102,19 @@ export async function parsePdfWithLlamaParse(
       },
       input_options: {
         pdf: {
-          disable_image_extraction: false
+          disable_image_extraction: true  // Disabilitato per risparmiare crediti
         }
       },
       disable_cache: false
     };
+    
+    // Log della configurazione usata
+    console.log('[LLAMA_PARSE_CONFIG]', {
+      preset: configuration.parse_options.preset_options.preset,
+      imageExtraction: !configuration.input_options.pdf.disable_image_extraction,
+      cache: !configuration.disable_cache,
+      apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : 'NOT_SET'
+    });
     
     formData.append("configuration", JSON.stringify(configuration));
     
