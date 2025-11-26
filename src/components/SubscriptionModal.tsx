@@ -11,7 +11,7 @@ interface SubscriptionModalProps {
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const { user, updateCredits } = useAuth();
+  const { user, refreshProfile } = useAuth();
 
   const plans = [
     {
@@ -19,10 +19,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
       name: 'Piano Mensile',
       price: '19,99€',
       period: '/mese',
-      credits: 1500,
+      credits: 2000,
       features: [
-        '1.500 crediti al mese',
+        '2.000 crediti al mese',
         'Rinnovo automatico',
+        'Sblocca ricariche crediti',
         'Supporto prioritario',
         'Accesso a tutte le funzioni'
       ],
@@ -34,10 +35,11 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
       name: 'Piano Lifetime',
       price: '69€',
       period: 'una tantum',
-      credits: 5000,
+      credits: 6000,
       features: [
-        '5.000 crediti subito',
+        '6.000 crediti subito',
         'Accesso a vita',
+        'Sblocca ricariche crediti',
         'Niente rinnovi',
         'Supporto prioritario',
         'Futuri aggiornamenti inclusi'
@@ -52,30 +54,31 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/credits/add', {
+      const endpoint = plan.id === 'monthly' ? '/api/subscription/monthly' : '/api/subscription/lifetime';
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          amount: plan.credits
-        })
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
+        }
       });
 
       if (response.ok) {
         const data = await response.json();
-        updateCredits(data.newBalance);
+        
+        // Refresh user profile to get updated subscription status
+        await refreshProfile();
         
         if (plan.id === 'monthly') {
-          alert(`🎉 Abbonamento Mensile attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\n\n(Simulazione: non ci sarà rinnovo automatico)`);
+          alert(`🎉 Abbonamento Mensile attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\nOra puoi acquistare ricariche crediti!\n\n(Simulazione: non ci sarà rinnovo automatico)`);
         } else {
-          alert(`👑 Piano Lifetime attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\n\nComplimenti per l'accesso a vita!`);
+          alert(`👑 Piano Lifetime attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\nOra puoi acquistare ricariche crediti!\n\nComplimenti per l'accesso a vita!`);
         }
         
         onClose();
       } else {
-        throw new Error('Errore nell\'attivazione');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore nell\'attivazione');
       }
     } catch (error) {
       console.error('Errore abbonamento:', error);

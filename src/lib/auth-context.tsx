@@ -8,6 +8,13 @@ interface User {
   id: string;
   email: string;
   credits: number;
+  subscription: {
+    type: string;
+    active: boolean;
+    lifetime: boolean;
+    renewalDate: string | null;
+  };
+  canPurchaseRecharge: boolean;
 }
 
 interface AuthContextType {
@@ -19,6 +26,7 @@ interface AuthContextType {
   logout: () => void;
   updateCredits: (newCredits: number) => void;
   refreshCredits: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,10 +39,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const profileInitPromiseRef = React.useRef<Map<string, Promise<number>>>(new Map());
+  const profileInitPromiseRef = React.useRef<Map<string, Promise<{credits: number, subscription: any, canPurchaseRecharge: boolean}>>>(new Map());
 
   // Function to initialize user profile and get credits (con deduplicazione)
-  const initUserProfile = async (userId: string): Promise<number> => {
+  const initUserProfile = async (userId: string): Promise<{credits: number, subscription: any, canPurchaseRecharge: boolean}> => {
     // Se c'è già una richiesta in corso per questo userId, ritorna quella
     const existingPromise = profileInitPromiseRef.current.get(userId);
     if (existingPromise) {
@@ -61,10 +69,28 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json();
-        return data.credits || 120;
+        return {
+          credits: data.credits || 120,
+          subscription: data.subscription || {
+            type: 'free',
+            active: false,
+            lifetime: false,
+            renewalDate: null
+          },
+          canPurchaseRecharge: data.canPurchaseRecharge || false
+        };
       } else {
         console.error('Failed to initialize profile');
-        return 120;
+        return {
+          credits: 120,
+          subscription: {
+            type: 'free',
+            active: false,
+            lifetime: false,
+            renewalDate: null
+          },
+          canPurchaseRecharge: false
+        };
       }
     } catch (error) {
       if (error instanceof Error && error.name === 'AbortError') {
@@ -72,7 +98,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
       } else {
         console.error('Error initializing profile:', error);
       }
-      return 120;
+      return {
+        credits: 120,
+        subscription: {
+          type: 'free',
+          active: false,
+          lifetime: false,
+          renewalDate: null
+        },
+        canPurchaseRecharge: false
+      };
     } finally {
       // Rimuovi la promise dalla mappa dopo che è completata
       profileInitPromiseRef.current.delete(userId);
@@ -88,16 +123,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const createUserFromSupabase = async (supabaseUser: SupabaseUser): Promise<User> => {
     try {
       // Initialize user profile and get credits from profiles table
-      const credits = await initUserProfile(supabaseUser.id);
+      const profileData = await initUserProfile(supabaseUser.id);
 
       return {
         id: supabaseUser.id,
         email: supabaseUser.email!,
-        credits: credits
+        credits: profileData.credits,
+        subscription: profileData.subscription,
+        canPurchaseRecharge: profileData.canPurchaseRecharge
       };
     } catch (error) {
       console.error('Error in createUserFromSupabase:', error);
-      return { id: supabaseUser.id, email: supabaseUser.email!, credits: 120 };
+      return { 
+        id: supabaseUser.id, 
+        email: supabaseUser.email!, 
+        credits: 120,
+        subscription: {
+          type: 'free',
+          active: false,
+          lifetime: false,
+          renewalDate: null
+        },
+        canPurchaseRecharge: false
+      };
     }
   };
 
@@ -291,6 +339,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Funzione per ricaricare tutti i dati del profilo dal database
+  const refreshProfile = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const profileData = await initUserProfile(user.id);
+      
+      const updatedUser = {
+        ...user,
+        credits: profileData.credits,
+        subscription: profileData.subscription,
+        canPurchaseRecharge: profileData.canPurchaseRecharge
+      };
+      
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    } catch (error) {
+      console.error('Error refreshing profile:', error);
+    }
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -300,6 +369,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     logout,
     updateCredits,
     refreshCredits,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

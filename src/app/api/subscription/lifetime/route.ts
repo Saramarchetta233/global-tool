@@ -21,58 +21,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Aggiorna lo status della subscription a lifetime
-    const { data: subscriptionUpdate, error: subError } = await supabaseAdmin
-      .rpc('update_subscription', {
-        p_user_id: user.id,
-        p_subscription_type: 'lifetime',
-        p_duration_months: null // Lifetime non ha scadenza
+    // Attiva abbonamento lifetime con la nuova funzione (include anche i crediti)
+    const { data: activationResult, error: activationError } = await supabaseAdmin
+      .rpc('activate_lifetime_subscription', {
+        p_user_id: user.id
       });
 
-    if (subError || !subscriptionUpdate?.success) {
-      console.error('❌ Error updating lifetime subscription:', subError || subscriptionUpdate);
+    if (activationError || !activationResult?.success) {
+      console.error('❌ Error activating lifetime subscription:', activationError || activationResult);
       return NextResponse.json(
-        { error: 'Failed to update subscription status' },
+        { error: activationResult?.error || 'Failed to activate lifetime subscription' },
         { status: 500 }
       );
     }
 
-    console.log('✅ Lifetime subscription updated:', subscriptionUpdate);
-
-    // 2. Assegna 6.000 crediti per l'abbonamento lifetime
-    const creditAmount = 6000;
-    const { data: creditResult, error: creditError } = await supabaseAdmin
-      .rpc('assign_credits', {
-        p_user_id: user.id,
-        p_amount: creditAmount,
-        p_transaction_type: 'lifetime_purchase',
-        p_description: `Abbonamento Lifetime - ${creditAmount} crediti`,
-        p_subscription_type: 'lifetime'
-      });
-
-    if (creditError || !creditResult?.success) {
-      console.error('❌ Error assigning lifetime credits:', creditError || creditResult);
-      return NextResponse.json(
-        { error: 'Failed to assign lifetime credits' },
-        { status: 500 }
-      );
-    }
-
-    console.log('✅ Lifetime credits assigned:', creditResult);
+    console.log('✅ Lifetime subscription activated:', activationResult);
 
     return NextResponse.json({
       success: true,
       subscription: {
         type: 'lifetime',
-        startDate: subscriptionUpdate.start_date,
-        endDate: null, // Lifetime non scade mai
-        isLifetime: true
+        active: true,
+        isLifetime: true,
+        noExpiration: true
       },
       credits: {
-        assigned: creditAmount,
-        newBalance: creditResult.new_balance
+        assigned: 6000,
+        newBalance: activationResult.new_balance
       },
-      transactionId: creditResult.transaction_id
+      message: 'Abbonamento Lifetime attivato con successo! 6.000 crediti aggiunti.'
     });
 
   } catch (error) {

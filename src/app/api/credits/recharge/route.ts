@@ -40,55 +40,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. CONTROLLO FONDAMENTALE: Verifica che l'utente possa acquistare ricariche
-    const { data: canRecharge, error: rechargeCheckError } = await supabaseAdmin
-      .rpc('can_purchase_recharge', {
-        p_user_id: user.id
-      });
-
-    if (rechargeCheckError) {
-      console.error('❌ Error checking recharge eligibility:', rechargeCheckError);
-      return NextResponse.json(
-        { error: 'Failed to verify recharge eligibility' },
-        { status: 500 }
-      );
-    }
-
-    // Se l'utente non può ricaricare (no subscription attivo)
-    if (!canRecharge) {
-      console.log('❌ User cannot purchase recharge - no active subscription');
-      return NextResponse.json(
-        { 
-          error: 'subscription_required',
-          message: 'È necessario un abbonamento attivo (Mensile o Lifetime) per acquistare ricariche crediti.'
-        },
-        { status: 403 }
-      );
-    }
-
-    console.log('✅ User eligible for recharge');
-
-    // 2. Processa la ricarica
+    // Processa la ricarica con la nuova funzione protetta
     const rechargePackage = RECHARGE_PACKAGES[packageType as keyof typeof RECHARGE_PACKAGES];
     
-    const { data: creditResult, error: creditError } = await supabaseAdmin
-      .rpc('assign_credits', {
+    const { data: rechargeResult, error: rechargeError } = await supabaseAdmin
+      .rpc('purchase_credit_recharge', {
         p_user_id: user.id,
         p_amount: rechargePackage.credits,
-        p_transaction_type: 'credit_recharge',
-        p_description: `Ricarica ${rechargePackage.credits} crediti (€${rechargePackage.price})`,
-        p_subscription_type: null // Le ricariche non sono legate a subscription type specifico
+        p_price_paid: rechargePackage.price,
+        p_description: `Ricarica ${rechargePackage.credits} crediti (€${rechargePackage.price})`
       });
 
-    if (creditError || !creditResult?.success) {
-      console.error('❌ Error processing credit recharge:', creditError || creditResult);
+    if (rechargeError || !rechargeResult?.success) {
+      console.error('❌ Error processing credit recharge:', rechargeError || rechargeResult);
+      
+      // Se l'errore è dovuto alla mancanza di abbonamento
+      if (rechargeResult?.error?.includes('abbonamento')) {
+        return NextResponse.json(
+          { 
+            error: 'subscription_required',
+            message: 'È necessario un abbonamento attivo (Mensile o Lifetime) per acquistare ricariche crediti.'
+          },
+          { status: 403 }
+        );
+      }
+      
       return NextResponse.json(
-        { error: 'Failed to process credit recharge' },
+        { error: rechargeResult?.error || 'Failed to process credit recharge' },
         { status: 500 }
       );
     }
 
-    console.log('✅ Credit recharge processed:', creditResult);
+    console.log('✅ Credit recharge processed:', rechargeResult);
 
     return NextResponse.json({
       success: true,
@@ -99,9 +82,10 @@ export async function POST(request: NextRequest) {
       },
       credits: {
         assigned: rechargePackage.credits,
-        newBalance: creditResult.new_balance
+        newBalance: rechargeResult.new_balance
       },
-      transactionId: creditResult.transaction_id
+      transactionId: rechargeResult.transaction_id,
+      message: `${rechargePackage.credits} crediti aggiunti con successo!`
     });
 
   } catch (error) {
@@ -142,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Recupera anche info sulla subscription corrente
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('subscription_type, subscription_end_date')
+      .select('subscription_type, subscription_active, lifetime_active, subscription_renewal_date, credits')
       .eq('user_id', user.id)
       .single();
 
@@ -158,9 +142,17 @@ export async function GET(request: NextRequest) {
       canPurchaseRecharge: canRecharge,
       subscription: {
         type: profile.subscription_type,
-        endDate: profile.subscription_end_date
+        active: profile.subscription_active,
+        lifetime: profile.lifetime_active,
+        renewalDate: profile.subscription_renewal_date
       },
-      availablePackages: canRecharge ? RECHARGE_PACKAGES : null
+      credits: {
+        current: profile.credits
+      },
+      availablePackages: canRecharge ? RECHARGE_PACKAGES : null,
+      message: canRecharge 
+        ? 'Ricariche disponibili' 
+        : 'È necessario un abbonamento attivo per acquistare ricariche.'
     });
 
   } catch (error) {

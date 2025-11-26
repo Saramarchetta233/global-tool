@@ -25,58 +25,34 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 1. Aggiorna lo status della subscription
-    const { data: subscriptionUpdate, error: subError } = await supabaseAdmin
-      .rpc('update_subscription', {
-        p_user_id: user.id,
-        p_subscription_type: 'monthly',
-        p_duration_months: months
+    // Attiva abbonamento mensile con la nuova funzione (include anche i crediti)
+    const { data: activationResult, error: activationError } = await supabaseAdmin
+      .rpc('activate_monthly_subscription', {
+        p_user_id: user.id
       });
 
-    if (subError || !subscriptionUpdate?.success) {
-      console.error('❌ Error updating subscription:', subError || subscriptionUpdate);
+    if (activationError || !activationResult?.success) {
+      console.error('❌ Error activating monthly subscription:', activationError || activationResult);
       return NextResponse.json(
-        { error: 'Failed to update subscription status' },
+        { error: activationResult?.error || 'Failed to activate monthly subscription' },
         { status: 500 }
       );
     }
 
-    console.log('✅ Subscription updated:', subscriptionUpdate);
-
-    // 2. Assegna 2.000 crediti per l'abbonamento mensile
-    const creditAmount = 2000;
-    const { data: creditResult, error: creditError } = await supabaseAdmin
-      .rpc('assign_credits', {
-        p_user_id: user.id,
-        p_amount: creditAmount,
-        p_transaction_type: 'monthly_subscription',
-        p_description: `Abbonamento mensile (${months} ${months === 1 ? 'mese' : 'mesi'}) - ${creditAmount} crediti`,
-        p_subscription_type: 'monthly'
-      });
-
-    if (creditError || !creditResult?.success) {
-      console.error('❌ Error assigning monthly credits:', creditError || creditResult);
-      return NextResponse.json(
-        { error: 'Failed to assign monthly credits' },
-        { status: 500 }
-      );
-    }
-
-    console.log('✅ Monthly credits assigned:', creditResult);
+    console.log('✅ Monthly subscription activated:', activationResult);
 
     return NextResponse.json({
       success: true,
       subscription: {
         type: 'monthly',
-        startDate: subscriptionUpdate.start_date,
-        endDate: subscriptionUpdate.end_date,
-        months: months
+        active: true,
+        renewalDate: activationResult.renewal_date
       },
       credits: {
-        assigned: creditAmount,
-        newBalance: creditResult.new_balance
+        assigned: 2000,
+        newBalance: activationResult.new_balance
       },
-      transactionId: creditResult.transaction_id
+      message: 'Abbonamento mensile attivato con successo! 2.000 crediti aggiunti.'
     });
 
   } catch (error) {

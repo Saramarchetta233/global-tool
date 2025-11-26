@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     // Usa supabaseAdmin per evitare problemi RLS con nuovi utenti
     const { data: profile, error } = await (supabaseAdmin || supabase)
       .from("profiles")
-      .select("id, credits")
+      .select("id, credits, subscription_type, subscription_active, lifetime_active, subscription_renewal_date")
       .eq("user_id", userId)
       .single();
 
@@ -55,6 +55,9 @@ export async function POST(req: Request) {
           user_id: userId, 
           credits: 120,
           subscription_type: 'free',
+          subscription_active: false,
+          lifetime_active: false,
+          subscription_renewal_date: null,
           oral_exam_uses: 0,
           probable_questions_uses: 0,
           created_at: new Date().toISOString(),
@@ -102,6 +105,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         ok: true, 
         credits: 120,
+        subscription: {
+          type: 'free',
+          active: false,
+          lifetime: false,
+          renewalDate: null
+        },
+        canPurchaseRecharge: false,
         action: "created",
         signupBonus: true
       });
@@ -125,6 +135,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ 
         ok: true, 
         credits: 120,
+        subscription: {
+          type: profile.subscription_type || 'free',
+          active: profile.subscription_active || false,
+          lifetime: profile.lifetime_active || false,
+          renewalDate: profile.subscription_renewal_date || null
+        },
+        canPurchaseRecharge: profile.subscription_active || profile.lifetime_active || false,
         action: "updated" 
       });
     }
@@ -133,6 +150,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       ok: true, 
       credits: profile.credits,
+      subscription: {
+        type: profile.subscription_type || 'free',
+        active: profile.subscription_active || false,
+        lifetime: profile.lifetime_active || false,
+        renewalDate: profile.subscription_renewal_date || null
+      },
+      canPurchaseRecharge: profile.subscription_active || profile.lifetime_active || false,
       action: "existing" 
     });
 
