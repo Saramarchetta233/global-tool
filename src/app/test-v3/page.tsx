@@ -1289,6 +1289,16 @@ const StudiusAIV2: React.FC = () => {
           );
           await saveStudySession(historyData);
           console.log('Study session saved to history');
+          
+          // Trigger a custom event to notify other components that history was updated
+          // This ensures the new document appears immediately in the history
+          setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('historyUpdated', { 
+              detail: { sessionId: studyResults.sessionId, fileName: file.name } 
+            }));
+            console.log('📋 History update event dispatched');
+          }, 500);
+          
         } catch (historyError) {
           console.error('Failed to save study session:', historyError);
         }
