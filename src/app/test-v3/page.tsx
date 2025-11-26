@@ -130,10 +130,10 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
     return (
       <li key={node.title + level} className={`ml-${level * 2} sm:ml-${level * 4} mb-3`}>
         <div className={`${level === 0
-            ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30'
-            : level === 1
-              ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg'
-              : 'font-medium text-sm sm:text-base text-gray-100 bg-white/10 px-2 py-1 rounded-md'
+          ? 'font-bold text-lg sm:text-xl text-emerald-300 bg-emerald-500/20 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-emerald-500/30'
+          : level === 1
+            ? 'font-semibold text-base sm:text-lg text-teal-300 bg-teal-500/10 px-2 sm:px-3 py-1 rounded-lg'
+            : 'font-medium text-sm sm:text-base text-gray-100 bg-white/10 px-2 py-1 rounded-md'
           } mb-2 inline-block`}>
           {node.title}
         </div>
@@ -743,26 +743,26 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
                   key={index}
                   onClick={() => selectOption(index)}
                   className={`w-full p-4 text-left rounded-2xl border-2 transition-all duration-300 font-medium ${userAnswers[currentQuestion] === null
-                      ? 'border-white/20 hover:border-orange-400/50 hover:bg-white/10 text-gray-200 hover:text-white'
-                      : userAnswers[currentQuestion] === index
-                        ? index === question.correct_option_index
-                          ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
-                          : 'border-red-500 bg-red-500/20 text-red-300 backdrop-blur-sm'
-                        : index === question.correct_option_index && showExplanation
-                          ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
-                          : 'border-white/20 bg-white/10 text-gray-300'
+                    ? 'border-white/20 hover:border-orange-400/50 hover:bg-white/10 text-gray-200 hover:text-white'
+                    : userAnswers[currentQuestion] === index
+                      ? index === question.correct_option_index
+                        ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
+                        : 'border-red-500 bg-red-500/20 text-red-300 backdrop-blur-sm'
+                      : index === question.correct_option_index && showExplanation
+                        ? 'border-green-500 bg-green-500/20 text-green-300 backdrop-blur-sm'
+                        : 'border-white/20 bg-white/10 text-gray-300'
                     }`}
                 >
                   <div className="flex items-center gap-3">
                     <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center text-sm font-bold ${userAnswers[currentQuestion] === null
-                        ? 'border-gray-400 text-gray-400'
-                        : userAnswers[currentQuestion] === index
-                          ? index === question.correct_option_index
-                            ? 'border-green-400 bg-green-500 text-white'
-                            : 'border-red-400 bg-red-500 text-white'
-                          : index === question.correct_option_index && showExplanation
-                            ? 'border-green-400 bg-green-500 text-white'
-                            : 'border-gray-500 text-gray-500'
+                      ? 'border-gray-400 text-gray-400'
+                      : userAnswers[currentQuestion] === index
+                        ? index === question.correct_option_index
+                          ? 'border-green-400 bg-green-500 text-white'
+                          : 'border-red-400 bg-red-500 text-white'
+                        : index === question.correct_option_index && showExplanation
+                          ? 'border-green-400 bg-green-500 text-white'
+                          : 'border-gray-500 text-gray-500'
                       }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
@@ -920,7 +920,7 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
   const [isGenerating, setIsGenerating] = useState(false);
   const [cost, setCost] = useState(0);
   const [isCheckingCost, setIsCheckingCost] = useState(true);
-  
+
   // IMPORTANTE: Non mostrare "GRATIS" mentre stiamo controllando
   const shouldShowAsFree = cost === 0 && !isCheckingCost;
 
@@ -949,14 +949,14 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
       if (response.ok) {
         const data = await response.json();
         console.log('✅ [CRITICAL_DEBUG_PROBABLE] checkCost API response:', data);
-        
+
         // Controlla se la risposta contiene un errore
         if (data.error) {
           console.error('🔍 [CRITICAL_DEBUG_PROBABLE] checkCost API returned error:', data.message);
           // Non impostare nulla in caso di errore, lascia il valore precedente
           return;
         }
-        
+
         console.log('🐛 [CRITICAL_DEBUG_PROBABLE] About to set cost to:', data.cost);
         setCost(data.cost);
         console.log('🐛 [CRITICAL_DEBUG_PROBABLE] setCost called with:', data.cost);
@@ -1002,12 +1002,12 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
         const data = await response.json();
         console.log('🐛 [DEBUG] Probable questions API response:', {
           wasFree: data.wasFree,
-          isFirstTime: data.isFirstTime, 
+          isFirstTime: data.isFirstTime,
           creditsUsed: data.creditsUsed,
           newCreditBalance: data.newCreditBalance,
           questionCount: data.questions?.length
         });
-        
+
         updateStudyGuideState({ probableQuestions: data.questions || [] });
 
         // Credits are handled by the API, no need to update locally in this component
@@ -1022,7 +1022,7 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
         // SEMPRE ricontrolla dal server dopo aver usato il servizio per aggiornare UI
         console.log('🔄 [CRITICAL_DEBUG_PROBABLE] About to recheck cost after successful generation');
         console.log('🐛 [CRITICAL_DEBUG_PROBABLE] Current cost state before update:', cost);
-        
+
         // Aggiorna subito lo stato locale per feedback immediato
         if (data.wasFree) {
           console.log('🎉 [CRITICAL_DEBUG_PROBABLE] First probable questions generation - FREE!');
@@ -1030,7 +1030,7 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
           setCost(5); // Next time will cost 5
           console.log('🐛 [CRITICAL_DEBUG_PROBABLE] setCost(5) called');
         }
-        
+
         try {
           // SEMPRE ricontrolla dal server per stato definitivo
           console.log('🐛 [CRITICAL_DEBUG_PROBABLE] Calling checkCost after generation...');
@@ -1170,7 +1170,7 @@ const StudiusAIV2: React.FC = () => {
     studyGuideState,
     updateStudyGuideState
   } = useStudySessionStore();
-  
+
   // Get documentId from store
   const { documentId } = useStudySessionStore();
 
@@ -1340,10 +1340,10 @@ const StudiusAIV2: React.FC = () => {
 
   const handleSelectFromHistory = (historicalDocument: any) => {
     console.log('🔄 Caricando documento dallo storico:', historicalDocument);
-    console.log('[DEBUG_DOC_ROUTE]', { 
+    console.log('[DEBUG_DOC_ROUTE]', {
       documentId: historicalDocument.id,
       sessionId: historicalDocument.sessionId,
-      userId: user?.id 
+      userId: user?.id
     });
 
     // Use store method to load from history - this will restore all state including tutor messages and exam state
@@ -1932,8 +1932,8 @@ const StudiusAIV2: React.FC = () => {
                     📄 File PDF
                   </label>
                   <div className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 ${file
-                      ? 'border-green-400 bg-green-400/10'
-                      : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
+                    ? 'border-green-400 bg-green-400/10'
+                    : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
                     }`}>
                     <input
                       ref={fileInputRef}
@@ -2200,8 +2200,8 @@ const StudiusAIV2: React.FC = () => {
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={`flex-1 min-w-[120px] sm:min-w-[140px] py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-medium text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${activeTab === tab.id
-                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
-                            : 'text-gray-300 hover:text-white hover:bg-white/10'
+                          ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
+                          : 'text-gray-300 hover:text-white hover:bg-white/10'
                           }`}
                       >
                         <IconComponent size={16} className="sm:w-4 sm:h-4" />
@@ -2333,8 +2333,8 @@ const StudiusAIV2: React.FC = () => {
                       <button
                         onClick={() => setExamSubTab('scritto')}
                         className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${examSubTab === 'scritto'
-                            ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
                           }`}
                       >
                         <FileText size={18} />
@@ -2343,8 +2343,8 @@ const StudiusAIV2: React.FC = () => {
                       <button
                         onClick={() => setExamSubTab('orale')}
                         className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${examSubTab === 'orale'
-                            ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
-                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          ? 'bg-orange-500/30 text-orange-200 border border-orange-400/50 shadow-lg'
+                          : 'text-gray-400 hover:text-white hover:bg-white/5'
                           }`}
                       >
                         <MessageCircle size={18} />
@@ -2480,79 +2480,79 @@ const StudiusAIV2: React.FC = () => {
                               return <div className="whitespace-pre-wrap text-lg">{results.guida_esame}</div>;
                             }
                           }
-                          
+
                           // Ora results.guida_esame è un oggetto, mostra la versione formattata
                           return (
-                          <div className="space-y-6">
-                            {results.guida_esame && typeof results.guida_esame === 'object' && (
-                              <>
-                                {results.guida_esame.introduzione && (
-                                  <div className="bg-blue-500/20 backdrop-blur-sm p-6 rounded-2xl border border-blue-500/30">
-                                    <h5 className="font-semibold text-blue-300 mb-3 flex items-center gap-2">
-                                      <Sparkles className="w-5 h-5" />
-                                      💡 Introduzione Strategica
-                                    </h5>
-                                    <p className="text-blue-200 text-lg leading-relaxed">{results.guida_esame.introduzione}</p>
-                                  </div>
-                                )}
+                            <div className="space-y-6">
+                              {results.guida_esame && typeof results.guida_esame === 'object' && (
+                                <>
+                                  {results.guida_esame.introduzione && (
+                                    <div className="bg-blue-500/20 backdrop-blur-sm p-6 rounded-2xl border border-blue-500/30">
+                                      <h5 className="font-semibold text-blue-300 mb-3 flex items-center gap-2">
+                                        <Sparkles className="w-5 h-5" />
+                                        💡 Introduzione Strategica
+                                      </h5>
+                                      <p className="text-blue-200 text-lg leading-relaxed">{results.guida_esame.introduzione}</p>
+                                    </div>
+                                  )}
 
-                                {results.guida_esame.tempo_totale && (
-                                  <div className="bg-purple-500/20 backdrop-blur-sm p-6 rounded-2xl border border-purple-500/30">
-                                    <h5 className="font-semibold text-purple-300 mb-2 flex items-center gap-2">
-                                      <Clock className="w-5 h-5" />
-                                      ⏱️ Tempo Totale
-                                    </h5>
-                                    <p className="text-purple-200 text-lg">{results.guida_esame.tempo_totale}</p>
-                                  </div>
-                                )}
+                                  {results.guida_esame.tempo_totale && (
+                                    <div className="bg-purple-500/20 backdrop-blur-sm p-6 rounded-2xl border border-purple-500/30">
+                                      <h5 className="font-semibold text-purple-300 mb-2 flex items-center gap-2">
+                                        <Clock className="w-5 h-5" />
+                                        ⏱️ Tempo Totale
+                                      </h5>
+                                      <p className="text-purple-200 text-lg">{results.guida_esame.tempo_totale}</p>
+                                    </div>
+                                  )}
 
-                                {results.guida_esame.piano_di_studio && (
-                                  <div>
-                                    <h5 className="font-semibold text-white mb-6 text-xl flex items-center gap-2">
-                                      <BookOpen className="w-6 h-6" />
-                                      📋 Piano di Studio Dettagliato
-                                    </h5>
-                                    {Array.isArray(results.guida_esame.piano_di_studio) ? (
-                                      <div className="space-y-6">
-                                        {results.guida_esame.piano_di_studio.map((fase: any, index: number) => (
-                                          <div key={index} className="bg-white/5 rounded-2xl p-6 border border-white/10 border-l-4 border-l-green-500 relative">
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-green-500 to-emerald-500 rounded-l-2xl"></div>
-                                            <div className="flex items-center gap-4 mb-4">
-                                              <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold">
-                                                {index + 1}
+                                  {results.guida_esame.piano_di_studio && (
+                                    <div>
+                                      <h5 className="font-semibold text-white mb-6 text-xl flex items-center gap-2">
+                                        <BookOpen className="w-6 h-6" />
+                                        📋 Piano di Studio Dettagliato
+                                      </h5>
+                                      {Array.isArray(results.guida_esame.piano_di_studio) ? (
+                                        <div className="space-y-6">
+                                          {results.guida_esame.piano_di_studio.map((fase: any, index: number) => (
+                                            <div key={index} className="bg-white/5 rounded-2xl p-6 border border-white/10 border-l-4 border-l-green-500 relative">
+                                              <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-green-500 to-emerald-500 rounded-l-2xl"></div>
+                                              <div className="flex items-center gap-4 mb-4">
+                                                <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold">
+                                                  {index + 1}
+                                                </div>
+                                                <div>
+                                                  <h6 className="font-semibold text-green-300 text-lg">{fase.fase || `Fase ${index + 1}`}</h6>
+                                                  {fase.durata && (
+                                                    <p className="text-purple-300 text-sm flex items-center gap-2">
+                                                      <Clock className="w-4 h-4" />
+                                                      Durata: {fase.durata}
+                                                    </p>
+                                                  )}
+                                                </div>
                                               </div>
-                                              <div>
-                                                <h6 className="font-semibold text-green-300 text-lg">{fase.fase || `Fase ${index + 1}`}</h6>
-                                                {fase.durata && (
-                                                  <p className="text-purple-300 text-sm flex items-center gap-2">
-                                                    <Clock className="w-4 h-4" />
-                                                    Durata: {fase.durata}
-                                                  </p>
-                                                )}
-                                              </div>
+                                              <p className="text-gray-200 leading-relaxed text-lg">{fase.descrizione || fase.attivita || fase}</p>
                                             </div>
-                                            <p className="text-gray-200 leading-relaxed text-lg">{fase.descrizione || fase.attivita || fase}</p>
-                                          </div>
-                                        ))}
-                                      </div>
-                                    ) : (
-                                      <div className="text-gray-200 whitespace-pre-wrap text-lg">{results.guida_esame.piano_di_studio}</div>
-                                    )}
-                                  </div>
-                                )}
+                                          ))}
+                                        </div>
+                                      ) : (
+                                        <div className="text-gray-200 whitespace-pre-wrap text-lg">{results.guida_esame.piano_di_studio}</div>
+                                      )}
+                                    </div>
+                                  )}
 
-                                {results.guida_esame.consigli_finali && (
-                                  <div className="bg-yellow-500/20 backdrop-blur-sm p-6 rounded-2xl border border-yellow-500/30">
-                                    <h5 className="font-semibold text-yellow-300 mb-3 flex items-center gap-2">
-                                      <Star className="w-5 h-5" />
-                                      ⭐ Consigli Finali per il Successo
-                                    </h5>
-                                    <p className="text-yellow-200 text-lg leading-relaxed">{results.guida_esame.consigli_finali}</p>
-                                  </div>
-                                )}
-                              </>
-                            )}
-                          </div>
+                                  {results.guida_esame.consigli_finali && (
+                                    <div className="bg-yellow-500/20 backdrop-blur-sm p-6 rounded-2xl border border-yellow-500/30">
+                                      <h5 className="font-semibold text-yellow-300 mb-3 flex items-center gap-2">
+                                        <Star className="w-5 h-5" />
+                                        ⭐ Consigli Finali per il Successo
+                                      </h5>
+                                      <p className="text-yellow-200 text-lg leading-relaxed">{results.guida_esame.consigli_finali}</p>
+                                    </div>
+                                  )}
+                                </>
+                              )}
+                            </div>
                           );
                         })()}
                       </div>

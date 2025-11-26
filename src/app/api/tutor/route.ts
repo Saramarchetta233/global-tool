@@ -4,7 +4,7 @@ import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { createTutorPrompt } from '@/lib/prompts';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
-import '@/lib/redis-cache'; // Inizializza il cache Redis
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -292,16 +292,14 @@ export async function POST(request: NextRequest) {
 
         console.log('✅ Chat messages saved for document:', documentId);
         
-        // CACHE la nuova informazione per 30 secondi per nuovi utenti (stesso fix dell'esame orale)
-        console.log('💾 [NEW_USER_CACHE] Caching updated tutor count for immediate reads...');
+        // CACHE la nuova informazione con Redis
+        console.log('🚀 [REDIS_CACHE] Caching updated tutor count for immediate reads...');
         try {
           const tempCacheKey = `tutor_messages_${user.id}_${documentId}`;
-          (global as any).tempUserCache = (global as any).tempUserCache || new Map();
-          (global as any).tempUserCache.set(tempCacheKey, {
-            value: messageCount + 1, // +1 perché abbiamo appena aggiunto il messaggio
-            expires: Date.now() + (30 * 24 * 60 * 60 * 1000) // 30 giorni = 1 mese
-          });
-          console.log('💾 [NEW_USER_CACHE] Cached tutor count:', messageCount + 1, 'for key:', tempCacheKey);
+          const newCount = messageCount + 1; // +1 perché abbiamo appena aggiunto il messaggio
+          
+          await cache.set(tempCacheKey, newCount, 30 * 24 * 60 * 60 * 1000); // 30 giorni
+          console.log('🚀 [REDIS_CACHE] Cached tutor count:', newCount, 'for key:', tempCacheKey);
           
           // NUOVO: Cache anche i messaggi stessi per lo storico
           const historyCacheKey = `tutor_history_${user.id}_${documentId}`;

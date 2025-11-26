@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyAuth } from '@/lib/middleware';
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { supabaseAdmin } from '@/lib/supabase';
-import '@/lib/redis-cache'; // Inizializza il cache Redis
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -28,19 +28,19 @@ export async function GET(request: NextRequest) {
       documentId: documentId.substring(0, 8) + '...'
     });
     
-    // CONTROLLA CACHE temporanea per risolvere problema isolation nuovi utenti (stesso fix dell'esame orale)
+    // CONTROLLA CACHE Redis per risolvere problema isolation nuovi utenti
     const tempCacheKey = `tutor_messages_${user.id}_${documentId}`;
-    const cachedData = (global as any).tempUserCache?.get(tempCacheKey);
+    const cachedCount = await cache.get(tempCacheKey);
     
-    if (cachedData && cachedData.expires > Date.now()) {
-      console.log('💾 [NEW_USER_CACHE] Found cached tutor count:', cachedData.value);
-      const messageCount = cachedData.value;
+    if (cachedCount !== null) {
+      console.log('🚀 [REDIS_CACHE_HIT] Found cached tutor count:', cachedCount);
+      const messageCount = cachedCount;
       const isWithinFreeLimit = messageCount < CreditCosts.tutorFreeMessages;
       const freeMessagesRemaining = isWithinFreeLimit 
         ? CreditCosts.tutorFreeMessages - messageCount 
         : 0;
       
-      console.log('📊 Tutor count response for document (CACHED):', {
+      console.log('📊 Tutor count response for document (REDIS CACHED):', {
         documentId: documentId.substring(0, 8) + '...',
         messageCount,
         freeMessagesRemaining,

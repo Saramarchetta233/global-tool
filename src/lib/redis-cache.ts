@@ -1,10 +1,17 @@
 import { Redis } from '@upstash/redis';
 
-// Configurazione Redis
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+// Configurazione Redis con controllo sicurezza
+let redis: Redis | null = null;
+try {
+  if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+    redis = new Redis({
+      url: process.env.UPSTASH_REDIS_REST_URL,
+      token: process.env.UPSTASH_REDIS_REST_TOKEN,
+    });
+  }
+} catch (error) {
+  console.log('Redis initialization failed, using memory-only cache:', error);
+}
 
 interface CacheItem {
   value: any;
@@ -17,7 +24,7 @@ class ProductionCache {
   async get(key: string): Promise<any> {
     try {
       // Prova prima Redis (produzione)
-      if (process.env.UPSTASH_REDIS_REST_URL) {
+      if (redis) {
         const data = await redis.get(key);
         if (data !== null) {
           console.log(`🚀 [REDIS_CACHE_HIT] Key: ${key}`);
@@ -51,7 +58,7 @@ class ProductionCache {
       const ttlSeconds = Math.ceil(ttlMs / 1000);
       
       // Salva in Redis (produzione)
-      if (process.env.UPSTASH_REDIS_REST_URL) {
+      if (redis) {
         await redis.setex(key, ttlSeconds, value);
         console.log(`🚀 [REDIS_CACHE_SET] Key: ${key}, TTL: ${ttlSeconds}s`);
       }
@@ -76,7 +83,7 @@ class ProductionCache {
   async delete(key: string): Promise<void> {
     try {
       // Rimuovi da Redis
-      if (process.env.UPSTASH_REDIS_REST_URL) {
+      if (redis) {
         await redis.del(key);
       }
       
