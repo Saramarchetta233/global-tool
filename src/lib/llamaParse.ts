@@ -220,24 +220,31 @@ export function validateLlamaParseConfig(): boolean {
 /**
  * Poll for job completion
  */
-async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: number = 30): Promise<string> {
-  console.log(`🔄 Starting polling for job ${jobId}...`);
+async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: number = 20): Promise<string> {
+  console.log(`🔄 Starting polling for job ${jobId} (max ${maxAttempts} attempts)...`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     console.log(`📡 Polling attempt ${attempt}/${maxAttempts} for job ${jobId}`);
     
     try {
-      // Check job status
+      // Check job status with timeout
       const statusResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/parsing/job/${jobId}`, {
         method: "GET",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Accept": "application/json"
-        }
+        },
+        signal: AbortSignal.timeout(10000) // 10 second timeout
       });
       
       if (!statusResponse.ok) {
         console.error(`❌ Status check failed: ${statusResponse.status}`);
+        // Try alternative status endpoint if main one fails
+        if (attempt <= 3) {
+          console.log(`🔄 Retrying with shorter wait...`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          continue;
+        }
         throw new Error(`Failed to check job status: ${statusResponse.status}`);
       }
       
@@ -247,46 +254,64 @@ async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: 
       if (status.status === 'SUCCESS') {
         console.log(`✅ Job completed! Fetching results...`);
         
-        // Get job results
-        const resultResponse = await fetch(`https://api.cloud.llamaindex.ai/api/v1/parsing/job/${jobId}/result/markdown`, {
-          method: "GET",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Accept": "application/json"
+        // Try multiple result endpoints for better compatibility
+        const resultEndpoints = [
+          `/api/v1/parsing/job/${jobId}/result/markdown`,
+          `/api/v1/parsing/job/${jobId}/result/text`,
+          `/api/v1/parsing/job/${jobId}/result`
+        ];
+        
+        for (const endpoint of resultEndpoints) {
+          try {
+            const resultResponse = await fetch(`https://api.cloud.llamaindex.ai${endpoint}`, {
+              method: "GET",
+              headers: {
+                "Authorization": `Bearer ${apiKey}`,
+                "Accept": "application/json"
+              },
+              signal: AbortSignal.timeout(15000) // 15 second timeout
+            });
+            
+            if (resultResponse.ok) {
+              const jobResult: LlamaParseJobResult = await resultResponse.json();
+              console.log(`📝 Job result received from ${endpoint}:`, Object.keys(jobResult));
+              
+              const extractedText = jobResult.markdown || jobResult.text || jobResult.result || '';
+              console.log(`📖 Final extracted text: ${extractedText.length} characters`);
+              
+              if (extractedText.length >= 50) {
+                return extractedText;
+              } else {
+                console.warn(`⚠️ Text too short from ${endpoint}, trying next endpoint...`);
+                continue;
+              }
+            } else {
+              console.warn(`⚠️ Result endpoint ${endpoint} failed with ${resultResponse.status}, trying next...`);
+            }
+          } catch (resultError) {
+            console.warn(`⚠️ Result endpoint ${endpoint} error:`, resultError);
+            continue;
           }
-        });
-        
-        if (!resultResponse.ok) {
-          throw new Error(`Failed to fetch job results: ${resultResponse.status}`);
         }
         
-        const jobResult: LlamaParseJobResult = await resultResponse.json();
-        console.log(`📝 Job result received:`, Object.keys(jobResult));
-        
-        const extractedText = jobResult.markdown || jobResult.text || '';
-        console.log(`📖 Final extracted text: ${extractedText.length} characters`);
-        
-        if (extractedText.length < 50) {
-          throw new Error(`Job completed but returned insufficient text: ${extractedText.length} characters`);
-        }
-        
-        return extractedText;
+        throw new Error(`All result endpoints failed or returned insufficient text`);
         
       } else if (status.status === 'FAILED' || status.status === 'ERROR') {
         throw new Error(`Job failed with status: ${status.status}. Error: ${status.error || 'Unknown error'}`);
       }
       
-      // Job still pending, wait before next attempt
-      console.log(`⏳ Job still ${status.status}, waiting 2 seconds...`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Job still pending, wait before next attempt with progressive backoff
+      const waitTime = Math.min(1000 + (attempt * 500), 4000); // Start at 1.5s, max 4s
+      console.log(`⏳ Job still ${status.status}, waiting ${waitTime/1000}s...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
       
     } catch (error) {
       console.error(`❌ Polling attempt ${attempt} failed:`, error);
       if (attempt === maxAttempts) {
         throw new Error(`Job polling failed after ${maxAttempts} attempts: ${error}`);
       }
-      // Wait before retry
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Shorter wait before retry for network errors
+      await new Promise(resolve => setTimeout(resolve, 1500));
     }
   }
   
