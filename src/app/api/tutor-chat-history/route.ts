@@ -21,6 +21,31 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // PRIMA: Controlla cache per storico chat
+    const historyCacheKey = `tutor_history_${user.id}_${documentId}`;
+    const cachedHistory = (global as any).tempHistoryCache?.get(historyCacheKey);
+    
+    if (cachedHistory && cachedHistory.expires > Date.now()) {
+      console.log('💾 [HISTORY_CACHE_HIT] Found cached chat history:', cachedHistory.messages.length, 'messages');
+      
+      // Trasforma i messaggi nel formato atteso dal frontend
+      const chatHistory = cachedHistory.messages.map((msg: any) => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        timestamp: msg.created_at
+      }));
+      
+      return NextResponse.json({
+        success: true,
+        history: chatHistory,
+        messageCount: chatHistory.length,
+        fromCache: true
+      });
+    }
+    
+    console.log('💾 [HISTORY_CACHE_MISS] No valid history cache found, reading from database...');
+
     if (!supabaseAdmin) {
       return NextResponse.json({
         success: true,
@@ -53,10 +78,26 @@ export async function GET(request: NextRequest) {
       timestamp: msg.created_at
     })) || [];
 
+    // Salva nel cache per future richieste
+    if (messages && messages.length > 0) {
+      console.log('💾 [HISTORY_CACHE_SET] Caching database messages for future requests...');
+      try {
+        (global as any).tempHistoryCache = (global as any).tempHistoryCache || new Map();
+        (global as any).tempHistoryCache.set(historyCacheKey, {
+          messages: messages,
+          expires: Date.now() + (90 * 24 * 60 * 60 * 1000) // 90 giorni = 3 mesi
+        });
+        console.log('💾 [HISTORY_CACHE_SET] Cached', messages.length, 'messages from database');
+      } catch (cacheError) {
+        console.log('⚠️ History cache error (non-critical):', cacheError);
+      }
+    }
+
     return NextResponse.json({
       success: true,
       history: chatHistory,
-      messageCount: chatHistory.length
+      messageCount: chatHistory.length,
+      fromDatabase: true
     });
 
   } catch (error) {

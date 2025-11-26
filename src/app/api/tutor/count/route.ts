@@ -102,7 +102,15 @@ export async function GET(request: NextRequest) {
       ? CreditCosts.tutorFreeMessages - messageCount 
       : 0;
 
-    console.log('📊 Tutor count response for document:', {
+    // Salva nel cache Redis per future richieste
+    try {
+      await cache.set(tempCacheKey, messageCount, 30 * 24 * 60 * 60 * 1000); // 30 giorni
+      console.log('🚀 [REDIS_CACHE_SET] Cached tutor count:', messageCount);
+    } catch (cacheError) {
+      console.log('⚠️ Redis cache set error (non-critical):', cacheError);
+    }
+
+    console.log('📊 Tutor count response for document (DB_READ):', {
       documentId: documentId.substring(0, 8) + '...',
       messageCount,
       freeMessagesRemaining,

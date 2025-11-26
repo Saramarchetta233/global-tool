@@ -302,41 +302,31 @@ export async function POST(request: NextRequest) {
           console.log('🚀 [REDIS_CACHE] Cached tutor count:', newCount, 'for key:', tempCacheKey);
           
           // NUOVO: Cache anche i messaggi stessi per lo storico
+          // Prima invalida il vecchio cache per forzare un refresh
           const historyCacheKey = `tutor_history_${user.id}_${documentId}`;
           (global as any).tempHistoryCache = (global as any).tempHistoryCache || new Map();
           
-          // Recupera messaggi esistenti dal cache se ci sono
-          const existingHistory = (global as any).tempHistoryCache.get(historyCacheKey);
-          const existingMessages = (existingHistory && existingHistory.expires > Date.now()) 
-            ? existingHistory.messages 
-            : [];
+          // IMPORTANTE: Non usare il cache esistente, forza refresh dal database
+          console.log('🔄 [CACHE_INVALIDATE] Invalidating old chat history cache to force fresh read...');
+          (global as any).tempHistoryCache.delete(historyCacheKey);
           
-          // Aggiungi i nuovi messaggi
-          const newMessages = [
-            ...existingMessages,
-            {
-              id: userInsert?.[0]?.id || 'temp-user-' + Date.now(),
-              role: 'user',
-              content: message,
-              created_at: new Date().toISOString(),
-              user_id: user.id,
-              document_id: documentId
-            },
-            {
-              id: assistantInsert?.[0]?.id || 'temp-assistant-' + Date.now(),
-              role: 'assistant',
-              content: reply,
-              created_at: new Date().toISOString(),
-              user_id: user.id,
-              document_id: documentId
-            }
-          ];
+          // Ottieni i messaggi aggiornati direttamente dal database
+          const { data: freshMessages, error: freshError } = await supabaseAdmin
+            .from('tutor_chat_messages')
+            .select('id, role, content, created_at, user_id, document_id')
+            .eq('user_id', user.id)
+            .eq('document_id', documentId)
+            .order('created_at', { ascending: true });
           
-          (global as any).tempHistoryCache.set(historyCacheKey, {
-            messages: newMessages,
-            expires: Date.now() + (90 * 24 * 60 * 60 * 1000) // 90 giorni = 3 mesi
-          });
-          console.log('💾 [NEW_USER_CACHE] Cached chat history, total messages:', newMessages.length);
+          if (!freshError && freshMessages) {
+            console.log('💾 [FRESH_CACHE] Caching fresh messages from database:', freshMessages.length);
+            (global as any).tempHistoryCache.set(historyCacheKey, {
+              messages: freshMessages,
+              expires: Date.now() + (90 * 24 * 60 * 60 * 1000) // 90 giorni = 3 mesi
+            });
+          } else {
+            console.log('⚠️ [FRESH_CACHE] Failed to get fresh messages, cache invalidated but not updated');
+          }
         } catch (cacheError) {
           console.log('⚠️ Cache error (non-critical):', cacheError);
         }
