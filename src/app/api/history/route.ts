@@ -63,30 +63,57 @@ export const GET = async (request: NextRequest) => {
     }
 
     // Get user's tutor sessions (PDF history) with all document metadata
-    console.log('🔍 Querying tutor_sessions for user:', userAuth.user.id);
+    console.log('🔍 [HISTORY_DEBUG] Querying tutor_sessions for user:', userAuth.user.id);
+    console.log('🔍 [HISTORY_DEBUG] User email:', userAuth.user.email);
     
     // Try both supabase and supabaseAdmin to debug RLS issues
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from('tutor_sessions')
       .select('*')
       .eq('user_id', userAuth.user.id)
-      .order('last_used_at', { ascending: false }); // Order by last_used_at for better UX
+      .order('created_at', { ascending: false }); // Changed to created_at for debugging
 
-    console.log('📊 Database query result:', { 
+    console.log('📊 [HISTORY_DEBUG] Database query result:', { 
       sessions: sessions?.length || 0, 
       error: sessionsError?.message || 'none',
+      userIdSearched: userAuth.user.id,
       sampleData: sessions?.[0] || 'no data'
     });
 
-    // Debug: Let's also check all sessions in the table
-    const { data: allSessions, error: allError } = await supabaseAdmin
+    // Debug: Check recent sessions for this user specifically
+    const { data: recentSessions, error: recentError } = await supabaseAdmin
       .from('tutor_sessions')
-      .select('id, user_id, file_name')
+      .select('id, user_id, file_name, created_at')
+      .eq('user_id', userAuth.user.id)
+      .order('created_at', { ascending: false })
+      .limit(10);
+    
+    console.log('📊 [HISTORY_DEBUG] Recent sessions for user:', { 
+      userIdSearched: userAuth.user.id,
+      recentSessions: recentSessions?.length || 0, 
+      sessions: recentSessions?.map(s => ({ 
+        id: s.id.substring(0, 8), 
+        user_id: s.user_id.substring(0, 8), 
+        file: s.file_name,
+        created: s.created_at 
+      })) || []
+    });
+
+    // Debug: Check all recent sessions regardless of user (to see if documents are being saved with different user_id)
+    const { data: allRecentSessions, error: allRecentError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('id, user_id, file_name, created_at')
+      .order('created_at', { ascending: false })
       .limit(5);
     
-    console.log('🔍 All sessions in table (debug):', { 
-      allSessions: allSessions?.length || 0, 
-      sample: allSessions?.map(s => ({ id: s.id, user_id: s.user_id, file: s.file_name })) || []
+    console.log('📊 [HISTORY_DEBUG] All recent sessions (any user):', { 
+      allRecentSessions: allRecentSessions?.length || 0, 
+      sessions: allRecentSessions?.map(s => ({ 
+        id: s.id.substring(0, 8), 
+        user_id: s.user_id.substring(0, 8), 
+        file: s.file_name,
+        created: s.created_at 
+      })) || []
     });
 
     if (sessionsError) {
