@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { withCredits } from '@/lib/middleware';
+import { cache } from '@/lib/redis-cache';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -60,6 +61,20 @@ export const GET = async (request: NextRequest) => {
         { error: 'Invalid token' },
         { status: 401 }
       );
+    }
+
+    // PRIMA: Controlla cache Redis per history (6 mesi = 180 giorni)
+    const historyCacheKey = `document_history_${userAuth.user.id}`;
+    const CACHE_TTL_6_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000; // 6 mesi in ms
+    
+    try {
+      const cachedHistory = await cache.get(historyCacheKey);
+      if (cachedHistory) {
+        console.log('🚀 [REDIS_HISTORY_CACHE_HIT] Found cached document history:', cachedHistory.length, 'documents');
+        return NextResponse.json({ history: cachedHistory });
+      }
+    } catch (cacheError) {
+      console.log('⚠️ Redis history cache error (non-critical):', cacheError);
     }
 
     // Get user's tutor sessions (PDF history) with all document metadata
@@ -192,6 +207,14 @@ export const GET = async (request: NextRequest) => {
     })) || [];
 
     console.log(`📚 Retrieved ${history.length} documents for user ${userAuth.user.id}`);
+
+    // Salva in cache Redis la history ottenuta dal database
+    try {
+      await cache.set(historyCacheKey, history, CACHE_TTL_6_MONTHS);
+      console.log('🚀 [REDIS_HISTORY_CACHE_SET] Cached document history for 6 months');
+    } catch (cacheError) {
+      console.log('⚠️ Failed to cache history (non-critical):', cacheError);
+    }
 
     return NextResponse.json({ history });
     

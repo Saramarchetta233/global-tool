@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
+import { cache } from '@/lib/redis-cache';
 
 export const dynamic = 'force-dynamic';
 
@@ -76,6 +77,15 @@ export const POST = async (request: NextRequest) => {
       fileName: sessionData.docName || sessionData.docTitle,
       userId: userAuth.user.id.substring(0, 8)
     });
+
+    // Invalida la cache Redis della history per questo utente
+    const historyCacheKey = `document_history_${userAuth.user.id}`;
+    try {
+      await cache.delete(historyCacheKey);
+      console.log('🗑️ [CACHE_INVALIDATE] History cache cleared for user after saving new document');
+    } catch (cacheError) {
+      console.log('⚠️ Failed to invalidate history cache (non-critical):', cacheError);
+    }
 
     return NextResponse.json({ 
       success: true, 
