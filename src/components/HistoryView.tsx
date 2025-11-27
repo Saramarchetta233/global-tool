@@ -6,6 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 
 interface HistoryViewProps {
   onSelectDocument: (document: any) => void;
+  refreshTrigger?: number; // Optional prop to trigger refresh
 }
 
 interface HistoryDocument {
@@ -25,7 +26,7 @@ interface HistoryDocument {
   sessionId: string;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrigger }) => {
   const [history, setHistory] = useState<HistoryDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -68,7 +69,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument }) => {
     };
 
     fetchHistory();
-  }, []); // Empty dependency array to run only once
+  }, [user?.id, token, refreshTrigger]); // Refresh when user, token, or refreshTrigger changes
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);

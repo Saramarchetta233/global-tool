@@ -1142,6 +1142,7 @@ const StudiusAIV2: React.FC = () => {
   } | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
   const { canPurchaseRecharge, subscription } = useSubscription();
@@ -1154,6 +1155,8 @@ const StudiusAIV2: React.FC = () => {
     setExamSubTab,
     sessionId,
     setSessionId,
+    documentId,
+    setDocumentId,
     docContext,
     setDocContext,
     results,
@@ -1170,9 +1173,6 @@ const StudiusAIV2: React.FC = () => {
     studyGuideState,
     updateStudyGuideState
   } = useStudySessionStore();
-
-  // Get documentId from store
-  const { documentId } = useStudySessionStore();
 
   // Simulate loading progress
   useEffect(() => {
@@ -1252,6 +1252,7 @@ const StudiusAIV2: React.FC = () => {
       // Update store with results and session data
       setResults(studyResults);
       setSessionId(studyResults.sessionId || null);
+      setDocumentId(studyResults.sessionId || null); // Fix: Also update documentId to match sessionId
 
       // Load docContext from session if sessionId exists
       if (studyResults.sessionId) {
@@ -1297,6 +1298,9 @@ const StudiusAIV2: React.FC = () => {
 
       // Set active tab to riassunto_breve after successful processing
       setActiveTab('riassunto_breve');
+      
+      // Refresh history to show the new document
+      setHistoryRefreshTrigger(prev => prev + 1);
 
     } catch (error) {
       console.error('Errore durante elaborazione:', error);
@@ -1898,7 +1902,10 @@ const StudiusAIV2: React.FC = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-3xl blur-xl"></div>
               <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-                <HistoryView onSelectDocument={handleSelectFromHistory} />
+                <HistoryView 
+                  onSelectDocument={handleSelectFromHistory} 
+                  refreshTrigger={historyRefreshTrigger} 
+                />
                 <div className="mt-8 text-center">
                   <button
                     onClick={() => setShowHistory(false)}
