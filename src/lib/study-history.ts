@@ -41,7 +41,10 @@ export interface OralExamTurn {
 /**
  * Salva o aggiorna una sessione di studio nello storico
  */
-export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'createdAt' | 'updatedAt'>): Promise<StudyHistory> {
+export async function saveStudySession(
+  session: Omit<StudyHistory, 'id' | 'createdAt' | 'updatedAt'>, 
+  authToken?: string
+): Promise<StudyHistory> {
   const sessionId = session.sessionId || crypto.randomUUID();
   const now = new Date().toISOString();
   
@@ -54,7 +57,6 @@ export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'creat
   
   try {
     // Use API endpoint to save to database (uses supabaseAdmin like history API)
-    const authToken = localStorage.getItem('auth_token');
     if (authToken) {
       console.log('💾 [SAVE_HISTORY] Using API endpoint to save to database');
       
@@ -79,7 +81,7 @@ export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'creat
         throw new Error(`API save failed: ${errorData.error}`);
       }
     } else {
-      console.warn('⚠️ [SAVE_HISTORY] No auth token found, skipping database save');
+      console.warn('⚠️ [SAVE_HISTORY] No auth token provided, skipping database save');
     }
     
   } catch (dbError) {

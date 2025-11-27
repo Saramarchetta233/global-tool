@@ -1295,7 +1295,7 @@ const StudiusAIV2: React.FC = () => {
             historyDataKeys: Object.keys(historyData)
           });
           
-          await saveStudySession(historyData);
+          await saveStudySession(historyData, token);
           console.log('✅ [DEBUG_FRONTEND_SAVE] Study session saved to history successfully');
           
         } catch (historyError) {
