@@ -272,7 +272,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         fileName.replace('.pdf', '').replace(/[_-]/g, ' ').trim() : 
         'Documento';
       
-      console.log('💾 Saving tutor session:', {
+      console.log('💾 [BACKEND_SAVE_DEBUG] Saving tutor session:', {
         sessionId,
         userId,
         fileName,
@@ -280,6 +280,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         pageCount,
         fileSize
       });
+      console.log('💾 [BACKEND_SAVE_DEBUG] userId type and value:', typeof userId, userId);
       
       const { data: insertData, error: insertError } = await supabaseAdmin
         .from('tutor_sessions')
@@ -303,12 +304,17 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         .select();
       
       // DEBUG: Log dell'inserimento documento
-      console.log('[DEBUG_INSERT_DOCUMENT]', { 
+      console.log('📊 [DEBUG_INSERT_DOCUMENT] Insert result:', { 
         userId, 
         sessionId, 
         fileName, 
-        insertError, 
-        insertData: insertData ? { id: insertData[0]?.id, user_id: insertData[0]?.user_id } : null 
+        insertError: insertError?.message || 'none',
+        insertSuccess: !!insertData,
+        insertData: insertData ? { 
+          id: insertData[0]?.id, 
+          user_id: insertData[0]?.user_id,
+          title: insertData[0]?.title 
+        } : null 
       });
       
       if (insertError) {
@@ -320,11 +326,12 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       result.sessionId = sessionId;
       console.log(`✅ Created tutor session: ${sessionId} for file: ${fileName}`);
     } catch (sessionError) {
-      console.error('❌ Failed to create tutor session:', sessionError);
-      console.error('❌ Session error details:', {
+      console.error('❌ [BACKEND_SAVE_ERROR] Failed to create tutor session:', sessionError);
+      console.error('❌ [BACKEND_SAVE_ERROR] Session error details:', {
         error: sessionError,
         userId,
-        fileName
+        fileName,
+        errorMessage: sessionError instanceof Error ? sessionError.message : 'Unknown error'
       });
       // Don't fail the whole request for session creation issues
     }

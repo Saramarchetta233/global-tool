@@ -65,6 +65,7 @@ export const GET = async (request: NextRequest) => {
     // Get user's tutor sessions (PDF history) with all document metadata
     console.log('🔍 [HISTORY_DEBUG] Querying tutor_sessions for user:', userAuth.user.id);
     console.log('🔍 [HISTORY_DEBUG] User email:', userAuth.user.email);
+    console.log('🔍 [HISTORY_DEBUG] User auth object keys:', Object.keys(userAuth.user));
     
     // Try both supabase and supabaseAdmin to debug RLS issues
     const { data: sessions, error: sessionsError } = await supabaseAdmin
