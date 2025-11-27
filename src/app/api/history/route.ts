@@ -72,11 +72,20 @@ export const GET = async (request: NextRequest) => {
       .from('tutor_sessions')
       .select('*')
       .eq('user_id', userAuth.user.id)
-      .order('created_at', { ascending: false }); // Changed to created_at for debugging
+      .order('created_at', { ascending: false }) // Changed to created_at for debugging
+      .limit(100); // Explicit limit to prevent implicit limits
+
+    // First, count total documents for this user
+    const { count, error: countError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userAuth.user.id);
 
     console.log('📊 [HISTORY_DEBUG] Database query result:', { 
       sessions: sessions?.length || 0, 
+      totalCount: count,
       error: sessionsError?.message || 'none',
+      countError: countError?.message || 'none',
       userIdSearched: userAuth.user.id,
       sampleData: sessions?.[0] || 'no data'
     });
@@ -88,6 +97,12 @@ export const GET = async (request: NextRequest) => {
       .eq('user_id', userAuth.user.id)
       .order('created_at', { ascending: false })
       .limit(10);
+
+    // Debug: Try to find the specific missing document
+    const { data: specificDoc, error: specificError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('id, user_id, file_name, created_at')
+      .eq('id', '2737a5fa-5d5e-420e-892d-9db61da74f4f'); // The missing sessionId
     
     console.log('📊 [HISTORY_DEBUG] Recent sessions for user:', { 
       userIdSearched: userAuth.user.id,
@@ -97,7 +112,14 @@ export const GET = async (request: NextRequest) => {
         user_id: s.user_id.substring(0, 8), 
         file: s.file_name,
         created: s.created_at 
-      })) || []
+      })) || [],
+      specificDocFound: !!specificDoc,
+      specificDocDetails: specificDoc?.[0] ? {
+        id: specificDoc[0].id.substring(0, 8),
+        user_id: specificDoc[0].user_id.substring(0, 8),
+        file_name: specificDoc[0].file_name,
+        userIdMatch: specificDoc[0].user_id === userAuth.user.id
+      } : 'not found'
     });
 
     // Debug: Check all recent sessions regardless of user (to see if documents are being saved with different user_id)
