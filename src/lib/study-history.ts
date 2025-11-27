@@ -69,7 +69,7 @@ export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'creat
         flashcard: session.flashcards,
         quiz: session.quizData,
         guida_esame: session.studyInOneHour,
-        extracted_text: session.extractedText,
+        pdf_text: session.extractedText,
         target_language: session.targetLanguage,
         tutor_messages: session.tutorMessages || [],
         oral_exam_history: session.oralExamHistory || [],
