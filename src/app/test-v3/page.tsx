@@ -479,16 +479,71 @@ const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: strin
         <div className="bg-green-500/20 backdrop-blur-sm p-6 rounded-2xl border border-green-500/30 mb-6">
           <h4 className="text-lg font-semibold text-green-300 mb-4">🎯 Quiz di Base</h4>
           <p className="text-green-200 mb-4">
-            Inizia con queste domande generali mentre generi un quiz personalizzato sul tuo documento.
+            Inizia con 3 domande specifiche generate automaticamente dal tuo documento.
           </p>
           <button
-            onClick={() => updateExamWrittenState({
-              customQuestions: defaultQuestions,
-              userAnswers: new Array(defaultQuestions.length).fill(null)
-            })}
-            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 font-medium transition-all duration-300"
+            onClick={async () => {
+              if (!authToken || !docContext) {
+                // Fallback to default questions if no auth or context
+                updateExamWrittenState({
+                  customQuestions: defaultQuestions,
+                  userAnswers: new Array(defaultQuestions.length).fill(null)
+                });
+                return;
+              }
+
+              setIsGenerating(true);
+              try {
+                // Generate 3 questions specific to the document
+                const response = await fetch('/api/generate-basic-quiz', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify({
+                    text: docContext,
+                    language: 'Italiano'
+                  })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.questions) {
+                  console.log('✅ Base quiz generated with document-specific questions');
+                  updateExamWrittenState({
+                    customQuestions: data.questions,
+                    userAnswers: new Array(data.questions.length).fill(null)
+                  });
+                } else {
+                  // Fallback to default questions if API fails
+                  console.log('⚠️ Base quiz generation failed, using default questions');
+                  updateExamWrittenState({
+                    customQuestions: defaultQuestions,
+                    userAnswers: new Array(defaultQuestions.length).fill(null)
+                  });
+                }
+              } catch (error) {
+                console.error('Error generating base quiz:', error);
+                // Fallback to default questions on error
+                updateExamWrittenState({
+                  customQuestions: defaultQuestions,
+                  userAnswers: new Array(defaultQuestions.length).fill(null)
+                });
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
+            disabled={isGenerating}
+            className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 font-medium transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            📝 Usa Quiz di Base ({defaultQuestions.length} domande)
+            {isGenerating ? (
+              <span className="flex items-center gap-2">
+                <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full"></div>
+                Generando...
+              </span>
+            ) : (
+              `📝 Usa Quiz di Base (3 domande sul documento)`
+            )}
           </button>
         </div>
 
