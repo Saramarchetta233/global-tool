@@ -67,6 +67,8 @@ export const GET = async (request: NextRequest) => {
     console.log('🔍 [HISTORY_DEBUG] User email:', userAuth.user.email);
     console.log('🔍 [HISTORY_DEBUG] User auth object keys:', Object.keys(userAuth.user));
     console.log('🔍 [HISTORY_DEBUG] Current timestamp:', new Date().toISOString());
+    console.log('🔍 [HISTORY_DEBUG] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 50) + '...');
+    console.log('🔍 [HISTORY_DEBUG] Using supabaseAdmin:', !!supabaseAdmin);
     
     // Try both supabase and supabaseAdmin to debug RLS issues
     const { data: sessions, error: sessionsError } = await supabaseAdmin

@@ -33,7 +33,10 @@ export const POST = async (request: NextRequest) => {
     const sessionData = body.session;
 
     console.log('💾 [SAVE_SESSION_API] Saving session for user:', userAuth.user.id);
+    console.log('💾 [SAVE_SESSION_API] User email:', userAuth.user.email);
     console.log('💾 [SAVE_SESSION_API] Session data keys:', Object.keys(sessionData));
+    console.log('💾 [SAVE_SESSION_API] Supabase URL:', process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 50) + '...');
+    console.log('💾 [SAVE_SESSION_API] Using supabaseAdmin:', !!supabaseAdmin);
 
     const now = new Date().toISOString();
     const sessionId = sessionData.sessionId || crypto.randomUUID();
