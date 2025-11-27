@@ -34,7 +34,15 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
   const fetchedRef = useRef(false);
 
   useEffect(() => {
+    console.log('📋 [HISTORY_VIEW_DEBUG] useEffect triggered:', {
+      hasUser: !!user?.id,
+      hasToken: !!token,
+      userId: user?.id?.substring(0, 8) || 'none',
+      refreshTrigger
+    });
+
     if (!user?.id || !token) {
+      console.log('📋 [HISTORY_VIEW_DEBUG] Missing user or token, skipping history fetch');
       setHistory([]);
       setLoading(false);
       return;
@@ -46,6 +54,7 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
     const fetchHistory = async () => {
       try {
         setLoading(true);
+        console.log('📋 [HISTORY_VIEW_DEBUG] Starting API call to /api/history');
         
         const response = await fetch('/api/history', {
           method: 'GET',
@@ -55,13 +64,21 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
           }
         });
 
+        console.log('📋 [HISTORY_VIEW_DEBUG] API response status:', response.status);
+
         if (response.ok) {
           const data = await response.json();
+          console.log('📋 [HISTORY_VIEW_DEBUG] API response data:', {
+            historyCount: data.history?.length || 0,
+            firstItem: data.history?.[0]?.fileName || 'none'
+          });
           setHistory(data.history || []);
         } else {
+          console.log('📋 [HISTORY_VIEW_DEBUG] API response not ok:', response.status);
           setHistory([]);
         }
       } catch (error) {
+        console.error('📋 [HISTORY_VIEW_DEBUG] API call failed:', error);
         setHistory([]);
       } finally {
         setLoading(false);
