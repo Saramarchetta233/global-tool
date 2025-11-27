@@ -66,6 +66,7 @@ export const GET = async (request: NextRequest) => {
     console.log('🔍 [HISTORY_DEBUG] Querying tutor_sessions for user:', userAuth.user.id);
     console.log('🔍 [HISTORY_DEBUG] User email:', userAuth.user.email);
     console.log('🔍 [HISTORY_DEBUG] User auth object keys:', Object.keys(userAuth.user));
+    console.log('🔍 [HISTORY_DEBUG] Current timestamp:', new Date().toISOString());
     
     // Try both supabase and supabaseAdmin to debug RLS issues
     const { data: sessions, error: sessionsError } = await supabaseAdmin
@@ -87,7 +88,12 @@ export const GET = async (request: NextRequest) => {
       error: sessionsError?.message || 'none',
       countError: countError?.message || 'none',
       userIdSearched: userAuth.user.id,
-      sampleData: sessions?.[0] || 'no data'
+      sampleData: sessions?.[0] || 'no data',
+      sessionIds: sessions?.slice(0, 3).map(s => ({ 
+        id: s.id.substring(0, 8), 
+        file: s.file_name,
+        created: s.created_at 
+      })) || []
     });
 
     // Debug: Check recent sessions for this user specifically
@@ -98,11 +104,13 @@ export const GET = async (request: NextRequest) => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    // Debug: Try to find the specific missing document
+    // Debug: Try to find the most recent document saved (check if RLS is the issue)
     const { data: specificDoc, error: specificError } = await supabaseAdmin
       .from('tutor_sessions')
       .select('id, user_id, file_name, created_at')
-      .eq('id', '2737a5fa-5d5e-420e-892d-9db61da74f4f'); // The missing sessionId
+      .eq('file_name', 'Test_Storico.pdf')
+      .order('created_at', { ascending: false })
+      .limit(1);
     
     console.log('📊 [HISTORY_DEBUG] Recent sessions for user:', { 
       userIdSearched: userAuth.user.id,
@@ -113,11 +121,12 @@ export const GET = async (request: NextRequest) => {
         file: s.file_name,
         created: s.created_at 
       })) || [],
-      specificDocFound: !!specificDoc,
+      specificDocFound: !!specificDoc && specificDoc.length > 0,
       specificDocDetails: specificDoc?.[0] ? {
         id: specificDoc[0].id.substring(0, 8),
         user_id: specificDoc[0].user_id.substring(0, 8),
         file_name: specificDoc[0].file_name,
+        created_at: specificDoc[0].created_at,
         userIdMatch: specificDoc[0].user_id === userAuth.user.id
       } : 'not found'
     });
