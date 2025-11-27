@@ -42,10 +42,9 @@ export interface OralExamTurn {
  * Salva o aggiorna una sessione di studio nello storico
  */
 export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'createdAt' | 'updatedAt'>): Promise<StudyHistory> {
-  // In un'implementazione reale, questo salvare su Supabase
-  // Per ora simula il comportamento con localStorage
+  const { supabase } = await import('@/lib/supabase');
   
-  const sessionId = crypto.randomUUID();
+  const sessionId = session.sessionId || crypto.randomUUID();
   const now = new Date().toISOString();
   
   const studySession: StudyHistory = {
@@ -55,7 +54,47 @@ export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'creat
     updatedAt: now
   };
   
-  // Salva in localStorage per ora (in produzione usare Supabase)
+  try {
+    // Salva nel database Supabase
+    const { error } = await supabase
+      .from('tutor_sessions')
+      .upsert({
+        id: sessionId,
+        user_id: session.userId,
+        file_name: session.docName || session.docTitle,
+        title: session.docTitle,
+        riassunto_breve: session.summaryShort,
+        riassunto_esteso: session.summaryExtended,
+        mappa_concettuale: session.conceptMap,
+        flashcard: session.flashcards,
+        quiz: session.quizData,
+        guida_esame: session.studyInOneHour,
+        extracted_text: session.extractedText,
+        target_language: session.targetLanguage,
+        tutor_messages: session.tutorMessages || [],
+        oral_exam_history: session.oralExamHistory || [],
+        created_at: now,
+        updated_at: now,
+        last_used_at: now
+      })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ [SAVE_HISTORY] Database save failed:', error);
+      throw error;
+    }
+    
+    console.log('✅ [SAVE_HISTORY] Successfully saved to database:', { 
+      id: sessionId.substring(0, 8), 
+      fileName: session.docName || session.docTitle 
+    });
+    
+  } catch (dbError) {
+    console.error('❌ [SAVE_HISTORY] Database error, falling back to localStorage:', dbError);
+  }
+  
+  // Mantieni anche il localStorage come backup
   const existingSessions = getStoredSessions();
   existingSessions.push(studySession);
   localStorage.setItem('studyHistory', JSON.stringify(existingSessions));
