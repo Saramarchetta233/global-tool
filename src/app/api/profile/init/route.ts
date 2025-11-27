@@ -54,7 +54,7 @@ export async function POST(req: Request) {
         .upsert({ 
           user_id: userId, 
           credits: 120,
-          subscription_type: 'free',
+          subscription_type: null,
           subscription_active: false,
           lifetime_active: false,
           subscription_renewal_date: null,
@@ -89,7 +89,7 @@ export async function POST(req: Request) {
         ok: true, 
         credits: 120,
         subscription: {
-          type: 'free',
+          type: null,
           active: false,
           lifetime: false,
           renewalDate: null
@@ -119,7 +119,7 @@ export async function POST(req: Request) {
         ok: true, 
         credits: 120,
         subscription: {
-          type: profile.subscription_type || 'free',
+          type: profile.subscription_type || null,
           active: profile.subscription_active || false,
           lifetime: profile.lifetime_active || false,
           renewalDate: profile.subscription_renewal_date || null
@@ -134,7 +134,7 @@ export async function POST(req: Request) {
       ok: true, 
       credits: profile.credits,
       subscription: {
-        type: profile.subscription_type || 'free',
+        type: profile.subscription_type || null,
         active: profile.subscription_active || false,
         lifetime: profile.lifetime_active || false,
         renewalDate: profile.subscription_renewal_date || null

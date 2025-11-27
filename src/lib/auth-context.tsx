@@ -72,7 +72,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return {
           credits: data.credits || 120,
           subscription: data.subscription || {
-            type: 'free',
+            type: null,
             active: false,
             lifetime: false,
             renewalDate: null
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return {
           credits: 120,
           subscription: {
-            type: 'free',
+            type: null,
             active: false,
             lifetime: false,
             renewalDate: null
@@ -101,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return {
         credits: 120,
         subscription: {
-          type: 'free',
+          type: null,
           active: false,
           lifetime: false,
           renewalDate: null
@@ -139,7 +139,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: supabaseUser.email!, 
         credits: 120,
         subscription: {
-          type: 'free',
+          type: null,
           active: false,
           lifetime: false,
           renewalDate: null
