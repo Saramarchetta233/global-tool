@@ -85,23 +85,6 @@ export async function POST(req: Request) {
 
       console.log('✅ [PROFILE_INIT] Profile created/updated successfully:', { userId, credits: upsertedProfile?.credits });
 
-      // Log della transazione di benvenuto usando la funzione dedicata
-      if (supabaseAdmin) {
-        try {
-          await supabaseAdmin.rpc('assign_credits', {
-            p_user_id: userId,
-            p_amount: 0, // 0 perché i crediti sono già stati assegnati nell'insert sopra
-            p_transaction_type: 'signup_bonus',
-            p_description: 'Crediti di benvenuto - 120 crediti gratuiti',
-            p_subscription_type: 'free'
-          });
-          console.log('✅ Signup bonus transaction logged');
-        } catch (logError) {
-          console.error('⚠️ Failed to log signup transaction:', logError);
-          // Non bloccare la creazione del profilo se il log fallisce
-        }
-      }
-
       return NextResponse.json({ 
         ok: true, 
         credits: 120,
