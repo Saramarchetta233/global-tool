@@ -1288,11 +1288,18 @@ const StudiusAIV2: React.FC = () => {
             file.name,
             targetLanguage
           );
+          console.log('[DEBUG_FRONTEND_SAVE] About to save study session:', {
+            userId: user.id,
+            fileName: file.name,
+            sessionId: studyResults.sessionId,
+            historyDataKeys: Object.keys(historyData)
+          });
+          
           await saveStudySession(historyData);
-          console.log('Study session saved to history');
+          console.log('✅ [DEBUG_FRONTEND_SAVE] Study session saved to history successfully');
           
         } catch (historyError) {
-          console.error('Failed to save study session:', historyError);
+          console.error('❌ [DEBUG_FRONTEND_SAVE] Failed to save study session:', historyError);
         }
       }
 
