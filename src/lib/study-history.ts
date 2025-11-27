@@ -42,8 +42,6 @@ export interface OralExamTurn {
  * Salva o aggiorna una sessione di studio nello storico
  */
 export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'createdAt' | 'updatedAt'>): Promise<StudyHistory> {
-  const { supabase, supabaseAdmin } = await import('@/lib/supabase');
-  
   const sessionId = session.sessionId || crypto.randomUUID();
   const now = new Date().toISOString();
   
@@ -55,44 +53,37 @@ export async function saveStudySession(session: Omit<StudyHistory, 'id' | 'creat
   };
   
   try {
-    // Prova prima con supabaseAdmin se disponibile (per bypassare RLS), altrimenti usa supabase normale
-    const client = supabaseAdmin || supabase;
-    console.log('💾 [SAVE_HISTORY] Using client:', supabaseAdmin ? 'supabaseAdmin' : 'supabase');
-    
-    // Salva nel database Supabase
-    const { error } = await client
-      .from('tutor_sessions')
-      .upsert({
-        id: sessionId,
-        user_id: session.userId,
-        file_name: session.docName || session.docTitle,
-        title: session.docTitle,
-        riassunto_breve: session.summaryShort,
-        riassunto_esteso: session.summaryExtended,
-        mappa_concettuale: session.conceptMap,
-        flashcard: session.flashcards,
-        quiz: session.quizData,
-        guida_esame: session.studyInOneHour,
-        pdf_text: session.extractedText,
-        created_at: now,
-        updated_at: now,
-        last_used_at: now
-      })
-      .select()
-      .single();
-    
-    if (error) {
-      console.error('❌ [SAVE_HISTORY] Database save failed:', error);
-      throw error;
+    // Use API endpoint to save to database (uses supabaseAdmin like history API)
+    const authToken = localStorage.getItem('auth_token');
+    if (authToken) {
+      console.log('💾 [SAVE_HISTORY] Using API endpoint to save to database');
+      
+      const response = await fetch('/api/save-study-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ session })
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log('✅ [SAVE_HISTORY] Successfully saved to database via API:', { 
+          id: sessionId.substring(0, 8), 
+          fileName: session.docName || session.docTitle 
+        });
+      } else {
+        const errorData = await response.json();
+        console.error('❌ [SAVE_HISTORY] API save failed:', errorData);
+        throw new Error(`API save failed: ${errorData.error}`);
+      }
+    } else {
+      console.warn('⚠️ [SAVE_HISTORY] No auth token found, skipping database save');
     }
     
-    console.log('✅ [SAVE_HISTORY] Successfully saved to database:', { 
-      id: sessionId.substring(0, 8), 
-      fileName: session.docName || session.docTitle 
-    });
-    
   } catch (dbError) {
-    console.error('❌ [SAVE_HISTORY] Database error, falling back to localStorage:', dbError);
+    console.error('❌ [SAVE_HISTORY] Database error, falling back to localStorage only:', dbError);
   }
   
   // Mantieni anche il localStorage come backup

@@ -108,9 +108,9 @@ export const GET = async (request: NextRequest) => {
     const { data: specificDoc, error: specificError } = await supabaseAdmin
       .from('tutor_sessions')
       .select('id, user_id, file_name, created_at')
-      .eq('file_name', 'Test_Storico.pdf')
+      .or('file_name.eq.Test_Storico.pdf,file_name.eq.Test_Storico2.pdf')
       .order('created_at', { ascending: false })
-      .limit(1);
+      .limit(2);
     
     console.log('📊 [HISTORY_DEBUG] Recent sessions for user:', { 
       userIdSearched: userAuth.user.id,
