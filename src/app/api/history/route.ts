@@ -108,9 +108,16 @@ export const GET = async (request: NextRequest) => {
     const { data: specificDoc, error: specificError } = await supabaseAdmin
       .from('tutor_sessions')
       .select('id, user_id, file_name, created_at')
-      .or('file_name.eq.Test_Storico.pdf,file_name.eq.Test_Storico2.pdf')
+      .eq('id', 'f09eda66-ec86-4cf8-a73f-e4cd27976c52') // The exact ID from logs
+      .single();
+
+    // Also check if ANY document with Test_Storico2.pdf exists
+    const { data: testDoc, error: testError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('id, user_id, file_name, created_at')
+      .eq('file_name', 'Test_Storico2.pdf')
       .order('created_at', { ascending: false })
-      .limit(2);
+      .limit(1);
     
     console.log('📊 [HISTORY_DEBUG] Recent sessions for user:', { 
       userIdSearched: userAuth.user.id,
@@ -121,13 +128,21 @@ export const GET = async (request: NextRequest) => {
         file: s.file_name,
         created: s.created_at 
       })) || [],
-      specificDocFound: !!specificDoc && specificDoc.length > 0,
-      specificDocDetails: specificDoc?.[0] ? {
-        id: specificDoc[0].id.substring(0, 8),
-        user_id: specificDoc[0].user_id.substring(0, 8),
-        file_name: specificDoc[0].file_name,
-        created_at: specificDoc[0].created_at,
-        userIdMatch: specificDoc[0].user_id === userAuth.user.id
+      specificDocByIdFound: !!specificDoc,
+      specificDocById: specificDoc ? {
+        id: specificDoc.id.substring(0, 8),
+        user_id: specificDoc.user_id.substring(0, 8),
+        file_name: specificDoc.file_name,
+        created_at: specificDoc.created_at,
+        userIdMatch: specificDoc.user_id === userAuth.user.id
+      } : 'not found',
+      testDocFound: !!testDoc && testDoc.length > 0,
+      testDoc: testDoc?.[0] ? {
+        id: testDoc[0].id.substring(0, 8),
+        user_id: testDoc[0].user_id.substring(0, 8),
+        file_name: testDoc[0].file_name,
+        created_at: testDoc[0].created_at,
+        userIdMatch: testDoc[0].user_id === userAuth.user.id
       } : 'not found'
     });
 
