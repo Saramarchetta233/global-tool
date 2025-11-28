@@ -142,12 +142,20 @@ async function generateStudyMaterials(text: string, language: string, userId: st
 
     // Parse responses
     const cleanJSON = (content: string) => {
-      return content
+      let cleaned = content
         .replace(/```json/g, '')
         .replace(/```/g, '')
-        .replace(/^[^{]*/g, '') // Rimuovi tutto prima della prima {
-        .replace(/[^}]*$/g, '') // Rimuovi tutto dopo l'ultima }
         .trim();
+
+      // Find the first { and last } to extract only the JSON part
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+
+      return cleaned;
     };
 
     const safeJSONParse = (content: string, fallback: any, name: string) => {
@@ -219,48 +227,10 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       'examGuide'
     );
 
-    // EMERGENCY: Always ensure flashcards exist
-    let finalFlashcards = flashcardsData.flashcard || [];
-    console.log('🚨 EMERGENCY CHECK: Flashcard count before emergency fix:', finalFlashcards.length);
-    
-    if (!finalFlashcards || finalFlashcards.length === 0) {
-      console.log('🚨 EMERGENCY: No flashcards! Creating emergency flashcards from text...');
-      const sentences = processedText.split(/[.!?]+/).filter(s => s.trim().length > 40 && s.trim().length < 200);
-      finalFlashcards = [];
-      
-      for (let i = 0; i < Math.min(10, sentences.length - 1); i++) {
-        if (sentences[i] && sentences[i + 1]) {
-          finalFlashcards.push({
-            front: sentences[i].trim() + '?',
-            back: sentences[i + 1].trim()
-          });
-        }
-      }
-      
-      // If still no flashcards, create basic ones
-      if (finalFlashcards.length === 0) {
-        const words = processedText.split(' ');
-        const chunks = Math.floor(words.length / 5);
-        
-        for (let i = 0; i < 5; i++) {
-          const start = i * chunks;
-          const chunk = words.slice(start, start + Math.min(chunks, 30)).join(' ');
-          if (chunk.length > 20) {
-            finalFlashcards.push({
-              front: `Qual è il contenuto della sezione ${i + 1}?`,
-              back: chunk + '...'
-            });
-          }
-        }
-      }
-      
-      console.log('🚨 EMERGENCY: Created', finalFlashcards.length, 'emergency flashcards');
-    }
-
     const result: any = {
       riassunto_breve: summaryData.riassunto_breve || 'Unable to generate brief summary',
       riassunto_esteso: summaryData.riassunto_esteso || 'Unable to generate extended summary',
-      flashcard: finalFlashcards,
+      flashcard: flashcardsData.flashcard || [],
       mappa_concettuale: conceptMapData.mappa_concettuale || [],
       quiz: quizData.quiz || [],
       guida_esame: examGuideData.guida_esame || 'Unable to generate exam guide',
