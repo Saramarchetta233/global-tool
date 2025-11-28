@@ -45,44 +45,27 @@ IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto
 ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. Non includere il riassunto esteso nel campo breve e viceversa.`;
 
 export const createFlashcardsPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
-Crea 20 flashcard di alta qualità in ${targetLanguage || language} basate sul seguente testo.
+Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
 
 IMPORTANTE: Se il testo contiene formule matematiche, equazioni o simboli speciali, spiega i concetti a parole nelle flashcard. Rendi le formule comprensibili attraverso descrizioni testuali chiare.
 
-LINEE GUIDA PER FLASHCARD DI QUALITÀ:
+Le flashcard devono essere:
+- Semplici e utili per la memorizzazione
+- Coprire i concetti più importanti del testo
+- Avere domande chiare e risposte complete ma concise
+- Essere progressive in difficoltà
+- Includere sia definizioni che applicazioni pratiche
 
-**DOMANDE (front):**
-- Devono essere specifiche e precise (evita "Cosa dice il documento riguardo...")
-- Usa pattern: "Cos'è...", "Come funziona...", "Perché...", "Quali sono...", "Quando si verifica..."
-- Focalizzati sui CONCETTI CHIAVE del testo, non su dettagli marginali
-- Ogni domanda deve testare una conoscenza importante e utile
+Per ogni risposta, aggiungi contesto e dettagli dal testo.
 
-**RISPOSTE (back):**
-- Devono essere complete ma concise (50-150 parole)
-- Includi il contesto necessario per comprendere il concetto
-- Evita frammenti o frasi incomplete
-- Spiega il "perché" non solo il "cosa"
-
-**TIPOLOGIE DI FLASHCARD DA CREARE:**
-1. Definizioni di termini tecnici importanti
-2. Spiegazioni di processi o metodologie
-3. Cause ed effetti di fenomeni descritti
-4. Caratteristiche principali di sistemi/modelli
-5. Differenze tra concetti simili
-6. Applicazioni pratiche dei concetti teorici
-7. Vantaggi/svantaggi di approcci descritti
-8. Principi fondamentali e leggi
-9. Esempi significativi con spiegazioni
-10. Connessioni tra diversi concetti
-
-Testo da analizzare:
+Testo:
 ${text}
 
-IMPORTANTE: Rispondi SOLO con JSON valido, senza formattazione markdown. Ogni flashcard deve essere pertinente e di valore educativo:
+IMPORTANTE: Rispondi SOLO con JSON valido, senza formattazione markdown:
 {
   "flashcard": [
-    {"front": "Cos'è [concetto specifico dal testo]?", "back": "Spiegazione completa con contesto dal documento"},
-    {"front": "Come funziona [processo specifico]?", "back": "Descrizione dettagliata del processo con esempi"}
+    {"front": "Domanda o concetto da memorizzare", "back": "Risposta completa con contesto dal testo"},
+    {"front": "Cos'è...", "back": "Definizione con dettagli specifici..."}
   ]
 }`;
 
