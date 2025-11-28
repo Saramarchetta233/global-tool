@@ -171,26 +171,99 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       };
     };
 
-    // Enhanced fallback generation for flashcards
+    // Enhanced intelligent fallback generation for flashcards
     const generateFallbackFlashcards = (text: string, targetLang: string) => {
-      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
       const flashcards = [];
       
-      for (let i = 0; i < Math.min(10, sentences.length); i += 2) {
-        if (sentences[i] && sentences[i + 1]) {
-          flashcards.push({
-            front: `Cosa dice il documento riguardo: ${sentences[i].trim().substring(0, 80)}...?`,
-            back: sentences[i + 1].trim()
-          });
+      // Extract key concepts intelligently
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 30);
+      
+      // Find sentences with key academic indicators
+      const keyIndicators = [
+        'definizione', 'concetto', 'teoria', 'principio', 'metodo', 'processo', 
+        'caratteristica', 'funzione', 'obiettivo', 'risultato', 'conclusione',
+        'analisi', 'studio', 'ricerca', 'modello', 'sistema', 'strategia',
+        'è importante', 'è necessario', 'si può', 'si deve', 'permette di',
+        'consente', 'attraverso', 'mediante', 'grazie a', 'a causa di'
+      ];
+      
+      const conceptSentences = sentences.filter(sentence => {
+        const lowerSentence = sentence.toLowerCase();
+        return keyIndicators.some(indicator => lowerSentence.includes(indicator)) ||
+               lowerSentence.includes('che') || lowerSentence.includes('quando') ||
+               lowerSentence.includes('come') || lowerSentence.includes('perché');
+      });
+      
+      // Generate intelligent Q&A from concept sentences
+      for (let i = 0; i < Math.min(8, conceptSentences.length); i++) {
+        const sentence = conceptSentences[i].trim();
+        let front, back;
+        
+        // Pattern-based question generation
+        if (sentence.toLowerCase().includes('definizione') || sentence.toLowerCase().includes('è definito')) {
+          front = `Come viene definito il concetto principale descritto?`;
+          back = sentence;
+        } else if (sentence.toLowerCase().includes('caratteristica') || sentence.toLowerCase().includes('proprietà')) {
+          front = `Quali sono le principali caratteristiche descritte nel documento?`;
+          back = sentence;
+        } else if (sentence.toLowerCase().includes('funzione') || sentence.toLowerCase().includes('serve')) {
+          front = `Quale funzione o scopo viene descritto?`;
+          back = sentence;
+        } else if (sentence.toLowerCase().includes('processo') || sentence.toLowerCase().includes('procedura')) {
+          front = `Come funziona il processo descritto?`;
+          back = sentence;
+        } else if (sentence.toLowerCase().includes('importante') || sentence.toLowerCase().includes('rilevante')) {
+          front = `Perché questo aspetto è considerato importante?`;
+          back = sentence;
+        } else if (sentence.toLowerCase().includes('risultato') || sentence.toLowerCase().includes('conclusione')) {
+          front = `Quali sono i risultati o le conclusioni principali?`;
+          back = sentence;
+        } else {
+          // Generic but meaningful questions
+          front = `Spiega il concetto chiave descritto in questa sezione`;
+          back = sentence;
+        }
+        
+        // Only add if both front and back are meaningful
+        if (front.length > 10 && back.length > 20) {
+          flashcards.push({ front, back });
         }
       }
       
-      // Ensure minimum flashcards
+      // If we still don't have enough, extract key topics differently
+      if (flashcards.length < 5) {
+        // Look for paragraphs and extract main concepts
+        const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 100);
+        
+        for (let i = 0; i < Math.min(5, paragraphs.length) && flashcards.length < 8; i++) {
+          const paragraph = paragraphs[i].trim();
+          const firstSentence = paragraph.split(/[.!?]+/)[0];
+          
+          if (firstSentence && firstSentence.length > 20) {
+            flashcards.push({
+              front: `Descrivi il concetto principale di questa sezione del documento`,
+              back: firstSentence.trim() + '.'
+            });
+          }
+        }
+      }
+      
+      // Final fallback with document overview
       while (flashcards.length < 5) {
-        flashcards.push({
-          front: `Concetto chiave del documento`,
-          back: `Il documento tratta di: ${text.substring(0, 200)}...`
-        });
+        const remainingSlots = 5 - flashcards.length;
+        const chunkSize = Math.floor(text.length / remainingSlots);
+        const startIndex = (flashcards.length) * chunkSize;
+        const chunk = text.substring(startIndex, startIndex + Math.min(chunkSize, 300));
+        const mainSentence = chunk.split(/[.!?]+/)[0];
+        
+        if (mainSentence && mainSentence.length > 15) {
+          flashcards.push({
+            front: `Qual è l'argomento trattato in questa parte del documento?`,
+            back: mainSentence.trim() + '.'
+          });
+        } else {
+          break;
+        }
       }
       
       return { flashcard: flashcards };
@@ -238,12 +311,47 @@ async function generateStudyMaterials(text: string, language: string, userId: st
           }
         }
         
-        // Validate flashcards
+        // Validate flashcards with quality checks
         if (name === 'flashcards') {
           if (!parsed.flashcard || !Array.isArray(parsed.flashcard) || parsed.flashcard.length === 0) {
             console.log(`⚠️ No valid flashcards found, generating fallback...`);
             return text ? generateFallbackFlashcards(text, targetLang || 'Italian') : fallback;
           }
+          
+          // Check quality of flashcards and filter out poor ones
+          const qualityFlashcards = parsed.flashcard.filter((card: any) => {
+            if (!card.front || !card.back) return false;
+            
+            // Remove low-quality patterns
+            const front = card.front.toLowerCase();
+            const back = card.back.toLowerCase();
+            
+            // Filter out vague questions
+            const poorPatterns = [
+              'cosa dice il documento riguardo',
+              'qual è il contenuto',
+              'cosa contiene',
+              'di cosa parla',
+              'cosa viene detto'
+            ];
+            
+            const hasPoorPattern = poorPatterns.some(pattern => front.includes(pattern));
+            const hasNumbers = /\d{4}/.test(back); // Filter responses that are just years/numbers
+            const isTooShort = card.back.length < 20;
+            const isFragmented = back.includes('...') && back.length < 50;
+            
+            return !hasPoorPattern && !hasNumbers && !isTooShort && !isFragmented;
+          });
+          
+          console.log(`🃏 Quality check: ${parsed.flashcard.length} -> ${qualityFlashcards.length} flashcards`);
+          
+          // If too few quality flashcards remain, generate fallback
+          if (qualityFlashcards.length < 3) {
+            console.log(`⚠️ Too few quality flashcards (${qualityFlashcards.length}), generating fallback...`);
+            return text ? generateFallbackFlashcards(text, targetLang || 'Italian') : fallback;
+          }
+          
+          parsed.flashcard = qualityFlashcards;
         }
         
         return parsed;
