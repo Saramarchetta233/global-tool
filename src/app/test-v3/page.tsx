@@ -1334,6 +1334,7 @@ const StudiusAIV2: React.FC = () => {
   };
 
   const processDocument = async () => {
+    console.log('🚀 UPLOAD DEBUG: Starting processDocument with debug logging v3');
     if (!file) return;
 
     if (!user || !token) {
