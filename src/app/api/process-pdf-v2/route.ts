@@ -95,11 +95,30 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     examGuide: createExamGuidePrompt({ language: baseLang, text: processedText, targetLanguage: targetLang })
   };
 
+  // Retry function for OpenAI API calls
+  const retryOpenAI = async (prompt: string, maxTokens: number, temperature: number, attempts: number = 3): Promise<any> => {
+    for (let i = 0; i < attempts; i++) {
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: temperature,
+          max_tokens: maxTokens,
+        });
+        return response;
+      } catch (error) {
+        console.error(`OpenAI attempt ${i + 1} failed:`, error);
+        if (i === attempts - 1) throw error;
+        await new Promise(resolve => setTimeout(resolve, 1000 * (i + 1))); // Progressive delay
+      }
+    }
+  };
+
   try {
     console.log('Starting OpenAI requests for study materials generation...');
 
-    // Run prompts in parallel for faster processing
-    console.log('Requesting all content from OpenAI in parallel...');
+    // Run prompts in parallel for faster processing with retry logic
+    console.log('Requesting all content from OpenAI in parallel with retry...');
     const [
       summaryResponse,
       flashcardsResponse, 
@@ -107,36 +126,11 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       quizResponse,
       examGuideResponse
     ] = await Promise.all([
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.summary }],
-        temperature: 0.3,
-        max_tokens: 1200,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini", 
-        messages: [{ role: "user", content: prompts.flashcards }],
-        temperature: 0.4,
-        max_tokens: 1000,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.conceptMap }],
-        temperature: 0.3,
-        max_tokens: 600,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.quiz }],
-        temperature: 0.4,
-        max_tokens: 1000,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.examGuide }],
-        temperature: 0.3,
-        max_tokens: 1200,
-      })
+      retryOpenAI(prompts.summary, 1200, 0.3),
+      retryOpenAI(prompts.flashcards, 1000, 0.4),
+      retryOpenAI(prompts.conceptMap, 600, 0.3),
+      retryOpenAI(prompts.quiz, 1000, 0.4),
+      retryOpenAI(prompts.examGuide, 1200, 0.3)
     ]);
     console.log('All OpenAI responses received');
 
@@ -158,7 +152,51 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       return cleaned;
     };
 
-    const safeJSONParse = (content: string, fallback: any, name: string) => {
+    // Enhanced fallback generation for summaries
+    const generateFallbackSummary = (text: string, targetLang: string) => {
+      const words = text.split(' ');
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 10);
+      
+      // Create brief summary from first sentences
+      const briefSentences = sentences.slice(0, Math.min(8, sentences.length));
+      const brief = briefSentences.join('. ').trim() + '.';
+      
+      // Create extended summary with more content
+      const extendedSentences = sentences.slice(0, Math.min(20, sentences.length));
+      const extended = `**RIASSUNTO DEL DOCUMENTO**\n\n${extendedSentences.join('. ').trim()}.`;
+      
+      return {
+        riassunto_breve: brief.length > 50 ? brief : `Riassunto del documento: ${text.substring(0, 500)}...`,
+        riassunto_esteso: extended.length > 100 ? extended : `**CONTENUTO PRINCIPALE**\n\n${text.substring(0, 1000)}...`
+      };
+    };
+
+    // Enhanced fallback generation for flashcards
+    const generateFallbackFlashcards = (text: string, targetLang: string) => {
+      const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20);
+      const flashcards = [];
+      
+      for (let i = 0; i < Math.min(10, sentences.length); i += 2) {
+        if (sentences[i] && sentences[i + 1]) {
+          flashcards.push({
+            front: `Cosa dice il documento riguardo: ${sentences[i].trim().substring(0, 80)}...?`,
+            back: sentences[i + 1].trim()
+          });
+        }
+      }
+      
+      // Ensure minimum flashcards
+      while (flashcards.length < 5) {
+        flashcards.push({
+          front: `Concetto chiave del documento`,
+          back: `Il documento tratta di: ${text.substring(0, 200)}...`
+        });
+      }
+      
+      return { flashcard: flashcards };
+    };
+
+    const safeJSONParse = (content: string, fallback: any, name: string, text?: string, targetLang?: string) => {
       try {
         console.log(`Parsing ${name} response...`);
         console.log(`Raw ${name} content:`, content?.substring(0, 300));
@@ -169,9 +207,15 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         const parsed = JSON.parse(cleaned);
         console.log(`${name} parsed successfully:`, Object.keys(parsed));
         
-        // Additional validation for summary content to prevent mixing
-        if (name === 'summary' && parsed.riassunto_breve && parsed.riassunto_esteso) {
-          // Check if content got mixed up - brief should be much shorter than extended
+        // Validate content exists and is meaningful
+        if (name === 'summary') {
+          if (!parsed.riassunto_breve || !parsed.riassunto_esteso || 
+              parsed.riassunto_breve.length < 50 || parsed.riassunto_esteso.length < 100) {
+            console.log(`⚠️ Invalid summary content, generating fallback...`);
+            return text ? generateFallbackSummary(text, targetLang || 'Italian') : fallback;
+          }
+          
+          // Additional validation for summary content to prevent mixing
           const briefLength = parsed.riassunto_breve.length;
           const extendedLength = parsed.riassunto_esteso.length;
           
@@ -194,10 +238,29 @@ async function generateStudyMaterials(text: string, language: string, userId: st
           }
         }
         
+        // Validate flashcards
+        if (name === 'flashcards') {
+          if (!parsed.flashcard || !Array.isArray(parsed.flashcard) || parsed.flashcard.length === 0) {
+            console.log(`⚠️ No valid flashcards found, generating fallback...`);
+            return text ? generateFallbackFlashcards(text, targetLang || 'Italian') : fallback;
+          }
+        }
+        
         return parsed;
       } catch (error) {
         console.error(`JSON Parse Error for ${name}:`, error);
         console.error(`Full content that failed to parse:`, content);
+        
+        // Generate intelligent fallbacks based on original text
+        if (text && name === 'summary') {
+          console.log(`🚨 Generating emergency fallback summary...`);
+          return generateFallbackSummary(text, targetLang || 'Italian');
+        }
+        if (text && name === 'flashcards') {
+          console.log(`🚨 Generating emergency fallback flashcards...`);
+          return generateFallbackFlashcards(text, targetLang || 'Italian');
+        }
+        
         return fallback;
       }
     };
@@ -210,7 +273,9 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     const summaryData = safeJSONParse(
       summaryResponseText,
       { riassunto_breve: 'Errore nella generazione del riassunto breve', riassunto_esteso: 'Errore nella generazione del riassunto esteso' },
-      'summary'
+      'summary',
+      processedText,
+      targetLang
     );
 
     // Debug flashcards specifically
@@ -221,7 +286,9 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     const flashcardsData = safeJSONParse(
       flashcardsResponseText,
       { flashcard: [] },
-      'flashcards'
+      'flashcards',
+      processedText,
+      targetLang
     );
     
     console.log('🃏 FLASHCARDS PARSED DATA:', flashcardsData);
@@ -268,7 +335,40 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       'examGuide'
     );
 
-    const result: any = {
+    // FINAL SAFETY CHECK - Ensure we always have valid content
+    const ensureMinimumContent = (data: any, text: string, targetLang: string) => {
+      console.log('🔒 Final safety check for content validity...');
+      
+      // Ensure summaries exist and have minimum length
+      if (!data.riassunto_breve || data.riassunto_breve.length < 50) {
+        console.log('🚨 Emergency: No brief summary, generating from text...');
+        const fallbackSummary = generateFallbackSummary(text, targetLang);
+        data.riassunto_breve = fallbackSummary.riassunto_breve;
+      }
+      
+      if (!data.riassunto_esteso || data.riassunto_esteso.length < 100) {
+        console.log('🚨 Emergency: No extended summary, generating from text...');
+        const fallbackSummary = generateFallbackSummary(text, targetLang);
+        data.riassunto_esteso = fallbackSummary.riassunto_esteso;
+      }
+      
+      // Ensure flashcards exist
+      if (!data.flashcard || !Array.isArray(data.flashcard) || data.flashcard.length === 0) {
+        console.log('🚨 Emergency: No flashcards, generating from text...');
+        const fallbackFlashcards = generateFallbackFlashcards(text, targetLang);
+        data.flashcard = fallbackFlashcards.flashcard;
+      }
+      
+      console.log('✅ Content safety check completed:', {
+        briefLength: data.riassunto_breve?.length || 0,
+        extendedLength: data.riassunto_esteso?.length || 0,
+        flashcardCount: data.flashcard?.length || 0
+      });
+      
+      return data;
+    };
+
+    let result: any = {
       riassunto_breve: summaryData.riassunto_breve || 'Unable to generate brief summary',
       riassunto_esteso: summaryData.riassunto_esteso || 'Unable to generate extended summary',
       flashcard: flashcardsData.flashcard || [],
@@ -278,6 +378,9 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       extractedText: text, // Include the original text for tutor sessions
       sessionId: undefined // Will be set below
     };
+    
+    // Apply final safety check
+    result = ensureMinimumContent(result, processedText, targetLang);
 
     // Create tutor session automatically with complete document info
     try {

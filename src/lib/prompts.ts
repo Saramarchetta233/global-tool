@@ -5,7 +5,9 @@ export interface PromptConfig {
 }
 
 export const createSummaryPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
-Analizza il seguente testo e crea due riassunti in ${targetLanguage || language}:
+Analizza il seguente testo e crea due riassunti in ${targetLanguage || language}.
+
+IMPORTANTE: Se il testo contiene formule matematiche, equazioni, simboli speciali o notazioni scientifiche, descrivi i concetti in modo testuale e comprensibile. Non tentare di riprodurre simboli matematici complessi, ma spiegali a parole.
 
 1. Un riassunto breve (massimo 600 parole) che evidenzi i concetti chiave in paragrafi chiari e strutturati
 
@@ -44,6 +46,8 @@ ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. 
 
 export const createFlashcardsPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
 Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
+
+IMPORTANTE: Se il testo contiene formule matematiche, equazioni o simboli speciali, spiega i concetti a parole nelle flashcard. Rendi le formule comprensibili attraverso descrizioni testuali chiare.
 
 Le flashcard devono essere:
 - Semplici e utili per la memorizzazione
