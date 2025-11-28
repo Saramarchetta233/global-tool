@@ -179,11 +179,27 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       'summary'
     );
 
+    // Debug flashcards specifically
+    const flashcardsResponseText = flashcardsResponse.choices[0].message.content || '{}';
+    console.log('🔥 FLASHCARDS DEBUG START');
+    console.log('🔥 RAW FLASHCARDS RESPONSE:', flashcardsResponseText);
+    console.log('🔥 FLASHCARDS RESPONSE LENGTH:', flashcardsResponseText.length);
+    console.log('🔥 FLASHCARDS PROMPT USED:', prompts.flashcards.substring(0, 200));
+    
     const flashcardsData = safeJSONParse(
-      flashcardsResponse.choices[0].message.content || '{}',
+      flashcardsResponseText,
       { flashcard: [] },
       'flashcards'
     );
+    
+    console.log('🔥 FLASHCARDS PARSED RESULT:', JSON.stringify(flashcardsData, null, 2));
+    console.log('🔥 FLASHCARD ARRAY EXISTS:', !!flashcardsData.flashcard);
+    console.log('🔥 FLASHCARD ARRAY TYPE:', typeof flashcardsData.flashcard);
+    console.log('🔥 FLASHCARD COUNT:', flashcardsData.flashcard?.length || 0);
+    if (flashcardsData.flashcard?.length > 0) {
+      console.log('🔥 FIRST FLASHCARD:', JSON.stringify(flashcardsData.flashcard[0], null, 2));
+    }
+    console.log('🔥 FLASHCARDS DEBUG END');
 
     const conceptMapData = safeJSONParse(
       conceptMapResponse.choices[0].message.content || '{}',
@@ -287,7 +303,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       // Don't fail the whole request for session creation issues
     }
 
-    console.log('Final result summary:', {
+    console.log('🚀 FINAL RESULT SUMMARY:', {
       riassunto_breve_length: result.riassunto_breve.length,
       riassunto_esteso_length: result.riassunto_esteso.length,
       flashcard_count: result.flashcard.length,
@@ -295,6 +311,8 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       quiz_count: result.quiz.length,
       extractedText_length: result.extractedText.length
     });
+    
+    console.log('🚀 FINAL FLASHCARDS IN RESULT:', JSON.stringify(result.flashcard, null, 2));
 
     return result;
 
