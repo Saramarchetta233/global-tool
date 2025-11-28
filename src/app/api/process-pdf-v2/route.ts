@@ -117,7 +117,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         model: "gpt-4o-mini", 
         messages: [{ role: "user", content: prompts.flashcards }],
         temperature: 0.4,
-        max_tokens: 1000,
+        max_tokens: 2000, // Increased from 1000 to avoid truncation
       }),
       openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -163,8 +163,30 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         console.log(`Parsing ${name} response...`);
         console.log(`Raw ${name} content:`, content?.substring(0, 300));
         
-        const cleaned = cleanJSON(content);
+        let cleaned = cleanJSON(content);
         console.log(`Cleaned ${name} content:`, cleaned.substring(0, 300));
+        
+        // Check if JSON seems truncated (doesn't end with proper closing)
+        const lastChar = cleaned.trim().slice(-1);
+        if (lastChar !== '}' && lastChar !== ']') {
+          console.warn(`⚠️ JSON appears truncated for ${name}, attempting to fix...`);
+          
+          // Try to close any open structures
+          const openBraces = (cleaned.match(/{/g) || []).length;
+          const closeBraces = (cleaned.match(/}/g) || []).length;
+          const openBrackets = (cleaned.match(/\[/g) || []).length;
+          const closeBrackets = (cleaned.match(/\]/g) || []).length;
+          
+          // Add missing closing characters
+          if (openBrackets > closeBrackets) {
+            cleaned += '"]'; // Close string and array
+          }
+          if (openBraces > closeBraces) {
+            cleaned += '}';
+          }
+          
+          console.log(`Attempted fix for truncated JSON in ${name}`);
+        }
         
         const parsed = JSON.parse(cleaned);
         console.log(`${name} parsed successfully:`, Object.keys(parsed));
