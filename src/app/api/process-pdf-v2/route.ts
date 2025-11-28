@@ -184,32 +184,6 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       { flashcard: [] },
       'flashcards'
     );
-    
-    console.log('🃏 FLASHCARDS PARSED DATA:', flashcardsData);
-    console.log('🃏 FLASHCARD ARRAY:', flashcardsData.flashcard);
-    console.log('🃏 FLASHCARD COUNT:', flashcardsData.flashcard?.length || 0);
-    
-    // Clean and validate flashcards
-    if (flashcardsData.flashcard && Array.isArray(flashcardsData.flashcard)) {
-      console.log('🃏 RAW FIRST FLASHCARD:', flashcardsData.flashcard[0]);
-      
-      // Filter out invalid flashcards (missing front or back)
-      flashcardsData.flashcard = flashcardsData.flashcard.filter((card: any, index: number) => {
-        const hasValidFront = card?.front && typeof card.front === 'string' && card.front.trim().length > 0;
-        const hasValidBack = card?.back && typeof card.back === 'string' && card.back.trim().length > 0;
-        
-        if (!hasValidFront || !hasValidBack) {
-          console.log(`🃏 REMOVING INVALID FLASHCARD ${index}:`, { front: card?.front, back: card?.back });
-          return false;
-        }
-        return true;
-      });
-      
-      console.log('🃏 CLEANED FLASHCARD COUNT:', flashcardsData.flashcard.length);
-      if (flashcardsData.flashcard.length > 0) {
-        console.log('🃏 FIRST VALID FLASHCARD:', flashcardsData.flashcard[0]);
-      }
-    }
 
     const conceptMapData = safeJSONParse(
       conceptMapResponse.choices[0].message.content || '{}',
