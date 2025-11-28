@@ -95,11 +95,43 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     examGuide: createExamGuidePrompt({ language: baseLang, text: processedText, targetLanguage: targetLang })
   };
 
+  // Helper function to retry OpenAI calls with exponential backoff
+  const retryOpenAICall = async (prompt: string, maxTokens: number, temperature: number, maxRetries = 2, taskName = 'unknown') => {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        console.log(`🔄 [${taskName.toUpperCase()}] Attempt ${attempt + 1}/${maxRetries + 1} - Tokens: ${maxTokens}`);
+        
+        const response = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: prompt }],
+          temperature: temperature,
+          max_tokens: maxTokens,
+        });
+        
+        const content = response.choices[0].message.content || '';
+        console.log(`✅ [${taskName.toUpperCase()}] Attempt ${attempt + 1} SUCCESS - Response length: ${content.length}`);
+        console.log(`📄 [${taskName.toUpperCase()}] Response preview: ${content.substring(0, 200)}...`);
+        
+        return response;
+      } catch (error) {
+        console.error(`❌ [${taskName.toUpperCase()}] Attempt ${attempt + 1} FAILED:`, error);
+        if (attempt === maxRetries) {
+          console.error(`🚨 [${taskName.toUpperCase()}] All ${maxRetries + 1} attempts failed!`);
+          throw error;
+        }
+        // Wait before retry (exponential backoff)
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`⏳ [${taskName.toUpperCase()}] Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  };
+
   try {
     console.log('Starting OpenAI requests for study materials generation...');
 
-    // Run prompts in parallel for faster processing
-    console.log('Requesting all content from OpenAI in parallel...');
+    // Run prompts in parallel with retry logic
+    console.log('Requesting all content from OpenAI in parallel with retries...');
     const [
       summaryResponse,
       flashcardsResponse, 
@@ -107,36 +139,11 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       quizResponse,
       examGuideResponse
     ] = await Promise.all([
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.summary }],
-        temperature: 0.3,
-        max_tokens: 1200,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini", 
-        messages: [{ role: "user", content: prompts.flashcards }],
-        temperature: 0.4,
-        max_tokens: 2000, // Increased from 1000 to avoid truncation
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.conceptMap }],
-        temperature: 0.3,
-        max_tokens: 600,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.quiz }],
-        temperature: 0.4,
-        max_tokens: 1000,
-      }),
-      openai.chat.completions.create({
-        model: "gpt-4o-mini",
-        messages: [{ role: "user", content: prompts.examGuide }],
-        temperature: 0.3,
-        max_tokens: 1200,
-      })
+      retryOpenAICall(prompts.summary, 1200, 0.3, 2, 'summary'),
+      retryOpenAICall(prompts.flashcards, 2000, 0.4, 2, 'flashcards'),
+      retryOpenAICall(prompts.conceptMap, 600, 0.3, 2, 'conceptMap'),
+      retryOpenAICall(prompts.quiz, 1000, 0.4, 2, 'quiz'),
+      retryOpenAICall(prompts.examGuide, 1200, 0.3, 2, 'examGuide')
     ]);
     console.log('All OpenAI responses received');
 
@@ -146,6 +153,61 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         .replace(/```json/g, '')
         .replace(/```/g, '')
         .trim();
+
+      // Remove control characters that break JSON parsing BEFORE symbol replacement
+      cleaned = cleaned
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ')  // Remove dangerous control chars (keep \t and \n for now)
+        .replace(/\r/g, ' ')               // Replace carriage returns
+        .replace(/\f/g, ' ')               // Replace form feeds
+        .replace(/\v/g, ' ');              // Replace vertical tabs
+
+      // Replace problematic mathematical symbols and emojis with safe text equivalents
+      const symbolReplacements = {
+        // Mathematical symbols
+        '∈': ' appartiene a ',
+        '∉': ' non appartiene a ',
+        '∑': ' sommatoria di ',
+        '∏': ' produttoria di ',
+        '∞': ' infinito ',
+        '≠': ' diverso da ',
+        '≤': ' minore o uguale a ',
+        '≥': ' maggiore o uguale a ',
+        '±': ' più o meno ',
+        '√': ' radice quadrata di ',
+        '∝': ' proporzionale a ',
+        '∀': ' per ogni ',
+        '∃': ' esiste ',
+        '∇': ' nabla ',
+        '∂': ' derivata parziale ',
+        '∫': ' integrale ',
+        '∆': ' delta ',
+        '°': ' gradi ',
+        // Common emojis that might break JSON
+        '🔴': ' (punto rosso) ',
+        '🌟': ' (stella) ',
+        '🐾': ' (zampe) ',
+        '✅': ' (segno di spunta) ',
+        '❌': ' (croce) ',
+        '⭐': ' (stella) ',
+        '🎯': ' (bersaglio) ',
+        '🔥': ' (fuoco) ',
+        '💡': ' (lampadina) ',
+        '📚': ' (libri) ',
+        '📝': ' (appunti) ',
+        '✨': ' (scintille) ',
+        '🎨': ' (arte) ',
+        '🎵': ' (musica) ',
+        '🏆': ' (trofeo) ',
+        '💯': ' (cento per cento) '
+      };
+
+      // Replace symbols and emojis
+      for (const [symbol, replacement] of Object.entries(symbolReplacements)) {
+        cleaned = cleaned.replace(new RegExp(symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
+      }
+      
+      // Remove any remaining emojis (regex for unicode emoji ranges)
+      cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, ' (emoji) ');
 
       // Find the first { and last } to extract only the JSON part
       const firstBrace = cleaned.indexOf('{');
@@ -202,12 +264,15 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     const summaryResponseText = summaryResponse.choices[0].message.content || '{}';
     console.log('🔍 RAW SUMMARY RESPONSE:', summaryResponseText.substring(0, 500));
     console.log('🔍 SUMMARY RESPONSE LENGTH:', summaryResponseText.length);
+    console.log('🔍 SUMMARY RESPONSE FULL (if short):', summaryResponseText.length < 1000 ? summaryResponseText : 'too long to log');
     
     const summaryData = safeJSONParse(
       summaryResponseText,
-      { riassunto_breve: 'Errore nella generazione del riassunto breve', riassunto_esteso: 'Errore nella generazione del riassunto esteso' },
+      { riassunto_breve: 'Il PDF contiene simboli o formattazioni che non permettono di generare un riassunto breve', riassunto_esteso: 'Il PDF contiene simboli o formattazioni che non permettono di generare un riassunto esteso' },
       'summary'
     );
+    
+    console.log('🔍 SUMMARY PARSED DATA:', JSON.stringify(summaryData, null, 2).substring(0, 500));
 
     // Debug flashcards specifically
     const flashcardsResponseText = flashcardsResponse.choices[0].message.content || '{}';
@@ -250,8 +315,8 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     );
 
     const result: any = {
-      riassunto_breve: summaryData.riassunto_breve || 'Unable to generate brief summary',
-      riassunto_esteso: summaryData.riassunto_esteso || 'Unable to generate extended summary',
+      riassunto_breve: summaryData.riassunto_breve || 'Il PDF contiene simboli che non permettono di generare il riassunto breve',
+      riassunto_esteso: summaryData.riassunto_esteso || 'Il PDF contiene simboli che non permettono di generare il riassunto esteso',
       flashcard: flashcardsData.flashcard || [],
       mappa_concettuale: conceptMapData.mappa_concettuale || [],
       quiz: quizData.quiz || [],

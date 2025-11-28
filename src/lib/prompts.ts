@@ -7,7 +7,10 @@ export interface PromptConfig {
 export const createSummaryPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
 Analizza il seguente testo e crea due riassunti in ${targetLanguage || language}.
 
-IMPORTANTE: Se il testo contiene formule matematiche, equazioni, simboli speciali o notazioni scientifiche, descrivi i concetti in modo testuale e comprensibile. Non tentare di riprodurre simboli matematici complessi, ma spiegali a parole.
+IMPORTANTE:
+- NON usare simboli matematici o emoji nei riassunti
+- Sostituisci simboli con testo normale
+- Usa solo caratteri ASCII standard
 
 1. Un riassunto breve (massimo 600 parole) che evidenzi i concetti chiave in paragrafi chiari e strutturati
 
@@ -47,7 +50,14 @@ ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. 
 export const createFlashcardsPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
 Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
 
-IMPORTANTE: Se il testo contiene formule matematiche, equazioni o simboli speciali, spiega i concetti a parole nelle flashcard. Rendi le formule comprensibili attraverso descrizioni testuali chiare.
+IMPORTANTE - SIMBOLI MATEMATICI:
+- NON USARE MAI simboli matematici speciali nelle flashcard (∈, ∉, ∑, ∏, ∞, ≠, ≤, ≥, etc.)
+- CONVERTI sempre in testo normale:
+  * "a ∈ A" → "a appartiene ad A"
+  * "x ≠ y" → "x è diverso da y"  
+  * "∑" → "somma di tutti"
+  * Simboli matematici → spiegazioni testuali
+- USA solo caratteri ASCII standard per garantire compatibilità JSON
 
 Le flashcard devono essere:
 - Semplici e utili per la memorizzazione
