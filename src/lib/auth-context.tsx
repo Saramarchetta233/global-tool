@@ -61,7 +61,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({ 
+          userId,
+          registrationType: sessionStorage.getItem('registrationType') || 'free_trial'
+        }),
         signal: controller.signal
       });
 
@@ -69,6 +72,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       if (response.ok) {
         const data = await response.json();
+        // Clear registration type dopo averlo usato
+        sessionStorage.removeItem('registrationType');
         return {
           credits: data.credits || 120,
           subscription: data.subscription || {

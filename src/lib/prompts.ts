@@ -33,12 +33,14 @@ Il riassunto breve deve rimanere conciso e focalizzato sui punti essenziali.
 Testo da analizzare:
 ${text}
 
-IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto. Non aggiungere testo prima o dopo il JSON. Non usare markdown o backticks:
+IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto. Non aggiungere testo prima o dopo il JSON. Non usare markdown o backticks. Non mescolare i contenuti tra i due campi:
 
 {
   "riassunto_breve": "riassunto breve qui con paragrafi ben strutturati",
   "riassunto_esteso": "RIASSUNTO ESTESO UNIVERSITARIO COMPLETO seguendo la struttura obbligatoria sopra descritta"
-}`;
+}
+
+ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. Non includere il riassunto esteso nel campo breve e viceversa.`;
 
 export const createFlashcardsPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
 Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
@@ -46,9 +48,11 @@ Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
 Le flashcard devono essere:
 - Semplici e utili per la memorizzazione
 - Coprire i concetti più importanti del testo
-- Avere domande chiare e risposte concise
+- Avere domande chiare e risposte complete ma concise
 - Essere progressive in difficoltà
 - Includere sia definizioni che applicazioni pratiche
+
+Per ogni risposta, aggiungi contesto e dettagli dal testo.
 
 Testo:
 ${text}
@@ -56,8 +60,8 @@ ${text}
 IMPORTANTE: Rispondi SOLO con JSON valido, senza formattazione markdown:
 {
   "flashcard": [
-    {"front": "Domanda o concetto da memorizzare", "back": "Risposta chiara e concisa"},
-    {"front": "Cos'è...", "back": "Definizione precisa..."}
+    {"front": "Domanda o concetto da memorizzare", "back": "Risposta completa con contesto dal testo"},
+    {"front": "Cos'è...", "back": "Definizione con dettagli specifici..."}
   ]
 }`;
 

@@ -1186,6 +1186,7 @@ const StudiusAIV2: React.FC = () => {
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authMode, setAuthMode] = useState<'login' | 'register'>('login');
   const [showHistory, setShowHistory] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
   const [targetLanguage, setTargetLanguage] = useState('Auto');
   const [isGenerating, setIsGenerating] = useState(false);
   const [userCredits, setUserCredits] = useState<number>(0);
@@ -1223,6 +1224,7 @@ const StudiusAIV2: React.FC = () => {
     updateExamWrittenState,
     flashcardState,
     updateFlashcardState,
+    resetFlashcardState,
     quizBasicState,
     updateQuizBasicState,
     studyGuideState,
@@ -1289,6 +1291,48 @@ const StudiusAIV2: React.FC = () => {
     }
   };
 
+  const handleClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(true);
+  };
+
+  const handleDragLeave = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setIsDragOver(false);
+
+    const files = event.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    const file = files[0];
+
+    // Seleziona solo PDF (mantieni la stessa logica dell'input esistente)
+    if (file.type !== 'application/pdf') {
+      console.warn('Solo PDF sono supportati');
+      return;
+    }
+
+    // Riusa la stessa funzione che usi oggi in onChange
+    const fakeEvent = {
+      target: { files: [file] },
+    } as unknown as React.ChangeEvent<HTMLInputElement>;
+
+    handleFileUpload(fakeEvent);
+  };
+
   const processDocument = async () => {
     if (!file) return;
 
@@ -1308,6 +1352,9 @@ const StudiusAIV2: React.FC = () => {
       setResults(studyResults);
       setSessionId(studyResults.sessionId || null);
       setDocumentId(studyResults.sessionId || null); // Fix: Also update documentId to match sessionId
+      
+      // Reset flashcard state to start from first card with question showing
+      resetFlashcardState();
 
       // Load docContext from session if sessionId exists
       if (studyResults.sessionId) {
@@ -1745,30 +1792,52 @@ const StudiusAIV2: React.FC = () => {
 
 
 
-  // Helper function to safely render content that might be an object
+  // Helper function to safely render content with improved formatting
   const renderContent = (content: any): string => {
     if (typeof content === 'string') {
-      // Clean up malformed content with extra parentheses or brackets
-      return content
-        .replace(/^\(+|\)+$/g, '') // Remove leading/trailing parentheses
-        .replace(/^\[+|\]+$/g, '') // Remove leading/trailing brackets
-        .replace(/\)\s*\(/g, ')\n\n(') // Add spacing between sections
+      // Clean up content more carefully, preserving structure
+      let cleaned = content.trim();
+      
+      // Only remove malformed wrapping if it's clearly not part of the content
+      // Remove only if the entire string is wrapped in extra parentheses/brackets
+      if (cleaned.startsWith('((') && cleaned.endsWith('))')) {
+        cleaned = cleaned.slice(2, -2).trim();
+      } else if (cleaned.startsWith('(') && cleaned.endsWith(')') && 
+                 !cleaned.includes(')\n') && !cleaned.includes(') ') &&
+                 cleaned.indexOf('(') === 0 && cleaned.lastIndexOf(')') === cleaned.length - 1) {
+        // Only remove if it's a single wrapping parenthesis, not content parentheses
+        cleaned = cleaned.slice(1, -1).trim();
+      }
+      
+      // Same logic for brackets
+      if (cleaned.startsWith('[[') && cleaned.endsWith(']]')) {
+        cleaned = cleaned.slice(2, -2).trim();
+      } else if (cleaned.startsWith('[') && cleaned.endsWith(']') && 
+                 !cleaned.includes(']\n') && !cleaned.includes('] ') &&
+                 cleaned.indexOf('[') === 0 && cleaned.lastIndexOf(']') === cleaned.length - 1) {
+        cleaned = cleaned.slice(1, -1).trim();
+      }
+      
+      // Improve spacing between sections while preserving structure
+      cleaned = cleaned
+        .replace(/\n\s*\n\s*\n+/g, '\n\n') // Multiple newlines to double newline
+        .replace(/([.!?])\s*([A-Z])/g, '$1\n\n$2') // Add spacing after sentences before new sections
         .trim();
+      
+      return cleaned;
     } else if (typeof content === 'object' && content !== null) {
       // If it's an object, try to format it nicely
       if (Array.isArray(content)) {
         return content
           .filter(item => item && typeof item === 'string' && item.trim().length > 0)
+          .map(item => renderContent(item)) // Recursively clean each item
           .join('\n\n');
       } else {
         // Convert object to readable format
         return Object.entries(content)
           .filter(([key, value]) => value && typeof value === 'string' && value.trim().length > 0)
           .map(([key, value]) => {
-            const cleanValue = typeof value === 'string'
-              ? value.replace(/^\(+|\)+$/g, '').replace(/^\[+|\]+$/g, '').trim()
-              : JSON.stringify(value, null, 2);
-            return cleanValue;
+            return typeof value === 'string' ? renderContent(value) : JSON.stringify(value, null, 2);
           })
           .join('\n\n');
       }
@@ -1864,12 +1933,14 @@ const StudiusAIV2: React.FC = () => {
                     Ricarica Crediti
                   </button>
                 )}
-                <button
-                  onClick={() => setShowSubscriptionModal(true)}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
-                >
-                  Abbonati
-                </button>
+                {!canPurchaseRecharge && (
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="flex-1 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
+                  >
+                    Abbonati
+                  </button>
+                )}
               </div>
 
               {/* Desktop action buttons */}
@@ -1882,12 +1953,14 @@ const StudiusAIV2: React.FC = () => {
                     Ricarica
                   </button>
                 )}
-                <button
-                  onClick={() => setShowSubscriptionModal(true)}
-                  className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
-                >
-                  Abbonati
-                </button>
+                {!canPurchaseRecharge && (
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-lg text-xs font-medium transition-all border border-white/20"
+                  >
+                    Abbonati
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -1928,7 +2001,9 @@ const StudiusAIV2: React.FC = () => {
                     <h3 className="text-lg font-semibold text-white">Accedi per iniziare</h3>
                   </div>
                   <p className="text-gray-300 mb-4 text-sm">
-                    Crea un account gratuito e ricevi 120 crediti per iniziare subito!
+                    {sessionStorage.getItem('registrationType') === 'onetime_payment' 
+                      ? 'Accedi con il tuo account Premium One-Time da 4000 crediti!'
+                      : 'Crea un account gratuito e ricevi 120 crediti per iniziare subito!'}
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -2001,10 +2076,19 @@ const StudiusAIV2: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-3">
                     📄 File PDF
                   </label>
-                  <div className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 ${file
-                    ? 'border-green-400 bg-green-400/10'
-                    : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
-                    }`}>
+                  <div 
+                    className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 cursor-pointer ${
+                      file
+                        ? 'border-green-400 bg-green-400/10'
+                        : isDragOver
+                        ? 'border-purple-400 bg-purple-400/10 scale-[1.02]'
+                        : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
+                    }`}
+                    onClick={!file ? handleClick : undefined}
+                    onDragOver={!file ? handleDragOver : undefined}
+                    onDragLeave={!file ? handleDragLeave : undefined}
+                    onDrop={!file ? handleDrop : undefined}
+                  >
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -2018,12 +2102,9 @@ const StudiusAIV2: React.FC = () => {
                         <div className="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-2xl flex items-center justify-center">
                           <Upload className="w-8 h-8 sm:w-10 sm:h-10 text-purple-400" />
                         </div>
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="text-white hover:text-purple-300 font-medium text-base sm:text-lg transition-colors"
-                        >
+                        <div className="text-white hover:text-purple-300 font-medium text-base sm:text-lg transition-colors">
                           Clicca per caricare un file PDF
-                        </button>
+                        </div>
                         <p className="text-gray-400 text-xs sm:text-sm mt-2">Oppure trascina e rilascia qui</p>
                       </>
                     ) : (

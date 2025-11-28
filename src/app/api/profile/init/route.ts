@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       );
     }
     
-    const { userId } = body;
+    const { userId, registrationType = 'free_trial' } = body;
     
     if (!userId) {
       return NextResponse.json(
@@ -31,7 +31,7 @@ export async function POST(req: Request) {
     // Usa supabaseAdmin per evitare problemi RLS con nuovi utenti
     const { data: profile, error } = await (supabaseAdmin || supabase)
       .from("profiles")
-      .select("id, credits, subscription_type, subscription_active, lifetime_active, subscription_renewal_date")
+      .select("id, credits, registration_type, subscription_type, subscription_active, lifetime_active, subscription_renewal_date")
       .eq("user_id", userId)
       .single();
 
@@ -44,16 +44,20 @@ export async function POST(req: Request) {
       );
     }
 
-    // Se il profilo non esiste, crealo con 120 crediti di benvenuto
+    // Se il profilo non esiste, crealo con crediti in base al tipo di registrazione
     if (!profile) {
-      console.log('🔍 [PROFILE_INIT] Creating new profile for userId:', userId);
+      console.log('🔍 [PROFILE_INIT] Creating new profile for userId:', userId, 'with registrationType:', registrationType);
+      
+      // Determina i crediti iniziali in base al tipo di registrazione
+      const initialCredits = registrationType === 'onetime_payment' ? 4000 : 120;
       
       // Usa upsert per gestire le chiamate concorrenti
       const { data: upsertedProfile, error: upsertError } = await (supabaseAdmin || supabase)
         .from("profiles")
         .upsert({ 
           user_id: userId, 
-          credits: 120,
+          credits: initialCredits,
+          registration_type: registrationType,
           subscription_type: null,
           subscription_active: false,
           lifetime_active: false,
@@ -87,16 +91,17 @@ export async function POST(req: Request) {
 
       return NextResponse.json({ 
         ok: true, 
-        credits: 120,
+        credits: initialCredits,
+        registrationType: registrationType,
         subscription: {
           type: null,
           active: false,
           lifetime: false,
           renewalDate: null
         },
-        canPurchaseRecharge: false,
+        canPurchaseRecharge: registrationType === 'onetime_payment',
         action: "created",
-        signupBonus: true
+        signupBonus: registrationType === 'free_trial'
       });
     }
 
@@ -124,7 +129,7 @@ export async function POST(req: Request) {
           lifetime: profile.lifetime_active || false,
           renewalDate: profile.subscription_renewal_date || null
         },
-        canPurchaseRecharge: profile.subscription_active || profile.lifetime_active || false,
+        canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.subscription_active || profile.lifetime_active || false,
         action: "updated" 
       });
     }
@@ -139,7 +144,7 @@ export async function POST(req: Request) {
         lifetime: profile.lifetime_active || false,
         renewalDate: profile.subscription_renewal_date || null
       },
-      canPurchaseRecharge: profile.subscription_active || profile.lifetime_active || false,
+      canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.subscription_active || profile.lifetime_active || false,
       action: "existing" 
     });
 

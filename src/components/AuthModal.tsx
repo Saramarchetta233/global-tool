@@ -103,8 +103,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, defaultMode = 'l
                   <Coins className="w-5 h-5 text-green-400" />
                 </div>
                 <div>
-                  <h3 className="text-green-300 font-semibold">Bonus di Benvenuto!</h3>
-                  <p className="text-green-200 text-sm">Ricevi 120 crediti gratuiti alla registrazione</p>
+                  <h3 className="text-green-300 font-semibold">
+                    {sessionStorage.getItem('registrationType') === 'onetime_payment' 
+                      ? 'Account Premium One-Time!' 
+                      : 'Bonus di Benvenuto!'}
+                  </h3>
+                  <p className="text-green-200 text-sm">
+                    {sessionStorage.getItem('registrationType') === 'onetime_payment' 
+                      ? 'Ricevi 4000 crediti con accesso completo' 
+                      : 'Ricevi 120 crediti gratuiti alla registrazione'}
+                  </p>
                 </div>
               </div>
             </div>

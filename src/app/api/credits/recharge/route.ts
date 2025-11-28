@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Recupera anche info sulla subscription corrente
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('subscription_type, subscription_active, lifetime_active, subscription_renewal_date, credits')
+      .select('registration_type, subscription_type, subscription_active, lifetime_active, subscription_renewal_date, credits')
       .eq('user_id', user.id)
       .single();
 

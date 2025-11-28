@@ -140,14 +140,22 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     ]);
     console.log('All OpenAI responses received');
 
-    // Parse responses
+    // Parse responses - Improved JSON cleaning that preserves content structure
     const cleanJSON = (content: string) => {
-      return content
+      let cleaned = content
         .replace(/```json/g, '')
         .replace(/```/g, '')
-        .replace(/^[^{]*/g, '') // Rimuovi tutto prima della prima {
-        .replace(/[^}]*$/g, '') // Rimuovi tutto dopo l'ultima }
         .trim();
+
+      // Find the first { and last } to extract only the JSON part
+      const firstBrace = cleaned.indexOf('{');
+      const lastBrace = cleaned.lastIndexOf('}');
+      
+      if (firstBrace !== -1 && lastBrace !== -1 && firstBrace < lastBrace) {
+        cleaned = cleaned.substring(firstBrace, lastBrace + 1);
+      }
+
+      return cleaned;
     };
 
     const safeJSONParse = (content: string, fallback: any, name: string) => {
@@ -160,60 +168,36 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         
         const parsed = JSON.parse(cleaned);
         console.log(`${name} parsed successfully:`, Object.keys(parsed));
+        
+        // Additional validation for summary content to prevent mixing
+        if (name === 'summary' && parsed.riassunto_breve && parsed.riassunto_esteso) {
+          // Check if content got mixed up - brief should be much shorter than extended
+          const briefLength = parsed.riassunto_breve.length;
+          const extendedLength = parsed.riassunto_esteso.length;
+          
+          console.log(`Summary validation: brief=${briefLength} chars, extended=${extendedLength} chars`);
+          
+          // If brief is longer than extended, they might be swapped
+          if (briefLength > extendedLength && extendedLength > 0) {
+            console.log('⚠️ Detected swapped summaries, fixing...');
+            const temp = parsed.riassunto_breve;
+            parsed.riassunto_breve = parsed.riassunto_esteso;
+            parsed.riassunto_esteso = temp;
+          }
+          
+          // If brief is too long (over 800 words), truncate it
+          const briefWordCount = parsed.riassunto_breve.split(' ').length;
+          if (briefWordCount > 800) {
+            console.log(`⚠️ Brief summary too long (${briefWordCount} words), truncating...`);
+            const words = parsed.riassunto_breve.split(' ');
+            parsed.riassunto_breve = words.slice(0, 600).join(' ') + '...';
+          }
+        }
+        
         return parsed;
       } catch (error) {
         console.error(`JSON Parse Error for ${name}:`, error);
         console.error(`Full content that failed to parse:`, content);
-        
-        // Enhanced fallback for summary
-        if (name === 'summary') {
-          console.log('🔧 Attempting enhanced fallback for summary...');
-          
-          // Strategy 1: Try to extract any JSON-like structure
-          try {
-            const jsonMatches = content.match(/\{[\s\S]*?\}/g);
-            if (jsonMatches && jsonMatches.length > 0) {
-              console.log('Found potential JSON structures:', jsonMatches.length);
-              
-              for (const match of jsonMatches) {
-                try {
-                  const parsed = JSON.parse(match);
-                  if (parsed.riassunto_breve || parsed.riassunto_esteso) {
-                    console.log('✅ Successfully extracted JSON from content');
-                    return {
-                      riassunto_breve: parsed.riassunto_breve || 'Riassunto breve estratto',
-                      riassunto_esteso: parsed.riassunto_esteso || parsed.riassunto_breve || content
-                    };
-                  }
-                } catch (e) {
-                  continue;
-                }
-              }
-            }
-          } catch (e) {
-            console.error('JSON extraction failed:', e);
-          }
-          
-          // Strategy 2: Treat the whole response as summary content
-          if (content && content.length > 100) {
-            console.log('📝 Using direct content as summary');
-            const lines = content.split('\n').filter(line => line.trim().length > 0);
-            const firstPart = lines.slice(0, Math.min(15, Math.floor(lines.length / 2))).join('\n');
-            
-            return {
-              riassunto_breve: firstPart.substring(0, 800) || 'Riassunto generato automaticamente',
-              riassunto_esteso: content || 'Riassunto esteso generato automaticamente'
-            };
-          }
-          
-          // Strategy 3: Generate basic summary from original text
-          console.log('⚠️ Using fallback summary generation');
-          return {
-            riassunto_breve: 'Il documento è stato elaborato con successo. Controlla gli altri tab per i contenuti generati.',
-            riassunto_esteso: 'Riassunto esteso in fase di elaborazione. Il documento è stato processato correttamente e gli altri materiali di studio sono disponibili nei rispettivi tab.'
-          };
-        }
-        
         return fallback;
       }
     };
@@ -221,6 +205,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     // Get the raw summary response
     const summaryResponseText = summaryResponse.choices[0].message.content || '{}';
     console.log('🔍 RAW SUMMARY RESPONSE:', summaryResponseText.substring(0, 500));
+    console.log('🔍 SUMMARY RESPONSE LENGTH:', summaryResponseText.length);
     
     const summaryData = safeJSONParse(
       summaryResponseText,
@@ -228,11 +213,42 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       'summary'
     );
 
+    // Debug flashcards specifically
+    const flashcardsResponseText = flashcardsResponse.choices[0].message.content || '{}';
+    console.log('🃏 RAW FLASHCARDS RESPONSE:', flashcardsResponseText);
+    console.log('🃏 FLASHCARDS RESPONSE LENGTH:', flashcardsResponseText.length);
+    
     const flashcardsData = safeJSONParse(
-      flashcardsResponse.choices[0].message.content || '{}',
+      flashcardsResponseText,
       { flashcard: [] },
       'flashcards'
     );
+    
+    console.log('🃏 FLASHCARDS PARSED DATA:', flashcardsData);
+    console.log('🃏 FLASHCARD ARRAY:', flashcardsData.flashcard);
+    console.log('🃏 FLASHCARD COUNT:', flashcardsData.flashcard?.length || 0);
+    
+    // Clean and validate flashcards
+    if (flashcardsData.flashcard && Array.isArray(flashcardsData.flashcard)) {
+      console.log('🃏 RAW FIRST FLASHCARD:', flashcardsData.flashcard[0]);
+      
+      // Filter out invalid flashcards (missing front or back)
+      flashcardsData.flashcard = flashcardsData.flashcard.filter((card: any, index: number) => {
+        const hasValidFront = card?.front && typeof card.front === 'string' && card.front.trim().length > 0;
+        const hasValidBack = card?.back && typeof card.back === 'string' && card.back.trim().length > 0;
+        
+        if (!hasValidFront || !hasValidBack) {
+          console.log(`🃏 REMOVING INVALID FLASHCARD ${index}:`, { front: card?.front, back: card?.back });
+          return false;
+        }
+        return true;
+      });
+      
+      console.log('🃏 CLEANED FLASHCARD COUNT:', flashcardsData.flashcard.length);
+      if (flashcardsData.flashcard.length > 0) {
+        console.log('🃏 FIRST VALID FLASHCARD:', flashcardsData.flashcard[0]);
+      }
+    }
 
     const conceptMapData = safeJSONParse(
       conceptMapResponse.choices[0].message.content || '{}',
@@ -282,7 +298,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       });
       console.log('💾 [BACKEND_SAVE_DEBUG] userId type and value:', typeof userId, userId);
       
-      const { data: insertData, error: insertError } = await supabaseAdmin
+      const { data: insertData, error: insertError } = await supabaseAdmin!
         .from('tutor_sessions')
         .insert({
           id: sessionId,
@@ -353,8 +369,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
   }
 }
 
-// Calculate total credits needed for full processing
-const TOTAL_CREDITS_NEEDED = 25; // extraction(5) + summary(10) + flashcards(8) + quiz(8) + map(6) - simplified as one operation
+// Calculate total credits needed for full processing - handled dynamically by getPdfCost()
 
 export async function POST(request: NextRequest) {
   console.log('🚀 PDF-V2 API called');

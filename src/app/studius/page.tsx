@@ -24,18 +24,18 @@ const StudiusLandingPage = () => {
               <span className="w-2 h-2 bg-indigo-600 rounded-full mr-2"></span>
               Nuovo • AI study assistant
             </div>
-            
+
             <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Studiare è difficile.<br />
               <span className="text-indigo-600">Con l'AI lo rendiamo</span><br />
               10 volte più semplice.
             </h1>
-            
+
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto leading-relaxed">
-              Studius AI trasforma i tuoi PDF, appunti e slide in riassunti, flashcard, 
+              Studius AI trasforma i tuoi PDF, appunti e slide in riassunti, flashcard,
               mappe concettuali e quiz pronti per l'esame.
             </p>
-            
+
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
               <div className="flex items-center text-green-600 font-medium">
                 <Check className="w-5 h-5 mr-2" />
@@ -50,16 +50,16 @@ const StudiusLandingPage = () => {
                 Preparati agli esami con sicurezza
               </div>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-              <button 
-                onClick={() => window.open('/test', '_blank')}
+              <button
+                onClick={() => window.open('/test-v3', '_blank')}
                 className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
               >
-                Provala gratis per 3 giorni
+                Provala gratis!
                 <ArrowRight className="w-5 h-5 ml-2" />
               </button>
-              <button 
+              <button
                 onClick={() => scrollToSection('demo')}
                 className="border-2 border-indigo-600 text-indigo-600 px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-50 transition-colors"
               >
@@ -67,7 +67,7 @@ const StudiusLandingPage = () => {
               </button>
             </div>
           </div>
-          
+
           {/* Hero Visual */}
           <div className="max-w-4xl mx-auto">
             <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
@@ -100,10 +100,10 @@ const StudiusLandingPage = () => {
             Studiare oggi è un problema.<br />
             <span className="text-red-600">E tu lo sai bene.</span>
           </h2>
-          
+
           <div className="max-w-4xl mx-auto mb-16">
             <p className="text-xl text-gray-600 mb-6 leading-relaxed">
-              Programmi infiniti, appunti lunghi e disordinati, impossibile memorizzare tutto. 
+              Programmi infiniti, appunti lunghi e disordinati, impossibile memorizzare tutto.
               Perdi tempo a riassumere invece che capire.
             </p>
             <p className="text-xl text-gray-600 mb-6 leading-relaxed">
@@ -113,7 +113,7 @@ const StudiusLandingPage = () => {
               E alla fine arrivi all'esame con l'ansia di non aver fatto abbastanza.
             </p>
           </div>
-          
+
           <div className="bg-indigo-600 text-white rounded-2xl p-8 max-w-3xl mx-auto">
             <h3 className="text-2xl font-bold mb-4">
               Studius AI si occupa del lavoro pesante al posto tuo.
@@ -136,7 +136,7 @@ const StudiusLandingPage = () => {
               Dal caos degli appunti all'esame superato. Ecco come.
             </p>
           </div>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 mb-16">
             <div className="text-center">
               <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
@@ -147,7 +147,7 @@ const StudiusLandingPage = () => {
                 PDF, slide, appunti digitali, scansioni. Studius AI li trasforma nel punto di partenza perfetto.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="bg-purple-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <FileText className="w-8 h-8 text-purple-600" />
@@ -157,7 +157,7 @@ const StudiusLandingPage = () => {
                 Riassunti brevi per ripassi veloci + versioni estese per capire a fondo.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="bg-green-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Brain className="w-8 h-8 text-green-600" />
@@ -167,7 +167,7 @@ const StudiusLandingPage = () => {
                 Genera flashcard e mappe concettuali mirate sui concetti chiave.
               </p>
             </div>
-            
+
             <div className="text-center">
               <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <Target className="w-8 h-8 text-orange-600" />
@@ -178,13 +178,13 @@ const StudiusLandingPage = () => {
               </p>
             </div>
           </div>
-          
+
           <div className="text-center">
-            <button 
-              onClick={() => window.open('/test', '_blank')}
+            <button
+              onClick={() => window.open('/test-v3', '_blank')}
               className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg"
             >
-              Inizia ora – Provala gratis per 3 giorni
+              Inizia ora – Provala gratis!
             </button>
           </div>
         </div>
@@ -200,7 +200,7 @@ const StudiusLandingPage = () => {
               in un unico spazio di studio.
             </h2>
           </div>
-          
+
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div className="space-y-8">
               <div className="flex items-start space-x-4">
@@ -214,7 +214,7 @@ const StudiusLandingPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-4">
                 <div className="bg-purple-100 p-3 rounded-xl">
                   <Brain className="w-6 h-6 text-purple-600" />
@@ -226,7 +226,7 @@ const StudiusLandingPage = () => {
                   </p>
                 </div>
               </div>
-              
+
               <div className="flex items-start space-x-4">
                 <div className="bg-green-100 p-3 rounded-xl">
                   <Target className="w-6 h-6 text-green-600" />
@@ -239,7 +239,7 @@ const StudiusLandingPage = () => {
                 </div>
               </div>
             </div>
-            
+
             <div className="bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
               <div className="space-y-4">
                 <div className="flex items-center justify-between pb-4 border-b border-gray-200">
@@ -282,7 +282,7 @@ const StudiusLandingPage = () => {
             Cosa cambia davvero quando<br />
             inizi a usare Studius AI?
           </h2>
-          
+
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="bg-blue-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">📚</div>
@@ -291,7 +291,7 @@ const StudiusLandingPage = () => {
                 Niente più ore perse a fare riassunti. L'AI fa il lavoro pesante, tu ti concentri su capire e ricordare.
               </p>
             </div>
-            
+
             <div className="bg-purple-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">🧠</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Ricordi di più nel lungo periodo</h3>
@@ -299,7 +299,7 @@ const StudiusLandingPage = () => {
                 Le flashcard e i quiz ti aiutano a consolidare la memoria a lungo termine, non solo per l'esame.
               </p>
             </div>
-            
+
             <div className="bg-green-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">⏱</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Smetti di sprecare ore a fare riassunti</h3>
@@ -307,7 +307,7 @@ const StudiusLandingPage = () => {
                 Il tempo risparmiato lo usi per capire meglio la materia o per avere una vita sociale.
               </p>
             </div>
-            
+
             <div className="bg-orange-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">✅</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Arrivi all'esame con un piano chiaro</h3>
@@ -315,7 +315,7 @@ const StudiusLandingPage = () => {
                 Sai esattamente cosa ripassare e quanto tempo ci vuole. Niente più ansia dell'ultimo minuto.
               </p>
             </div>
-            
+
             <div className="bg-red-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">🔥</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Niente più ansia da programma infinito</h3>
@@ -323,7 +323,7 @@ const StudiusLandingPage = () => {
                 Quando vedi tutto organizzato e sotto controllo, l'ansia da esame diminuisce drasticamente.
               </p>
             </div>
-            
+
             <div className="bg-indigo-50 rounded-2xl p-8 text-center">
               <div className="text-4xl mb-4">🎯</div>
               <h3 className="text-xl font-bold text-gray-900 mb-4">Focus sui concetti, non sulla forma</h3>
@@ -341,16 +341,16 @@ const StudiusLandingPage = () => {
           <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-16">
             Non è magia. È un metodo.
           </h2>
-          
+
           <div className="grid md:grid-cols-3 gap-8">
             <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="flex items-center mb-4">
-                {[1,2,3,4,5].map((star) => (
+                {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className="w-5 h-5 text-yellow-400 fill-current" />
                 ))}
               </div>
               <p className="text-gray-600 mb-6 italic">
-                "Per l'esame più pesante della sessione ho usato solo i riassunti e le flashcard di Studius AI. 
+                "Per l'esame più pesante della sessione ho usato solo i riassunti e le flashcard di Studius AI.
                 Ho risparmiato settimane di lavoro."
               </p>
               <div className="text-left">
@@ -358,15 +358,15 @@ const StudiusLandingPage = () => {
                 <p className="text-sm text-gray-500">Medicina, Università di Milano</p>
               </div>
             </div>
-            
+
             <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="flex items-center mb-4">
-                {[1,2,3,4,5].map((star) => (
+                {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className="w-5 h-5 text-yellow-400 fill-current" />
                 ))}
               </div>
               <p className="text-gray-600 mb-6 italic">
-                "Prima perdevo ore a fare schemi, adesso inizio dal materiale già pronto. 
+                "Prima perdevo ore a fare schemi, adesso inizio dal materiale già pronto.
                 È come avere un assistente personale che non dorme mai."
               </p>
               <div className="text-left">
@@ -374,15 +374,15 @@ const StudiusLandingPage = () => {
                 <p className="text-sm text-gray-500">Ingegneria, Politecnico di Torino</p>
               </div>
             </div>
-            
+
             <div className="bg-white rounded-2xl p-8 shadow-lg">
               <div className="flex items-center mb-4">
-                {[1,2,3,4,5].map((star) => (
+                {[1, 2, 3, 4, 5].map((star) => (
                   <Star key={star} className="w-5 h-5 text-yellow-400 fill-current" />
                 ))}
               </div>
               <p className="text-gray-600 mb-6 italic">
-                "I quiz mi hanno fatto capire dove ero debole prima dell'esame. 
+                "I quiz mi hanno fatto capire dove ero debole prima dell'esame.
                 Sono arrivata preparata su tutto, non solo su quello che credevo di sapere."
               </p>
               <div className="text-left">
@@ -404,7 +404,7 @@ const StudiusLandingPage = () => {
           <p className="text-xl text-gray-600 mb-16">
             Scegli il piano che fa per te. Puoi sempre cambiare idea.
           </p>
-          
+
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             <div className="bg-white border-2 border-gray-200 rounded-2xl p-8 relative">
               <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
@@ -435,14 +435,14 @@ const StudiusLandingPage = () => {
                   <span>Aggiornamenti automatici</span>
                 </li>
               </ul>
-              <button 
-                onClick={() => window.open('/test', '_blank')}
+              <button
+                onClick={() => window.open('/test-v3', '_blank')}
                 className="w-full bg-indigo-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors"
               >
-                Inizia la prova gratuita di 3 giorni
+                Inizia la prova gratuita!
               </button>
             </div>
-            
+
             <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border-2 border-purple-200 rounded-2xl p-8">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">Piano Lifetime</h3>
               <div className="mb-2">
@@ -468,17 +468,17 @@ const StudiusLandingPage = () => {
                   <span>Nessun rinnovo, nessuna preoccupazione</span>
                 </li>
               </ul>
-              <button 
-                onClick={() => window.open('/test', '_blank')}
+              <button
+                onClick={() => window.open('/test-v3', '_blank')}
                 className="w-full bg-purple-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-purple-700 transition-colors"
               >
                 Sblocca accesso a vita
               </button>
             </div>
           </div>
-          
+
           <p className="text-gray-500 mt-8 max-w-2xl mx-auto">
-            Nessun vincolo. Puoi annullare quando vuoi direttamente dal tuo account. 
+            Nessun vincolo. Puoi annullare quando vuoi direttamente dal tuo account.
             La prova gratuita non ti impegna a nulla.
           </p>
         </div>
@@ -495,12 +495,12 @@ const StudiusLandingPage = () => {
               Tutto quello che vuoi sapere su Studius AI
             </p>
           </div>
-          
+
           <div className="space-y-6">
             {[
               {
-                question: "Come funziona la prova gratuita di 3 giorni?",
-                answer: "Ti registri, accedi a tutte le funzioni per 3 giorni senza pagare niente. Se decidi di continuare, il pagamento parte automaticamente. Se non ti convince, annulli e non paghi nulla."
+                question: "Come funziona la prova gratuita?",
+                answer: "Ti registri, accedi a tutte le funzioni senza pagare niente. Se decidi di continuare, puoi scegliere l'abbonamento. Se non ti convince non paghi nulla."
               },
               {
                 question: "Posso disdire prima che venga addebitato il primo pagamento?",
@@ -558,14 +558,14 @@ const StudiusLandingPage = () => {
             preparare meglio di così.
           </h2>
           <p className="text-xl mb-12 opacity-90 leading-relaxed">
-            Carica i tuoi materiali, lascia fare il lavoro pesante all'AI e concentrati 
+            Carica i tuoi materiali, lascia fare il lavoro pesante all'AI e concentrati
             su quello che conta davvero: capire e ricordare.
           </p>
-          <button 
-            onClick={() => window.open('/test', '_blank')}
+          <button
+            onClick={() => window.open('/test-v3', '_blank')}
             className="bg-white text-indigo-600 px-12 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center"
           >
-            Inizia ora – Provala gratis per 3 giorni
+            Inizia ora – Provala gratis!
             <ArrowRight className="w-5 h-5 ml-2" />
           </button>
           <p className="text-sm opacity-75 mt-6">
