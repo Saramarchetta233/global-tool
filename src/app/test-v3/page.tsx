@@ -1347,6 +1347,13 @@ const StudiusAIV2: React.FC = () => {
 
     try {
       const studyResults = await processWithAI(file, language, token, targetLanguage, user);
+      
+      // 🔥 DEBUG: Log what we received from the API
+      console.log('🔥 FRONTEND DEBUG: Received study results:', JSON.stringify(studyResults, null, 2));
+      console.log('🔥 FRONTEND DEBUG: Flashcard count in results:', studyResults?.flashcard?.length || 0);
+      if (studyResults?.flashcard?.length > 0) {
+        console.log('🔥 FRONTEND DEBUG: First flashcard:', JSON.stringify(studyResults.flashcard[0], null, 2));
+      }
 
       // Update store with results and session data
       setResults(studyResults);
