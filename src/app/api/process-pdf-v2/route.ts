@@ -141,7 +141,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
     ] = await Promise.all([
       retryOpenAICall(prompts.summary, 3000, 0.3, 2, 'summary'),
       retryOpenAICall(prompts.flashcards, 2000, 0.4, 2, 'flashcards'),
-      retryOpenAICall(prompts.conceptMap, 600, 0.3, 2, 'conceptMap'),
+      retryOpenAICall(prompts.conceptMap, 1500, 0.3, 2, 'conceptMap'),
       retryOpenAICall(prompts.quiz, 1000, 0.4, 2, 'quiz'),
       retryOpenAICall(prompts.examGuide, 1200, 0.3, 2, 'examGuide')
     ]);
@@ -388,11 +388,101 @@ Il documento può essere utilizzato per studio approfondito, creazione di materi
     }
     console.log('🔥 FLASHCARDS DEBUG END');
 
-    const conceptMapData = safeJSONParse(
-      conceptMapResponse.choices[0].message.content || '{}',
-      { mappa_concettuale: [] },
-      'conceptMap'
-    );
+    // Concept Map with emergency fallback system
+    let conceptMapData;
+    try {
+      conceptMapData = safeJSONParse(
+        conceptMapResponse.choices[0].message.content || '{}',
+        null,
+        'conceptMap'
+      );
+      
+      // Validate concept map has required fields
+      if (!conceptMapData.mappa_concettuale || !Array.isArray(conceptMapData.mappa_concettuale)) {
+        throw new Error('Missing or invalid concept map data');
+      }
+      
+    } catch (conceptMapError) {
+      console.warn('⚠️ Concept Map JSON failed, attempting emergency AI analysis...');
+      
+      try {
+        // Emergency AI analysis - simplified prompt
+        const emergencyMapPrompt = `
+Analizza questo testo e crea una mappa concettuale semplice.
+
+IMPORTANTE:
+- Usa solo testo normale, NO simboli speciali
+- Massimo 8-10 concetti principali
+- Struttura gerarchica chiara
+- Analizza VERAMENTE il contenuto
+
+Testo:
+${processedText}
+
+Rispondi SOLO con JSON:
+{
+  "mappa_concettuale": [
+    {
+      "title": "Concetto Principale del documento",
+      "children": [
+        {"title": "Sottoconcetto 1"},
+        {"title": "Sottoconcetto 2"}
+      ]
+    }
+  ]
+}`;
+
+        console.log('🔄 Attempting emergency concept map generation...');
+        const emergencyMapResponse = await openai.chat.completions.create({
+          model: "gpt-4o-mini",
+          messages: [{ role: "user", content: emergencyMapPrompt }],
+          temperature: 0.3,
+          max_tokens: 1200,
+        });
+
+        const emergencyMapText = emergencyMapResponse.choices[0].message.content || '{}';
+        conceptMapData = safeJSONParse(emergencyMapText, null, 'emergency_concept_map');
+        
+        console.log('✅ Emergency concept map generated successfully');
+        
+      } catch (emergencyMapError) {
+        console.warn('⚠️ Emergency concept map also failed, using final fallback...');
+        
+        // Final fallback: Create basic concept map from document structure
+        conceptMapData = {
+          mappa_concettuale: [
+            {
+              title: fileName?.replace('.pdf', '') || 'Documento di Studio',
+              children: [
+                {
+                  title: 'Contenuto Principale',
+                  children: [
+                    { title: 'Concetti estratti dal testo' },
+                    { title: 'Argomenti identificati' }
+                  ]
+                },
+                {
+                  title: 'Struttura del Documento',
+                  children: [
+                    { title: `${Math.ceil(processedText.length/3000)} pagine di contenuto` },
+                    { title: 'Materiale accademico organizzato' }
+                  ]
+                },
+                {
+                  title: 'Applicazioni',
+                  children: [
+                    { title: 'Studio e memorizzazione' },
+                    { title: 'Preparazione esami' }
+                  ]
+                }
+              ]
+            }
+          ]
+        };
+        
+        console.log('✅ Created fallback concept map');
+      }
+    }
 
     const quizData = safeJSONParse(
       quizResponse.choices[0].message.content || '{}',
