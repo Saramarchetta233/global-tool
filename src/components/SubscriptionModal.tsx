@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, Crown, Calendar, Star, Zap } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
+import { PaymentModal } from './PaymentModal';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -10,8 +11,8 @@ interface SubscriptionModalProps {
 }
 
 const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }) => {
-  const [isLoading, setIsLoading] = useState(false);
-  const { user, refreshProfile } = useAuth();
+  const [selectedPlan, setSelectedPlan] = useState<'monthly' | 'lifetime' | null>(null);
+  const { user } = useAuth();
 
   const plans = [
     {
@@ -49,43 +50,9 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
     }
   ];
 
-  const handleSubscribe = async (plan: typeof plans[0]) => {
+  const handleSelectPlan = (planType: 'monthly' | 'lifetime') => {
     if (!user?.id) return;
-    
-    setIsLoading(true);
-    try {
-      const endpoint = plan.id === 'monthly' ? '/api/subscription/monthly' : '/api/subscription/lifetime';
-      const response = await fetch(endpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
-        }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Refresh user profile to get updated subscription status
-        await refreshProfile();
-        
-        if (plan.id === 'monthly') {
-          alert(`🎉 Abbonamento Mensile attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\nOra puoi acquistare ricariche crediti!\n\n(Simulazione: non ci sarà rinnovo automatico)`);
-        } else {
-          alert(`👑 Piano Lifetime attivato!\nAggiunti ${plan.credits.toLocaleString()} crediti\nOra puoi acquistare ricariche crediti!\n\nComplimenti per l'accesso a vita!`);
-        }
-        
-        onClose();
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Errore nell\'attivazione');
-      }
-    } catch (error) {
-      console.error('Errore abbonamento:', error);
-      alert('Errore durante l\'attivazione. Riprova più tardi.');
-    } finally {
-      setIsLoading(false);
-    }
+    setSelectedPlan(planType);
   };
 
   if (!isOpen) return null;
@@ -122,7 +89,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                     ? 'border-yellow-500/50 ring-2 ring-yellow-500/30 scale-105' 
                     : 'border-white/20 hover:border-purple-500/50'
                 }`}
-                onClick={() => handleSubscribe(plan)}
+                onClick={() => handleSelectPlan(plan.id as 'monthly' | 'lifetime')}
               >
                 {plan.popular && (
                   <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -186,21 +153,20 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
         {/* Footer */}
         <div className="text-center text-gray-400 text-xs space-y-1">
-          <p>💳 Per ora è simulato - i crediti vengono aggiunti immediatamente</p>
-          <p>🔒 Pagamenti sicuri con Stripe (prossimamente)</p>
+          <p>💳 Pagamenti sicuri con Stripe e PayPal</p>
+          <p>🔒 Dati protetti con crittografia SSL</p>
           <p>📧 Riceverai conferma via email dopo l'attivazione</p>
         </div>
-
-        {/* Loading Overlay */}
-        {isLoading && (
-          <div className="absolute inset-0 bg-black/50 rounded-2xl flex items-center justify-center">
-            <div className="text-white text-center">
-              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin mx-auto mb-2"></div>
-              <p>Attivazione piano...</p>
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* Payment Modal */}
+      <PaymentModal 
+        isOpen={selectedPlan !== null}
+        onClose={() => setSelectedPlan(null)}
+        userId={user?.id || ''}
+        version="1"
+        planType={selectedPlan || 'monthly'}
+      />
     </div>
   );
 };

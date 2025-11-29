@@ -2,11 +2,13 @@
 
 import React from 'react';
 import { ArrowRight, FileText, Brain, Target, Check, Star, ChevronDown, ChevronUp, Upload, Zap, Crown, Shield, Rocket, Award, TrendingUp, Users, Clock, BookOpen, Calculator, Diamond } from 'lucide-react';
+import { PaymentModal } from '@/components/PaymentModal';
+import { useAuth } from '@/lib/auth-context';
 
 const StudiusOnetimePage = () => {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);
-  const [isProcessing, setIsProcessing] = React.useState(false);
-  const [showSuccess, setShowSuccess] = React.useState(false);
+  const [showPaymentModal, setShowPaymentModal] = React.useState(false);
+  const { user } = useAuth();
 
   const toggleFaq = (index: number) => {
     setOpenFaq(openFaq === index ? null : index);
@@ -16,19 +18,14 @@ const StudiusOnetimePage = () => {
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const handleFakePurchase = async () => {
-    setIsProcessing(true);
-    
-    // Simula processo di pagamento
-    setTimeout(() => {
-      setIsProcessing(false);
-      setShowSuccess(true);
-      
-      // Dopo 2 secondi, reindirizza alla pagina di registrazione onetime
-      setTimeout(() => {
-        window.location.href = '/onetime-register';
-      }, 2000);
-    }, 2000);
+  const handlePurchase = () => {
+    if (!user) {
+      // If not logged in, redirect to register first
+      window.location.href = '/onetime-register';
+      return;
+    }
+    // Open payment modal
+    setShowPaymentModal(true);
   };
 
   return (
@@ -89,22 +86,10 @@ const StudiusOnetimePage = () => {
                   <span className="text-2xl font-bold ml-2">€49 oggi</span>
                 </div>
                 <button 
-                  onClick={handleFakePurchase}
-                  disabled={isProcessing || showSuccess}
-                  className="w-full bg-black text-white font-bold py-4 px-8 rounded-2xl text-xl hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={handlePurchase}
+                  className="w-full bg-black text-white font-bold py-4 px-8 rounded-2xl text-xl hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 shadow-xl"
                 >
-                  {isProcessing ? (
-                    <span className="flex items-center justify-center gap-3">
-                      <div className="animate-spin w-6 h-6 border-3 border-white border-t-transparent rounded-full"></div>
-                      Elaborando pagamento...
-                    </span>
-                  ) : showSuccess ? (
-                    <span className="flex items-center justify-center gap-2">
-                      ✅ Pagamento completato! Reindirizzamento...
-                    </span>
-                  ) : (
-                    '🚀 ACCEDI SUBITO A STUDIUS AI PREMIUM'
-                  )}
+                  🚀 ACCEDI SUBITO A STUDIUS AI PREMIUM
                 </button>
                 <p className="text-black/70 text-sm mt-3">
                   ⚡ Attivazione istantanea • 💳 Pagamento sicuro • 🔒 Soddisfatti o rimborsati
@@ -359,7 +344,10 @@ const StudiusOnetimePage = () => {
               <div className="text-pink-200">Tasso successo</div>
             </div>
           </div>
-          <button className="bg-white text-red-600 font-bold py-4 px-12 rounded-2xl text-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl">
+          <button 
+            onClick={handlePurchase}
+            className="bg-white text-red-600 font-bold py-4 px-12 rounded-2xl text-xl hover:bg-gray-100 transition-all duration-300 transform hover:scale-105 shadow-2xl"
+          >
             🔥 BLOCCA IL PREZZO DI €49 ADESSO
           </button>
         </div>
@@ -436,7 +424,10 @@ const StudiusOnetimePage = () => {
             <div className="text-center">
               <div className="text-6xl font-black text-black mb-4">€49</div>
               <div className="text-black font-bold text-2xl mb-6">4000 Crediti • Accesso Lifetime • Nessun Abbonamento</div>
-              <button className="w-full bg-black text-white font-bold py-6 px-8 rounded-2xl text-2xl hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 shadow-xl mb-6">
+              <button 
+                onClick={handlePurchase}
+                className="w-full bg-black text-white font-bold py-6 px-8 rounded-2xl text-2xl hover:bg-gray-800 transition-all duration-300 transform hover:scale-105 shadow-xl mb-6"
+              >
                 🚀 SÌ, VOGLIO STUDIUS AI PREMIUM
               </button>
               <div className="grid grid-cols-3 gap-4 text-black/80 text-sm">
@@ -461,6 +452,15 @@ const StudiusOnetimePage = () => {
           </p>
         </div>
       </section>
+
+      {/* Payment Modal */}
+      <PaymentModal 
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        userId={user?.id || ''}
+        version="2"
+        planType="onetime"
+      />
     </div>
   );
 };
