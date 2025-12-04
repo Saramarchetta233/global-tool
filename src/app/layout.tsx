@@ -8,6 +8,7 @@ import '@/styles/colors.css';
 
 import { siteConfig } from '@/constant/config';
 import { AuthProvider } from '@/lib/auth-context';
+import { ToastProvider } from '@/hooks/useToast';
 
 // !STARTERCONF Change these default meta
 // !STARTERCONF Look at @/constant/config to change them
@@ -60,7 +61,9 @@ export default function RootLayout({
     <html>
       <body>
         <AuthProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </AuthProvider>
 
         <Script

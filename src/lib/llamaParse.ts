@@ -3,6 +3,51 @@
  * Replaces pdf.co, pdf-parse, and pdf.js entirely
  */
 
+/**
+ * Notifica cambio API critico
+ */
+async function notifyApiChange(errorText: string, statusCode: number): Promise<void> {
+  try {
+    // Log strutturato per monitoraggio
+    console.error('[API_CHANGE_ALERT]', {
+      timestamp: new Date().toISOString(),
+      service: 'LlamaParse',
+      errorType: 'schema_validation',
+      statusCode,
+      errorDetails: errorText,
+      severity: 'CRITICAL',
+      actionRequired: 'Update API configuration immediately'
+    });
+
+    // TODO: Implementare notifiche (scegli una):
+    // 1. Email con Resend/SendGrid
+    // 2. Webhook Discord/Slack
+    // 3. Database alert log
+    // 4. Push notification
+
+    // Webhook Discord (se configurato)
+    if (process.env.DISCORD_WEBHOOK_URL) {
+      try {
+        await fetch(process.env.DISCORD_WEBHOOK_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: `🚨 **CRITICAL API CHANGE DETECTED!**\n\n**Service:** LlamaParse\n**Status:** ${statusCode}\n**Time:** ${new Date().toLocaleString()}\n\n**Error Details:**\n\`\`\`\n${errorText.substring(0, 800)}\n\`\`\`\n\n⚠️ **Action Required:** Update API configuration immediately!\n\n@everyone`
+          })
+        });
+        console.log('✅ Discord notification sent successfully');
+      } catch (discordError) {
+        console.error('❌ Failed to send Discord notification:', discordError);
+      }
+    } else {
+      console.log('ℹ️ Discord webhook not configured - skipping notification');
+    }
+    
+  } catch (notificationError) {
+    console.error('Failed to send API change notification:', notificationError);
+  }
+}
+
 interface LlamaParseOptions {
   fileName: string;
   mimeType: string;
@@ -61,12 +106,15 @@ export async function parsePdfWithLlamaParse(
   // Log della chiamata prima di processare
   const sizeMB = fileBuffer.length / (1024 * 1024);
   const estimatedPages = Math.ceil(fileBuffer.length / 50000); // Stima ~50KB per pagina
+  const estimatedCredits = estimatedPages * 6; // Costo attuale osservato: 6 crediti/pagina
   
   console.log('[LLAMA_PARSE_CALL]', {
     filename: options.fileName,
     sizeMB: sizeMB.toFixed(2),
     sizeBytes: fileBuffer.length,
     estimatedPages: estimatedPages,
+    estimatedCredits: estimatedCredits,
+    costPerPage: 6, // Monitoraggio costo attuale
     mimeType: options.mimeType
   });
   
@@ -86,28 +134,22 @@ export async function parsePdfWithLlamaParse(
     const blob = new Blob([fileBuffer], { type: options.mimeType });
     formData.append("file", blob, options.fileName);
     
-    // Configuration as JSON string (required for v2 API)
+    // Configuration for V1 API (try original working config)
     // NOTA: Usando parse_without_ai per MASSIMO risparmio crediti
     // parse_without_ai = estrazione testo base senza AI processing
     const configuration = {
-      parse_options: {
-        parse_mode: "parse_without_ai"  // La modalità PIÙ economica possibile!
-      },
-      output_options: {
-        markdown: {}
-      },
-      input_options: {
-        pdf: {
-          disable_image_extraction: true  // Disabilitato per risparmiare crediti
-        }
-      },
+      parse_mode: "parse_without_ai",  // La modalità PIÙ economica possibile!
+      output_type: "markdown",
+      disable_image_extraction: true,  // Prova a rimetterlo per V1
       disable_cache: false
     };
     
     // Log della configurazione usata
     console.log('[LLAMA_PARSE_CONFIG]', {
       parseMode: 'parse_without_ai (MAXIMUM savings)',
-      imageExtraction: !configuration.input_options.pdf.disable_image_extraction,
+      outputType: 'markdown',
+      imageExtraction: 'disabled (like before)',
+      apiVersion: 'v1 (rollback attempt)',
       cache: !configuration.disable_cache,
       apiKeyPreview: apiKey ? `${apiKey.substring(0, 8)}...` : 'NOT_SET'
     });
@@ -116,8 +158,8 @@ export async function parsePdfWithLlamaParse(
     
     console.log('🦙 Sending request to LlamaParse...');
     
-    // Call LlamaParse API v2 (multipart upload)
-    const response = await fetch("https://api.cloud.llamaindex.ai/api/v2alpha1/parse/upload", {
+    // Call LlamaParse API v1 (try old endpoint first)
+    const response = await fetch("https://api.cloud.llamaindex.ai/api/parsing/upload", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -129,6 +171,14 @@ export async function parsePdfWithLlamaParse(
     if (!response.ok) {
       const errorText = await response.text();
       console.error('❌ LlamaParse API error:', response.status, errorText);
+      
+      // 🚨 ALERT SISTEMA: Notifica cambio API
+      if (response.status === 400 && errorText.includes('validation errors')) {
+        console.error('🚨 CRITICAL: LlamaParse API schema changed! Contact admin immediately.');
+        // TODO: Implementare notifica email/Slack per admin
+        await notifyApiChange(errorText, response.status);
+      }
+      
       throw new Error(`LlamaParse API failed: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
@@ -220,7 +270,7 @@ export function validateLlamaParseConfig(): boolean {
 /**
  * Poll for job completion
  */
-async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: number = 20): Promise<string> {
+async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: number = 40): Promise<string> {
   console.log(`🔄 Starting polling for job ${jobId} (max ${maxAttempts} attempts)...`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -301,7 +351,7 @@ async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: 
       }
       
       // Job still pending, wait before next attempt with progressive backoff
-      const waitTime = Math.min(1000 + (attempt * 500), 4000); // Start at 1.5s, max 4s
+      const waitTime = Math.min(2000 + (attempt * 1000), 8000); // Start at 3s, max 8s
       console.log(`⏳ Job still ${status.status}, waiting ${waitTime/1000}s...`);
       await new Promise(resolve => setTimeout(resolve, waitTime));
       

@@ -1,9 +1,12 @@
 export const CreditCosts = {
-  // PDF - REGOLE DEFINITIVE
-  pdfShort: 10,    // 1–20 pagine
-  pdfMedium: 15,   // 21–50 pagine
-  pdfLong: 25,     // 51–100 pagine
-  pdfXL: 40,       // 100+ pagine
+  // PDF - NUOVA STRUTTURA COSTI
+  pdfShort: 10,       // 0–40 pagine
+  pdfMedium: 20,      // 40–100 pagine
+  pdfLong: 30,        // 100–200 pagine
+  pdfXL: 40,          // 200–400 pagine
+  pdfXXL: 60,         // 400–600 pagine
+  pdfHuge: 80,        // 600–1000 pagine
+  pdfMassive: 100,    // 1000+ pagine
 
   // Esame scritto - REGOLE DEFINITIVE
   examBaseFree: 0,   // 3 domande base sempre gratis
@@ -60,25 +63,34 @@ export type CreditCostType = keyof typeof CreditCosts;
 
 // Helper function per calcolare costo PDF basato su numero pagine
 export function getPdfCost(pageCount: number): number {
-  if (pageCount <= 20) return CreditCosts.pdfShort;    // 10 crediti
-  if (pageCount <= 50) return CreditCosts.pdfMedium;   // 15 crediti
-  if (pageCount <= 100) return CreditCosts.pdfLong;    // 25 crediti
-  return CreditCosts.pdfXL;                            // 40 crediti
+  if (pageCount <= 40) return CreditCosts.pdfShort;      // 10 crediti
+  if (pageCount <= 100) return CreditCosts.pdfMedium;    // 20 crediti
+  if (pageCount <= 200) return CreditCosts.pdfLong;      // 30 crediti
+  if (pageCount <= 400) return CreditCosts.pdfXL;        // 40 crediti
+  if (pageCount <= 600) return CreditCosts.pdfXXL;       // 60 crediti
+  if (pageCount <= 1000) return CreditCosts.pdfHuge;     // 80 crediti
+  return CreditCosts.pdfMassive;                         // 100 crediti
 }
 
 export function getPdfCostDescription(pageCount: number): string {
-  if (pageCount <= 20) return 'Elaborazione PDF (1-20 pagine)';
-  if (pageCount <= 50) return 'Elaborazione PDF (21-50 pagine)';
-  if (pageCount <= 100) return 'Elaborazione PDF (51-100 pagine)';
-  return 'Elaborazione PDF (100+ pagine)';
+  if (pageCount <= 40) return 'Elaborazione PDF (1-40 pagine)';
+  if (pageCount <= 100) return 'Elaborazione PDF (41-100 pagine)';
+  if (pageCount <= 200) return 'Elaborazione PDF (101-200 pagine)';
+  if (pageCount <= 400) return 'Elaborazione PDF (201-400 pagine)';
+  if (pageCount <= 600) return 'Elaborazione PDF (401-600 pagine)';
+  if (pageCount <= 1000) return 'Elaborazione PDF (601-1000 pagine)';
+  return 'Elaborazione PDF (1000+ pagine)';
 }
 
 // Messaggi per ogni tipo di feature
 export const CreditMessages = {
-  pdfShort: 'Elaborazione PDF (1-20 pagine)',
-  pdfMedium: 'Elaborazione PDF (21-50 pagine)',
-  pdfLong: 'Elaborazione PDF (51-100 pagine)',
-  pdfXL: 'Elaborazione PDF (100+ pagine)',
+  pdfShort: 'Elaborazione PDF (1-40 pagine)',
+  pdfMedium: 'Elaborazione PDF (41-100 pagine)',
+  pdfLong: 'Elaborazione PDF (101-200 pagine)',
+  pdfXL: 'Elaborazione PDF (201-400 pagine)',
+  pdfXXL: 'Elaborazione PDF (401-600 pagine)',
+  pdfHuge: 'Elaborazione PDF (601-1000 pagine)',
+  pdfMassive: 'Elaborazione PDF (1000+ pagine)',
   examBaseFree: 'Quiz base (3 domande)',
   exam5: 'Esame 5 domande',
   exam10: 'Esame 10 domande',

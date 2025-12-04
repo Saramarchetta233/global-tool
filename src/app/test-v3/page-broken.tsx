@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, Brain, Download, Play, ChevronLeft, ChevronRight, Sparkles, Zap, Target, Clock, BookOpen, Star, Rocket, Award, MessageCircle, Coins, User, LogOut, History, Calendar, Volume2, FileType, Palette, Menu, X, Mic, HelpCircle, Edit } from 'lucide-react';
+import { Upload, FileText, Brain, Download, Play, ChevronLeft, ChevronRight, Sparkles, Zap, Target, Clock, BookOpen, Star, Rocket, Award, MessageCircle, Coins, User, LogOut, History, Calendar, Volume2, FileType, Palette, Plus, Crown, CreditCard, Map, PenTool, Mic, GraduationCap, Bot, Timer } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import AuthModal from '@/components/AuthModal';
-import CreditBar from '@/components/CreditBar';
 import LoadingScreen from '@/components/LoadingScreen';
 import TutorChat from '@/components/TutorChat';
 import HistoryView from '@/components/HistoryView';
@@ -244,13 +243,7 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
   );
 };
 
-const ExamSimulatorView: React.FC<{ 
-  questions: QuizQuestion[], 
-  docContext: string, 
-  authToken?: string, 
-  showSuccess?: (message: string) => void,
-  showError?: (message: string) => void 
-}> = ({ questions, docContext, authToken, showSuccess, showError }) => {
+const ExamSimulatorView: React.FC<{ questions: QuizQuestion[], docContext: string, authToken?: string }> = ({ questions, docContext, authToken }) => {
   const { examState, updateExamWrittenState, setActiveTab } = useStudySessionStore();
   const { updateCredits } = useAuth();
 
@@ -310,7 +303,7 @@ const ExamSimulatorView: React.FC<{
     setError(null); // Reset any previous errors
 
     try {
-      console.log(`🎯 Starting exam generation: ${examState.written.customExamConfig.numQuestions} questions`);
+      console.log(`🎯 Starting exam generation: ${numQuestions} questions`);
 
       const response = await fetch('/api/generate-exam', {
         method: 'POST',
@@ -320,9 +313,9 @@ const ExamSimulatorView: React.FC<{
         },
         body: JSON.stringify({
           docContext,
-          numQuestions: examState.written.customExamConfig.numQuestions,
-          difficulty: examState.written.customExamConfig.difficulty,
-          questionType: examState.written.customExamConfig.type
+          numQuestions,
+          difficulty,
+          questionType
         })
       });
 
@@ -348,9 +341,7 @@ const ExamSimulatorView: React.FC<{
         }
 
         // Show success message
-        if (showSuccess) {
-          showSuccess(`Esame generato con successo!\n${data.questions?.length} domande create.\nCrediti utilizzati: ${data.creditsUsed || 0}`);
-        }
+        showSuccess(`Esame generato con successo!\n${data.questions?.length} domande create.\nCrediti utilizzati: ${data.creditsUsed || 0}`);
 
       } else {
         // Error: handle different error types
@@ -361,28 +352,22 @@ const ExamSimulatorView: React.FC<{
           setCreditError({
             required: data.required,
             current: data.available,
-            costDescription: `Esame ${examState.written.customExamConfig.numQuestions} domande`
+            costDescription: `Esame ${numQuestions} domande`
           });
         } else if (data.type === 'generation_failed') {
           // Generation failed but credits NOT consumed
           setError(`❌ ${data.error}\n\nDettagli: ${data.details || 'Errore sconosciuto'}`);
-          if (showError) {
-            showError(data.error);
-          }
+          showError(data.error);
         } else {
           // Generic error
           setError(`❌ Errore durante la generazione dell'esame: ${data.error || 'Errore sconosciuto'}`);
-          if (showError) {
-            showError(`Errore durante la generazione dell'esame: ${data.error || 'Errore sconosciuto'}`);
-          }
+          showError(`Errore durante la generazione dell'esame: ${data.error || 'Errore sconosciuto'}`);
         }
       }
     } catch (networkError) {
       console.error('❌ Network error during exam generation:', networkError);
       setError('❌ Errore di connessione. Controlla la tua connessione internet e riprova.');
-      if (showError) {
-        showError('Errore di connessione. Controlla la tua connessione internet e riprova.');
-      }
+      showError('Errore di connessione. Controlla la tua connessione internet e riprova.');
     } finally {
       setIsGenerating(false);
     }
@@ -486,7 +471,6 @@ const ExamSimulatorView: React.FC<{
       explanation: "La comprensione profonda e le connessioni tra concetti sono fondamentali per un apprendimento efficace."
     }
   ];
-
 
   if (shouldShowConfiguration) {
     return (
@@ -1191,8 +1175,9 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
   );
 };
 
-// Main Component
+// Main Component  
 const StudiusAIV2: React.FC = () => {
+  const { showSuccess, showError, showInfo } = useToast();
   const [file, setFile] = useState<File | null>(null);
   const [language, setLanguage] = useState('Italiano');
   const [loading, setLoading] = useState(false);
@@ -1214,12 +1199,11 @@ const StudiusAIV2: React.FC = () => {
   } | null>(null);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
   const { canPurchaseRecharge, subscription } = useSubscription();
-  const { showSuccess, showError, showInfo } = useToast();
 
   // Use Zustand store instead of local state
   const {
@@ -1350,7 +1334,6 @@ const StudiusAIV2: React.FC = () => {
 
     handleFileUpload(fakeEvent);
   };
-
 
   const processDocument = async () => {
     console.log('🚀 UPLOAD DEBUG: Starting processDocument with debug logging v3');
@@ -1514,7 +1497,6 @@ const StudiusAIV2: React.FC = () => {
 
     console.log('✅ Logout completed');
   };
-
 
   const downloadSummary = async () => {
     if (!results) return;
@@ -1745,13 +1727,18 @@ const StudiusAIV2: React.FC = () => {
       URL.revokeObjectURL(url);
 
       setTimeout(() => {
-        showSuccess('🎨 Flashcards grafiche generate!\n📱 Mobile-friendly\n📄 Per PDF: Apri nel browser → Stampa → Salva come PDF');
+        showSuccess('Flashcards grafiche generate!\n📱 Mobile-friendly\n📄 Per PDF: Apri nel browser → Stampa → Salva come PDF');
       }, 500);
 
     } catch (error) {
       console.error('❌ Errore durante la generazione flashcards grafiche:', error);
       showError('Errore durante la generazione: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'));
     }
+  };
+
+  // Helper function to safely render content with improved formatting
+  const renderContent = (content: any): string => {
+    return String(content || '');
   };
 
   // Advanced Download Functions
@@ -1809,7 +1796,7 @@ const StudiusAIV2: React.FC = () => {
       URL.revokeObjectURL(url);
 
       console.log('✅ Audio MP3 scaricato con successo');
-      showSuccess(`🔊 Audio MP3 generato e scaricato!\nDimensione: ${Math.round(audioBlob.size / 1024)}KB${creditsUsed ? `\nCrediti utilizzati: ${creditsUsed}` : ''}`);
+      showSuccess(`Audio MP3 generato e scaricato!\nDimensione: ${Math.round(audioBlob.size / 1024)}KB${creditsUsed ? `\nCrediti utilizzati: ${creditsUsed}` : ''}`);
     } catch (error) {
       console.error('❌ Errore durante la generazione audio:', error);
       showError('Errore durante la generazione audio: ' + (error instanceof Error ? error.message : 'Errore sconosciuto'));
@@ -1818,69 +1805,14 @@ const StudiusAIV2: React.FC = () => {
     }
   };
 
-
-
-  // Helper function to safely render content with improved formatting
-  const renderContent = (content: any): string => {
-    if (typeof content === 'string') {
-      // Clean up content more carefully, preserving structure
-      let cleaned = content.trim();
-      
-      // Only remove malformed wrapping if it's clearly not part of the content
-      // Remove only if the entire string is wrapped in extra parentheses/brackets
-      if (cleaned.startsWith('((') && cleaned.endsWith('))')) {
-        cleaned = cleaned.slice(2, -2).trim();
-      } else if (cleaned.startsWith('(') && cleaned.endsWith(')') && 
-                 !cleaned.includes(')\n') && !cleaned.includes(') ') &&
-                 cleaned.indexOf('(') === 0 && cleaned.lastIndexOf(')') === cleaned.length - 1) {
-        // Only remove if it's a single wrapping parenthesis, not content parentheses
-        cleaned = cleaned.slice(1, -1).trim();
-      }
-      
-      // Same logic for brackets
-      if (cleaned.startsWith('[[') && cleaned.endsWith(']]')) {
-        cleaned = cleaned.slice(2, -2).trim();
-      } else if (cleaned.startsWith('[') && cleaned.endsWith(']') && 
-                 !cleaned.includes(']\n') && !cleaned.includes('] ') &&
-                 cleaned.indexOf('[') === 0 && cleaned.lastIndexOf(']') === cleaned.length - 1) {
-        cleaned = cleaned.slice(1, -1).trim();
-      }
-      
-      // Improve spacing between sections while preserving structure
-      cleaned = cleaned
-        .replace(/\n\s*\n\s*\n+/g, '\n\n') // Multiple newlines to double newline
-        .replace(/([.!?])\s*([A-Z])/g, '$1\n\n$2') // Add spacing after sentences before new sections
-        .trim();
-      
-      return cleaned;
-    } else if (typeof content === 'object' && content !== null) {
-      // If it's an object, try to format it nicely
-      if (Array.isArray(content)) {
-        return content
-          .filter(item => item && typeof item === 'string' && item.trim().length > 0)
-          .map(item => renderContent(item)) // Recursively clean each item
-          .join('\n\n');
-      } else {
-        // Convert object to readable format
-        return Object.entries(content)
-          .filter(([key, value]) => value && typeof value === 'string' && value.trim().length > 0)
-          .map(([key, value]) => {
-            return typeof value === 'string' ? renderContent(value) : JSON.stringify(value, null, 2);
-          })
-          .join('\n\n');
-      }
-    }
-    return String(content || '');
-  };
-
   const tabs = [
-    { id: 'riassunto_breve', label: 'Riassunto Breve', icon: FileText },
+    { id: 'riassunto_breve', label: 'Riassunto Breve', icon: BookOpen },
     { id: 'riassunto_esteso', label: 'Riassunto Esteso', icon: FileText },
-    { id: 'mappa_concettuale', label: 'Mappa Concettuale', icon: Brain },
-    { id: 'flashcard', label: 'Flashcard', icon: Upload },
-    { id: 'quiz', label: 'Simula Esame', icon: Play },
-    { id: 'guida_esame', label: 'Master in 60 minuti', icon: Clock },
-    { id: 'tutor_ai', label: 'Tutor AI', icon: MessageCircle }
+    { id: 'mappa_concettuale', label: 'Mappa Concettuale', icon: Map },
+    { id: 'flashcard', label: 'Flashcard', icon: CreditCard },
+    { id: 'quiz', label: 'Simula Esame', icon: GraduationCap },
+    { id: 'guida_esame', label: 'Master in 60 minuti', icon: Timer },
+    { id: 'tutor_ai', label: 'Tutor AI', icon: Bot }
   ];
 
   if (authLoading) {
@@ -1897,8 +1829,6 @@ const StudiusAIV2: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
-
-
       {/* Animated Background */}
       <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-purple-900/10 to-blue-900/10"></div>
 
@@ -1906,117 +1836,115 @@ const StudiusAIV2: React.FC = () => {
       <header className={`relative z-10 ${user && !loading ? 'pt-4 pb-2' : 'pt-8 pb-4'}`}>
         <div className="max-w-6xl mx-auto px-3 sm:px-4">
           {user ? (
-            /* Responsive header for logged users */
-            <div className="relative">
-              {/* Mobile Header (below 768px) */}
-              <div className="md:hidden">
-                {/* First row - Logo + Credits + Abbonati */}
-                <div className="flex items-center justify-between mb-2">
-                  {/* Left: Logo */}
-                  <h1 className="text-lg font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
-                    Studius AI
-                  </h1>
-                  {/* Right: Credits + Abbonati */}
-                  <div className="flex items-center gap-2">
-                    {/* Credits (compact) */}
-                    <div className="flex items-center gap-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-2 py-1 rounded-lg border border-green-500/30">
-                      <span className="text-sm">🪙</span>
-                      <span className="font-semibold text-sm">{userCredits}</span>
-                    </div>
-                    {/* Abbonati button - ALWAYS VISIBLE */}
-                    <button
-                      onClick={() => {
-                        if (canPurchaseRecharge) {
-                          setShowRechargeModal(true);
-                        } else {
-                          setShowSubscriptionModal(true);
-                        }
-                      }}
-                      className="px-3 py-1.5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all"
-                    >
-                      {canPurchaseRecharge ? 'Ricarica' : 'Abbonati'}
-                    </button>
-                  </div>
-                </div>
-                
-                {/* Second row - Secondary actions */}
-                <div className="flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setShowHistory(true)}
-                      className="flex items-center gap-1 px-2 py-1 bg-white/5 text-gray-300 rounded hover:bg-white/10 transition-all"
-                    >
-                      <History className="w-3 h-3" />
-                      <span>Storico</span>
-                    </button>
-                    <span className="text-gray-400 truncate max-w-[120px]">{user.email}</span>
-                  </div>
-                  <button
-                    onClick={handleLogout}
-                    className="flex items-center gap-1 px-2 py-1 bg-red-500/10 text-red-300 rounded hover:bg-red-500/20 transition-all"
-                  >
-                    <LogOut className="w-3 h-3" />
-                    <span>Logout</span>
-                  </button>
+            /* Clean unified header for logged users */
+            <div className="flex items-center justify-between">
+              {/* Left side - Logo */}
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
+                  Studius AI
+                </h1>
+                <div className="hidden md:inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-purple-500/30">
+                  <Sparkles className="w-3 h-3" />
+                  Powered by AI
                 </div>
               </div>
 
-              {/* Desktop Header (768px and above) - unchanged */}
-              <div className="hidden md:flex items-center justify-between">
-                {/* Left side: Logo + "Powered by AI" badge */}
-                <div className="flex items-center gap-3">
-                  <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
-                    Studius AI
-                  </h1>
-                  <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-purple-500/30">
-                    <Sparkles className="w-3 h-3" />
-                    Powered by AI
-                  </div>
+              {/* Right side - Credits, actions and user menu */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Credits display */}
+                <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-yellow-500/20 to-amber-500/20 text-yellow-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-yellow-500/30">
+                  <Coins className="w-3 h-3 sm:w-4 sm:h-4" />
+                  <span className="font-semibold text-sm sm:text-base">{userCredits.toLocaleString()}</span>
+                  <span className="text-yellow-200 text-xs hidden sm:inline">crediti</span>
                 </div>
-                
-                {/* Right side: Credits, Storico, Email+Logout, Abbonati */}
-                <div className="flex items-center gap-2 sm:gap-3">
-                  {/* 1. Credits */}
-                  <div className="flex items-center gap-1 sm:gap-2 bg-gradient-to-r from-green-500/20 to-emerald-500/20 text-green-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl border border-green-500/30">
-                    <span className="text-base">🪙</span>
-                    <span className="font-semibold text-sm sm:text-base">{userCredits}</span>
-                    <span className="text-green-200 text-xs hidden sm:inline">crediti</span>
-                  </div>
 
-                  {/* 2. Storico button */}
+                {/* Action buttons */}
+                {canPurchaseRecharge ? (
+                  <button
+                    onClick={() => setShowRechargeModal(true)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1"
+                  >
+                    <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Ricarica</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowSubscriptionModal(true)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all flex items-center gap-1"
+                  >
+                    <Crown className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Abbonati</span>
+                  </button>
+                )}
+
+                {!results && (
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-xs sm:text-sm font-medium transition-all border border-white/20"
+                    className="p-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-xs font-medium transition-all border border-white/20 flex items-center gap-1"
                   >
-                    <History className="w-4 h-4 inline mr-1" />
-                    <span>Storico</span>
+                    <History className="w-3 h-3 sm:w-4 sm:h-4" />
+                    <span className="hidden sm:inline">Storico</span>
                   </button>
+                )}
 
-                  {/* 3. Email + Logout */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-300 text-sm hidden sm:inline">{user.email}</span>
-                    <button
-                      onClick={handleLogout}
-                      className="px-3 py-1.5 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 text-xs sm:text-sm font-medium transition-all border border-red-500/30"
-                    >
-                      <LogOut className="w-4 h-4 inline mr-1" />
-                      <span>Logout</span>
-                    </button>
-                  </div>
-
-                  {/* 4. Abbonati button */}
+                {/* User dropdown */}
+                <div className="relative">
                   <button
-                    onClick={() => {
-                      if (canPurchaseRecharge) {
-                        setShowRechargeModal(true);
-                      } else {
-                        setShowSubscriptionModal(true);
-                      }
-                    }}
-                    className="px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white rounded-lg font-medium text-sm transition-all"
+                    onClick={() => setShowUserMenu(!showUserMenu)}
+                    className="flex items-center gap-1 sm:gap-2 bg-white/10 hover:bg-white/20 backdrop-blur-sm px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-white/20 transition-all duration-300"
                   >
-                    {canPurchaseRecharge ? 'Ricarica' : 'Abbonati'}
+                    <div className="w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                      <User className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                    </div>
+                    <span className="text-white text-xs sm:text-sm font-medium hidden md:inline">{user.email?.split('@')[0]}</span>
                   </button>
+
+                  {/* User dropdown menu */}
+                  {showUserMenu && (
+                    <>
+                      <div 
+                        className="fixed inset-0 z-40"
+                        onClick={() => setShowUserMenu(false)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 sm:w-64 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 shadow-2xl z-50">
+                        <div className="p-3 sm:p-4">
+                          <div className="flex items-center gap-3 pb-3 border-b border-white/10">
+                            <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                              <User className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-white font-medium text-sm">{user.email}</p>
+                              <p className="text-gray-300 text-xs">{userCredits} crediti</p>
+                            </div>
+                          </div>
+                          
+                          <div className="py-2">
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                setShowHistory(true);
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-white hover:bg-white/10 rounded-lg transition-all text-left text-sm"
+                            >
+                              <History className="w-4 h-4" />
+                              <span>Storico</span>
+                            </button>
+                            
+                            <button
+                              onClick={() => {
+                                setShowUserMenu(false);
+                                logout();
+                              }}
+                              className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all text-left text-sm"
+                            >
+                              <LogOut className="w-4 h-4" />
+                              <span>Logout</span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -2050,97 +1978,81 @@ const StudiusAIV2: React.FC = () => {
                 </div>
               </div>
 
-              {/* Auth prompt for non-logged users - Enhanced for conversion */}
-              <div className="mt-4 max-w-lg mx-auto">
-                {/* Main registration box with glow */}
+              {/* Auth prompt for non-logged users - ENHANCED */}
+              <div className="mt-8 max-w-lg mx-auto">
                 <div className="relative">
-                  <div className="absolute inset-0 bg-gradient-to-r from-green-400/30 to-emerald-500/30 rounded-3xl blur-lg"></div>
-                  <div className="relative bg-white/15 backdrop-blur-xl rounded-3xl p-8 border border-green-400/30 shadow-2xl">
+                  {/* Enhanced glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-green-500/30 to-emerald-500/30 rounded-3xl blur-xl animate-pulse"></div>
+                  
+                  <div className="relative bg-white/15 backdrop-blur-xl rounded-3xl p-8 border-2 border-green-500/40 shadow-2xl">
                     <div className="text-center mb-6">
-                      <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl mb-4">
-                        <Sparkles className="w-8 h-8 text-white" />
+                      <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-green-500 to-emerald-500 rounded-2xl mb-4 shadow-lg">
+                        <User className="w-8 h-8 text-white" />
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-3">Accedi per iniziare</h3>
-                      
-                      {/* Benefits list */}
-                      <div className="text-left mb-6 space-y-2">
-                        <div className="flex items-center gap-3 text-green-300">
-                          <span className="text-green-400">✓</span>
-                          <span className="text-sm">Riassunti automatici dai tuoi PDF</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-green-300">
-                          <span className="text-green-400">✓</span>
-                          <span className="text-sm">Simulazione esami orali con AI</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-green-300">
-                          <span className="text-green-400">✓</span>
-                          <span className="text-sm">Quiz e flashcard in 1 click</span>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-300 mb-6 text-sm">
+                      <h3 className="text-2xl font-bold text-white mb-2">Inizia Gratis Ora!</h3>
+                      <p className="text-gray-200 mb-1 font-medium">
                         {sessionStorage.getItem('registrationType') === 'onetime_payment' 
                           ? 'Accedi con il tuo account Premium One-Time da 4000 crediti!'
-                          : 'Crea un account gratuito e ricevi 120 crediti per iniziare subito!'}
+                          : 'Registrati e ricevi 120 crediti gratuiti per iniziare subito'}
                       </p>
+                      <p className="text-green-400 text-sm font-semibold">✨ Ottieni 120 crediti gratis</p>
                     </div>
-                    
-                    {/* Primary CTA Button */}
+
+                    {/* Mini benefits list */}
+                    <div className="mb-6 space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-200">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>✓ Riassunti automatici dai tuoi PDF</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-200">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>✓ Simulazione esami orali con AI</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-200">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span>✓ Quiz e flashcard in 1 click</span>
+                      </div>
+                    </div>
+
                     <div className="space-y-3">
                       <button
                         onClick={() => {
                           setAuthMode('register');
                           setShowAuthModal(true);
                         }}
-                        className="w-full bg-gradient-to-r from-green-500 to-emerald-600 text-white py-4 px-6 rounded-xl font-bold text-lg hover:from-green-600 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                        className="w-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white py-4 px-6 rounded-xl font-bold text-lg transition-all transform hover:scale-105 shadow-lg"
                       >
-                        Registrati Gratis
+                        🚀 Registrati Gratis
                       </button>
-                      
-                      {/* Credits bonus text */}
-                      <p className="text-center text-green-300 text-sm font-medium">
-                        ✨ Ottieni 120 crediti gratis
-                      </p>
-                      
-                      {/* Secondary button */}
                       <button
                         onClick={() => {
                           setAuthMode('login');
                           setShowAuthModal(true);
                         }}
-                        className="w-full bg-transparent text-white py-3 px-6 rounded-xl font-medium text-base hover:bg-white/10 transition-all border border-white/30"
+                        className="w-full bg-transparent text-white py-3 px-4 rounded-xl font-medium border border-white/30 hover:bg-white/10 transition-all"
                       >
-                        Accedi
+                        Hai già un account? Accedi
                       </button>
-                      
-                      {/* Urgency text */}
-                      <p className="text-center text-yellow-300 text-sm font-medium">
+                    </div>
+
+                    {/* Urgency/promo */}
+                    <div className="mt-4 text-center">
+                      <p className="text-xs text-yellow-300">
                         🎁 Promo: 120 crediti gratis solo per nuovi iscritti
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Social proof */}
-                <div className="text-center mt-6">
-                  <p className="text-gray-300 text-sm font-medium">
-                    👥 Oltre 15.000 studenti hanno già scelto StudiusAI
+                {/* Social proof under registration box */}
+                <div className="mt-4 text-center">
+                  <p className="text-sm text-gray-300">
+                    👥 Oltre <span className="font-semibold text-white">15.000 studenti</span> hanno già scelto StudiusAI
                   </p>
-                </div>
-
-                {/* Trust badges */}
-                <div className="flex justify-center gap-6 mt-4 text-xs text-gray-400">
-                  <div className="flex items-center gap-1">
-                    <span>🔒</span>
-                    <span>I tuoi dati sono al sicuro</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>❌</span>
-                    <span>Nessuna carta richiesta</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <span>✓</span>
-                    <span>Cancella quando vuoi</span>
+                  <div className="flex justify-center gap-4 mt-2 text-xs text-gray-400">
+                    <span>🔒 I tuoi dati sono al sicuro</span>
+                    <span>❌ Nessuna carta richiesta</span>
+                    <span>✓ Cancella quando vuoi</span>
                   </div>
                 </div>
               </div>
@@ -2150,8 +2062,7 @@ const StudiusAIV2: React.FC = () => {
       </header>
 
       <main className="relative z-10 max-w-6xl mx-auto px-4 pb-16">
-        {showHistory ? (
-          /* History Section */
+        {showHistory && (
           <div className="max-w-4xl mx-auto">
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-3xl blur-xl"></div>
@@ -2171,35 +2082,38 @@ const StudiusAIV2: React.FC = () => {
               </div>
             </div>
           </div>
-        ) : !results ? (
-          /* Upload Section */
+        )}
+        
+        {!showHistory && !results && (
           <div className="max-w-2xl mx-auto">
             {/* Main Upload Card */}
             <div className="relative">
               {/* Glow Effect */}
               <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl"></div>
 
-              <div className={`relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl ${!user ? 'overflow-hidden' : ''}`}>
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
                 {/* Lock Overlay for non-authenticated users */}
                 {!user && (
                   <div 
-                    className="absolute inset-0 bg-black/40 backdrop-blur-sm rounded-3xl z-10 flex items-center justify-center cursor-pointer"
+                    className="absolute inset-0 bg-black/50 backdrop-blur-sm rounded-3xl z-20 cursor-pointer flex items-center justify-center"
                     onClick={() => {
                       setAuthMode('register');
                       setShowAuthModal(true);
                     }}
                   >
                     <div className="text-center">
-                      <div className="w-20 h-20 mx-auto mb-4 bg-white/20 rounded-2xl flex items-center justify-center">
-                        <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                        <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                         </svg>
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-2">🔒 Registrati gratis per iniziare</h3>
-                      <p className="text-gray-300 text-sm">Clicca qui per sbloccare tutte le funzionalità</p>
+                      <p className="text-white font-bold text-lg mb-2">🔒 Registrati gratis per iniziare</p>
+                      <p className="text-gray-300 text-sm">Clicca qui per sbloccare il tool</p>
                     </div>
                   </div>
                 )}
+
+                <div className={`${!user ? 'blur-[2px] pointer-events-none opacity-70' : ''}`}>
                 <div className="text-center mb-6 sm:mb-8">
                   <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl mb-4">
                     <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
@@ -2369,82 +2283,32 @@ const StudiusAIV2: React.FC = () => {
                   </div>
                 )}
 
-                {/* Features Preview - 8 icons total */}
-                <div className="mt-8">
-                  {/* Desktop: 2 rows of 4 icons, Mobile: 2 columns x 4 rows */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-                    {/* Row 1 - Existing features */}
-                    <div 
-                      onClick={() => setActiveTab('riassunto_breve')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <FileText className="w-6 h-6 text-blue-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Riassunti</p>
-                    </div>
-                    <div 
-                      onClick={() => setActiveTab('flashcard')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <Brain className="w-6 h-6 text-purple-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Flashcard</p>
-                    </div>
-                    <div 
-                      onClick={() => setActiveTab('quiz')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <Play className="w-6 h-6 text-green-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Quiz</p>
-                    </div>
-                    <div 
-                      onClick={() => setActiveTab('guida_esame')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <Clock className="w-6 h-6 text-orange-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Studia 1h</p>
-                    </div>
-                    
-                    {/* Row 2 - New features */}
-                    <div 
-                      onClick={() => setActiveTab('tutor_ai')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <MessageCircle className="w-6 h-6 text-cyan-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Tutor AI</p>
-                    </div>
-                    <div 
-                      onClick={() => {
-                        setActiveTab('quiz');
-                        setExamSubTab('orale');
-                      }}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <Mic className="w-6 h-6 text-pink-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Esame Orale</p>
-                    </div>
-                    <div 
-                      onClick={() => {
-                        setActiveTab('quiz');
-                        setExamSubTab('scritto');
-                      }}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <Edit className="w-6 h-6 text-indigo-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Esame Scritto</p>
-                    </div>
-                    <div 
-                      onClick={() => setActiveTab('guida_esame')}
-                      className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
-                    >
-                      <HelpCircle className="w-6 h-6 text-yellow-400 mx-auto mb-1" />
-                      <p className="text-xs text-gray-300 font-medium">Domande</p>
-                    </div>
+                {/* Features Preview */}
+                <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                    <FileText className="w-8 h-8 text-blue-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-300 font-medium">Riassunti</p>
+                  </div>
+                  <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                    <Brain className="w-8 h-8 text-purple-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-300 font-medium">Flashcard</p>
+                  </div>
+                  <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                    <Play className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-300 font-medium">Quiz</p>
+                  </div>
+                  <div className="text-center p-4 bg-white/5 rounded-xl border border-white/10">
+                    <Clock className="w-8 h-8 text-orange-400 mx-auto mb-2" />
+                    <p className="text-xs text-gray-300 font-medium">Studia 1h</p>
                   </div>
                 </div>
+                </div> {/* End blur container */}
               </div>
             </div>
           </div>
-        ) : (
-          /* Results Section */
+        )}
+        
+        {!showHistory && results && (
           <div className="relative">
             {/* Success Header */}
             <div className="text-center mb-8">
@@ -2457,7 +2321,7 @@ const StudiusAIV2: React.FC = () => {
             </div>
 
             {/* Export and Tutor Buttons */}
-            <div className="mb-8 flex flex-wrap gap-2 sm:gap-3 md:gap-4 justify-center">
+            <div className="mb-6 lg:mb-8 flex flex-wrap gap-2 sm:gap-3 lg:gap-4 justify-center">
               <button
                 onClick={downloadSummary}
                 className="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl hover:from-green-700 hover:to-emerald-700 flex items-center gap-2 font-medium text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] backdrop-blur-sm group"
@@ -2529,8 +2393,8 @@ const StudiusAIV2: React.FC = () => {
               </button>
             </div>
 
-            {/* Tabs Navigation */}
-            <div className="mb-8" data-tabs-section>
+            {/* Mobile Tabs Navigation (visible on mobile/tablet only) */}
+            <div className="mb-6 lg:hidden" data-tabs-section-mobile>
               <div className="relative bg-white/5 backdrop-blur-xl rounded-2xl p-2 border border-white/10">
                 <nav className="flex flex-wrap gap-2">
                   {tabs.map((tab) => {
@@ -2539,13 +2403,13 @@ const StudiusAIV2: React.FC = () => {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        className={`flex-1 min-w-[120px] sm:min-w-[140px] py-2 sm:py-3 px-2 sm:px-4 rounded-xl font-medium text-xs sm:text-sm flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-2 transition-all duration-300 ${activeTab === tab.id
+                        className={`flex-1 min-w-[100px] sm:min-w-[120px] py-2 sm:py-3 px-1 sm:px-2 rounded-xl font-medium text-xs sm:text-sm flex flex-col items-center justify-center gap-1 transition-all duration-300 ${activeTab === tab.id
                           ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg'
                           : 'text-gray-300 hover:text-white hover:bg-white/10'
                           }`}
                       >
-                        <IconComponent size={16} className="sm:w-4 sm:h-4" />
-                        <span className="text-[10px] sm:text-sm">{tab.label}</span>
+                        <IconComponent size={14} className="sm:w-4 sm:h-4" />
+                        <span className="text-[10px] sm:text-xs text-center leading-tight">{tab.label}</span>
                       </button>
                     );
                   })}
@@ -2553,17 +2417,51 @@ const StudiusAIV2: React.FC = () => {
               </div>
             </div>
 
-            {/* Tab Content */}
-            <div className="relative">
-              {/* Glow Effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-3xl blur-xl"></div>
+            {/* Two Column Layout */}
+            <div className="flex gap-4 lg:gap-6 xl:gap-8">
+              {/* Left Sidebar - Navigation and Actions (Desktop only) */}
+              <div className="w-80 xl:w-96 space-y-6 hidden lg:block" data-tabs-section>
+                {/* Tabs Navigation - Vertical Sidebar */}
+                <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-4 border border-white/10 sticky top-4">
+                  <h3 className="text-white font-semibold mb-4 text-lg flex items-center gap-2">
+                    <Brain className="w-5 h-5" />
+                    Funzioni AI
+                  </h3>
+                  <nav className="space-y-2">
+                    {tabs.map((tab) => {
+                      const IconComponent = tab.icon;
+                      return (
+                        <button
+                          key={tab.id}
+                          onClick={() => setActiveTab(tab.id)}
+                          className={`w-full py-3 px-4 rounded-xl font-medium text-sm flex items-center gap-3 transition-all duration-300 ${activeTab === tab.id
+                            ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg transform scale-105'
+                            : 'text-gray-300 hover:text-white hover:bg-white/10'
+                            }`}
+                        >
+                          <IconComponent className="w-5 h-5 flex-shrink-0" />
+                          <span className="text-left">{tab.label}</span>
+                          {activeTab === tab.id && <div className="ml-auto w-2 h-2 bg-white rounded-full"></div>}
+                        </button>
+                      );
+                    })}
+                  </nav>
+                </div>
+              </div>
 
-              <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl">
+              {/* Main Content Area */}
+              <div className="flex-1 min-w-0">
+                {/* Tab Content */}
+                <div className="relative">
+              {/* Glow Effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-purple-600/10 to-blue-600/10 rounded-2xl lg:rounded-3xl blur-xl"></div>
+
+              <div className="relative bg-white/10 backdrop-blur-xl rounded-2xl lg:rounded-3xl p-3 sm:p-4 lg:p-6 xl:p-8 border border-white/20 shadow-2xl">
                 {activeTab === 'riassunto_breve' && (
                   <div>
                     <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
                       <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-                        <FileText className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                        <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Riassunto Breve</h3>
@@ -2625,7 +2523,7 @@ const StudiusAIV2: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                        <Brain className="w-6 h-6 text-white" />
+                        <Map className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">Mappa Concettuale</h3>
@@ -2642,7 +2540,7 @@ const StudiusAIV2: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-white" />
+                        <CreditCard className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">Flashcard</h3>
@@ -2660,7 +2558,7 @@ const StudiusAIV2: React.FC = () => {
                     {/* Header */}
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center">
-                        <Play className="w-6 h-6 text-white" />
+                        <GraduationCap className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">Simula Esame</h3>
@@ -2677,7 +2575,7 @@ const StudiusAIV2: React.FC = () => {
                           : 'text-gray-400 hover:text-white hover:bg-white/5'
                           }`}
                       >
-                        <FileText size={18} />
+                        <PenTool size={18} />
                         <span>Esame Scritto</span>
                       </button>
                       <button
@@ -2687,7 +2585,7 @@ const StudiusAIV2: React.FC = () => {
                           : 'text-gray-400 hover:text-white hover:bg-white/5'
                           }`}
                       >
-                        <MessageCircle size={18} />
+                        <Mic size={18} />
                         <span>Esame Orale</span>
                       </button>
                     </div>
@@ -2698,7 +2596,7 @@ const StudiusAIV2: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-xl flex items-center justify-center">
-                              <FileText className="w-5 h-5 text-white" />
+                              <PenTool className="w-5 h-5 text-white" />
                             </div>
                             <div>
                               <h4 className="text-xl font-bold text-white">Esame Scritto</h4>
@@ -2710,8 +2608,6 @@ const StudiusAIV2: React.FC = () => {
                             questions={results.quiz}
                             docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                             authToken={token || undefined}
-                            showSuccess={showSuccess}
-                            showError={showError}
                           />
                         </div>
                       )}
@@ -2720,7 +2616,7 @@ const StudiusAIV2: React.FC = () => {
                         <div>
                           <div className="flex items-center gap-3 mb-6">
                             <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                              <MessageCircle className="w-5 h-5 text-white" />
+                              <Mic className="w-5 h-5 text-white" />
                             </div>
                             <div>
                               <h4 className="text-xl font-bold text-white">Esame Orale</h4>
@@ -2751,7 +2647,7 @@ const StudiusAIV2: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-3 mb-6">
                       <div className="w-12 h-12 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-white" />
+                        <Timer className="w-6 h-6 text-white" />
                       </div>
                       <div className="flex-1">
                         <h3 className="text-2xl font-bold text-white">Studia in 1 ora</h3>
@@ -2906,7 +2802,7 @@ const StudiusAIV2: React.FC = () => {
                   <div className="flex items-center justify-between gap-3 mb-6">
                     <div className="flex items-center gap-3">
                       <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
-                        <MessageCircle className="w-6 h-6 text-white" />
+                        <Bot className="w-6 h-6 text-white" />
                       </div>
                       <div>
                         <h3 className="text-2xl font-bold text-white">Tutor AI</h3>
@@ -2942,9 +2838,11 @@ const StudiusAIV2: React.FC = () => {
 
                   </div>
                 </div>
-
+                {/* End Tab Content */}
               </div>
+              {/* End Main Content Area */}
             </div>
+            {/* End Two Column Layout */}
           </div>
         )}
       </main>
