@@ -16,6 +16,7 @@ interface TutorChatProps {
   authToken?: string;
   onCreditsUpdate?: (newCredits: number) => void;
   documentId?: string;
+  onBackToTabs?: () => void;
 }
 
 const TutorChat: React.FC<TutorChatProps> = ({ 
@@ -23,7 +24,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
   sessionId, 
   authToken,
   onCreditsUpdate,
-  documentId 
+  documentId,
+  onBackToTabs 
 }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
@@ -33,6 +35,7 @@ const TutorChat: React.FC<TutorChatProps> = ({
   const [isWithinFreeLimit, setIsWithinFreeLimit] = useState<boolean>(true);
   const [messageCount, setMessageCount] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   // Load chat history and message count on mount
   useEffect(() => {
@@ -130,6 +133,10 @@ const TutorChat: React.FC<TutorChatProps> = ({
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const fetchTutorCount = async () => {
@@ -285,9 +292,9 @@ const TutorChat: React.FC<TutorChatProps> = ({
   }
 
   return (
-    <div className="flex flex-col h-[400px] sm:h-[500px] md:h-[600px]">
+    <div className="flex flex-col">
       {/* Messages Container */}
-      <div className="flex-1 overflow-y-auto mb-4 space-y-3 sm:space-y-4 pr-1 sm:pr-2">
+      <div className="mb-3 sm:mb-4 space-y-2 sm:space-y-4">
         {chatLoading ? (
           <div className="flex justify-center items-center h-32">
             <div className="flex items-center gap-2">
@@ -303,28 +310,28 @@ const TutorChat: React.FC<TutorChatProps> = ({
                 className={`flex ${message.isUser ? 'justify-end' : 'justify-start'} animate-fade-in`}
               >
                 <div
-                  className={`max-w-[85%] sm:max-w-[80%] rounded-2xl px-4 sm:px-6 py-3 sm:py-4 ${
+                  className={`max-w-[95%] sm:max-w-[80%] rounded-2xl px-3 sm:px-6 py-3 sm:py-4 ${
                     message.isUser
                       ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
                       : 'bg-white/10 backdrop-blur-xl border border-white/20 text-gray-200'
                   }`}
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-2 sm:gap-3">
                     {!message.isUser && (
                       <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5 sm:mt-1">
-                        <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                        <Bot className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
                       </div>
                     )}
                     {message.isUser && (
-                      <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 order-1">
-                        <User className="w-5 h-5 text-white" />
+                      <div className="w-6 h-6 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center flex-shrink-0 mt-1 order-1">
+                        <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                       </div>
                     )}
                     <div className={`flex-1 ${message.isUser ? 'order-0' : ''}`}>
                       <p className="text-sm lg:text-base leading-relaxed whitespace-pre-wrap">
                         {message.text}
                       </p>
-                      <p className={`text-xs mt-2 ${message.isUser ? 'text-purple-200' : 'text-gray-400'}`}>
+                      <p className={`text-xs mt-1 sm:mt-2 ${message.isUser ? 'text-purple-200' : 'text-gray-400'}`}>
                         {message.timestamp.toLocaleTimeString()}
                       </p>
                     </div>
@@ -335,10 +342,10 @@ const TutorChat: React.FC<TutorChatProps> = ({
             
             {loading && (
               <div className="flex justify-start">
-                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-4 sm:px-6 py-3 sm:py-4 max-w-[85%] sm:max-w-[80%]">
-                  <div className="flex items-center gap-3">
+                <div className="bg-white/10 backdrop-blur-xl border border-white/20 rounded-2xl px-3 sm:px-6 py-3 sm:py-4 max-w-[95%] sm:max-w-[80%]">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="w-6 h-6 sm:w-8 sm:h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                      <Bot className="w-3 h-3 sm:w-5 sm:h-5 text-white" />
                     </div>
                     <div className="flex items-center gap-2">
                       <Loader2 className="w-4 h-4 text-purple-400 animate-spin" />
@@ -356,7 +363,7 @@ const TutorChat: React.FC<TutorChatProps> = ({
 
       {/* Input Area */}
       <div className="relative">
-        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-3 sm:p-4">
+        <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-2 sm:p-4">
           <div className="flex items-end gap-2 sm:gap-4">
             <div className="flex-1">
               <textarea
@@ -365,40 +372,58 @@ const TutorChat: React.FC<TutorChatProps> = ({
                 onKeyPress={handleKeyPress}
                 placeholder={
                   isWithinFreeLimit 
-                    ? `Fai una domanda al tutor... (${freeMessagesRemaining} messaggi gratis rimasti)`
-                    : "Fai una domanda al tutor... (2 crediti per messaggio)"
+                    ? `Fai una domanda... (${freeMessagesRemaining} gratis)`
+                    : "Fai una domanda... (2 crediti)"
                 }
-                className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-400 resize-none focus:outline-none min-h-[50px] sm:min-h-[60px] max-h-[100px] sm:max-h-[120px]"
+                className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-300 resize-none focus:outline-none min-h-[45px] sm:min-h-[60px] max-h-[90px] sm:max-h-[120px]"
                 disabled={loading}
               />
             </div>
             <button
               onClick={sendMessage}
               disabled={!inputMessage.trim() || loading || !authToken}
-              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white p-2.5 sm:p-3 rounded-xl transition-all duration-300 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 disabled:from-gray-600 disabled:to-gray-700 text-white p-2 sm:p-3 rounded-xl transition-all duration-300 disabled:cursor-not-allowed"
             >
               {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
+                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
               ) : (
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               )}
             </button>
           </div>
           
           {/* Cost indicator */}
-          <div className="flex justify-between items-center mt-2 text-xs text-gray-400">
+          <div className="flex justify-between items-center mt-1 sm:mt-2 text-xs text-gray-300">
             <span className="hidden sm:inline">Premi Invio per inviare, Shift+Invio per andare a capo</span>
             <span className="sm:hidden">Invio per inviare</span>
             <div className="flex items-center gap-1">
-              <Coins className="w-3 h-3" />
+              <Coins className="w-3 h-3 text-gray-300" />
               {isWithinFreeLimit ? (
-                <span className="text-green-400">
-                  {freeMessagesRemaining} messaggi gratuiti rimasti
+                <span className="text-green-400 text-xs">
+                  {freeMessagesRemaining} gratis
                 </span>
               ) : (
-                <span>2 crediti per messaggio</span>
+                <span className="text-xs text-gray-300">2 crediti</span>
               )}
             </div>
+          </div>
+          
+          {/* Navigation buttons */}
+          <div className="flex justify-center gap-2 mt-3">
+            <button
+              onClick={() => scrollToTop()}
+              className="flex items-center gap-1 px-3 py-1.5 bg-white/10 text-gray-300 border border-white/20 rounded-lg hover:bg-white/20 hover:border-purple-500/50 transition-all text-xs"
+            >
+              <span>↑ Torna su</span>
+            </button>
+            {onBackToTabs && (
+              <button
+                onClick={onBackToTabs}
+                className="flex items-center gap-1 px-3 py-1.5 bg-white/10 text-gray-300 border border-white/20 rounded-lg hover:bg-white/20 hover:border-purple-500/50 transition-all text-xs"
+              >
+                <span>← Torna ai Tabs</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

@@ -904,6 +904,83 @@ const ExamSimulatorView: React.FC<{
   );
 };
 
+// Function to format study plan text
+const formatStudyPlanText = (text: string | any) => {
+  if (!text) return null;
+  
+  // Se è un array, uniscilo in una stringa
+  let textString = '';
+  if (Array.isArray(text)) {
+    textString = text.join('\n');
+  } else if (typeof text === 'string') {
+    textString = text;
+  } else if (typeof text === 'object') {
+    textString = JSON.stringify(text, null, 2);
+  } else {
+    return <p className="text-blue-200">{String(text)}</p>;
+  }
+  
+  // Prima sostituisci pattern comuni per aggiungere newline
+  textString = textString
+    // Aggiungi spazio prima dei pattern BLOCCO (se non sono già all'inizio)
+    .replace(/([^\n])BLOCCO\s*(\d+)/gi, '$1\n\nBLOCCO $2')
+    .replace(/([^\n])Giorno\s*(\d+)/gi, '$1\n\nGiorno $2')
+    .replace(/([^\n])SETTIMANA\s*(\d+)/gi, '$1\n\nSETTIMANA $2')
+    // Pattern per tempo tra parentesi
+    .replace(/BLOCCO\s*(\d+)\s*\(([^)]+)\)/gi, 'BLOCCO $1 ($2)')
+    // Aggiungi newline dopo i due punti
+    .replace(/:\s+/g, ':\n')
+    // Separa frasi che finiscono con punto e iniziano con maiuscola
+    .replace(/\.\s+([A-Z])/g, '.\n$1')
+    // Gestisci trattini come punti elenco
+    .replace(/-\s+/g, '\n- ');
+  
+  const lines = textString.split('\n').filter(line => line.trim() !== '');
+  
+  let lastWasTitle = false;
+  
+  return (
+    <div className="space-y-1">
+      {lines.map((line, index) => {
+        const trimmedLine = line.trim();
+        
+        // Identifica titoli con pattern più ampio
+        const isBloccoPattern = /^BLOCCO\s*\d+(\s*\(.*\))?:?/i.test(trimmedLine);
+        const isGiornoPattern = /^Giorno\s*\d+:?/i.test(trimmedLine);
+        const isSettimanaPattern = /^SETTIMANA\s*\d+:?/i.test(trimmedLine);
+        const isNumberedItem = /^\d+\.\s*[A-Z]/.test(trimmedLine);
+        const isAllCapsTitle = trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 3 && !trimmedLine.match(/^[0-9\s\-:]+$/);
+        const endsWithColon = trimmedLine.endsWith(':');
+        
+        const isTitle = isBloccoPattern || isGiornoPattern || isSettimanaPattern || isNumberedItem || isAllCapsTitle || endsWithColon;
+        
+        const currentIsTitle = isTitle;
+        const result = (
+          <React.Fragment key={index}>
+            {/* Aggiungi spazio extra prima di un nuovo BLOCCO */}
+            {(isBloccoPattern || isGiornoPattern || isSettimanaPattern) && index > 0 && (
+              <div className="mb-6" />
+            )}
+            
+            {isTitle ? (
+              <h6 className="font-bold text-blue-300 text-base sm:text-lg mb-2 sm:mb-3">
+                {trimmedLine}
+              </h6>
+            ) : (
+              <p className="text-blue-200 mb-2 leading-relaxed pl-0 sm:pl-4">
+                {trimmedLine}
+              </p>
+            )}
+          </React.Fragment>
+        );
+        
+        lastWasTitle = currentIsTitle;
+        return result;
+      })}
+    </div>
+  );
+};
+
 // Study Plan Component
 const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = ({ docContext, authToken }) => {
   const { studyGuideState, updateStudyGuideState } = useStudySessionStore();
@@ -942,7 +1019,7 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
   };
 
   return (
-    <div className="bg-blue-500/20 backdrop-blur-sm p-6 rounded-2xl border border-blue-500/30">
+    <div className="bg-blue-500/20 backdrop-blur-sm p-3 sm:p-6 rounded-2xl border border-blue-500/30">
       <h4 className="text-lg font-semibold text-blue-300 mb-4 flex items-center gap-2">
         <Calendar className="w-5 h-5" />
         📅 Piano di Studio Rapido
@@ -988,14 +1065,16 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
         <div className="space-y-4">
           <div className="grid gap-4">
             {studyPlan.days?.map((day: any, index: number) => (
-              <div key={index} className="bg-white/10 p-4 rounded-xl border border-white/20">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
+              <div key={index} className="bg-white/10 p-3 sm:p-4 rounded-xl border border-white/20">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 bg-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm">
                     {index + 1}
                   </div>
-                  <h5 className="font-semibold text-blue-300">{day.title || `Giorno ${index + 1}`}</h5>
+                  <h5 className="font-semibold text-blue-300 text-sm sm:text-base">{day.title || `Giorno ${index + 1}`}</h5>
                 </div>
-                <p className="text-blue-200 text-sm leading-relaxed ml-11">{day.description || day.activities}</p>
+                <div className="ml-9 sm:ml-11">
+                  {formatStudyPlanText(day.description || day.activities)}
+                </div>
               </div>
             ))}
           </div>
@@ -1971,10 +2050,10 @@ const StudiusAIV2: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => setShowHistory(true)}
-                      className="flex items-center gap-1 px-2 py-1 bg-white/5 text-gray-300 rounded hover:bg-white/10 transition-all"
+                      className="flex items-center gap-1 px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 border border-blue-500/30 rounded-lg hover:from-blue-500/30 hover:to-purple-500/30 hover:border-blue-400/50 transition-all font-medium"
                     >
                       <History className="w-3 h-3" />
-                      <span>Storico</span>
+                      <span>📚 Documenti</span>
                     </button>
                     <span className="text-gray-400 truncate max-w-[120px]">{user.email}</span>
                   </div>
@@ -2013,10 +2092,10 @@ const StudiusAIV2: React.FC = () => {
                   {/* 2. Storico button */}
                   <button
                     onClick={() => setShowHistory(true)}
-                    className="px-3 py-1.5 bg-white/10 text-white rounded-lg hover:bg-white/20 text-xs sm:text-sm font-medium transition-all border border-white/20"
+                    className="px-3 py-1.5 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-blue-300 rounded-lg hover:from-blue-500/30 hover:to-purple-500/30 text-xs sm:text-sm font-medium transition-all border border-blue-500/30 hover:border-blue-400/50"
                   >
                     <History className="w-4 h-4 inline mr-1" />
-                    <span>Storico</span>
+                    <span>📚 I tuoi Documenti</span>
                   </button>
 
                   {/* 3. Email + Logout */}
@@ -2971,13 +3050,20 @@ const StudiusAIV2: React.FC = () => {
                   </div>
 
 
-                  <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                  <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10">
                     <TutorChat
                       docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                       sessionId={results.sessionId}
                       authToken={token || undefined}
                       onCreditsUpdate={(newCredits) => updateCredits(newCredits)}
                       documentId={documentId || results.sessionId}
+                      onBackToTabs={() => {
+                        setActiveTab('riassunto_breve');
+                        const tabsSection = document.querySelector('[data-tabs-section]');
+                        if (tabsSection) {
+                          tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
                     />
 
                   </div>
