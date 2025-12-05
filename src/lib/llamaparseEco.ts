@@ -122,9 +122,31 @@ export async function extractTextFromPDFEco(pdfBuffer: Buffer, fileName: string)
     const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
     formData.append('file', blob, fileName);
     
-    // NO configuration for v1 = ultra basic parsing = ultra cheap
-    console.log('💰 NO advanced configuration = MINIMAL credits used');
-    console.log('🦙 Sending request to LlamaParse v1 (ultra cheap)...');
+    // Configuration for parse_page_without_llm v2.1
+    const configuration = {
+      parsing_method: "parse_page_without_llm",  // v2.1 cheapest mode
+      target_format: "markdown",
+      disable_ocr: false,
+      disable_image_extraction: true,
+      split_by_page: false,
+      page_separator: "\n\n---\n\n",
+      skip_diagonal_text: true,
+      invalidate_cache: false
+    };
+    
+    formData.append("configuration", JSON.stringify(configuration));
+    
+    // Log configuration for monitoring
+    console.log('[LLAMAPARSE_JOB]', {
+      mode: configuration.parsing_method,
+      model: 'NONE (parse_without_llm)',
+      file: 'llamaparseEco.ts',
+      targetFormat: configuration.target_format,
+      apiVersion: 'v1',
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log('🦙 Sending request to LlamaParse v1 (parse_without_llm)...');
     
     // Use v1 API for basic, cheap parsing
     const response = await fetch("https://api.cloud.llamaindex.ai/api/v1/parsing/upload", {

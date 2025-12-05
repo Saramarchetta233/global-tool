@@ -140,36 +140,31 @@ export async function extractTextFromPDFPremium(pdfBuffer: Buffer, fileName: str
     const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
     formData.append('file', blob, fileName);
     
-    // PREMIUM Configuration - All advanced features enabled
+    // FORCE parse_page_without_llm even in Premium file
     const premiumConfiguration = {
-      parse_options: {
-        parse_mode: "preset",
-        preset_options: {
-          preset: "scientific"  // 🚀 Most advanced preset
-        }
-      },
-      output_options: {
-        markdown: {} // Rich markdown output with formatting
-      },
-      input_options: {
-        pdf: {
-          disable_image_extraction: false,  // ✨ Enable image processing
-          // TODO: Add advanced options when available:
-          // enable_ocr: true,                // ✨ Enable OCR for scanned docs
-          // enable_table_detection: true,    // ✨ Advanced table detection
-          // enable_figure_extraction: true,  // ✨ Extract figures and charts
-          // vision_model: "advanced",        // ✨ Use advanced vision model
-          // agentic_processing: true,        // ✨ AI agent processing
-        }
-      },
-      disable_cache: false,
-      verbose: true // Detailed processing info
+      parsing_method: "parse_page_without_llm",  // v2.1 cheapest mode ALWAYS
+      target_format: "markdown",
+      disable_ocr: false,  // Keep OCR for scanned PDFs
+      disable_image_extraction: true,  // No image processing to save costs
+      split_by_page: false,  // Single document output
+      page_separator: "\n\n---\n\n",
+      skip_diagonal_text: true,
+      invalidate_cache: false  // Use cache when available
     };
     
     formData.append("configuration", JSON.stringify(premiumConfiguration));
     
-    console.log('✨ PREMIUM Configuration:', premiumConfiguration);
-    console.log('🚀 Sending request to LlamaParse v2alpha1 PREMIUM...');
+    // Log configuration for monitoring
+    console.log('[LLAMAPARSE_JOB]', {
+      mode: premiumConfiguration.parsing_method,
+      model: 'NONE (parse_without_llm)',
+      file: 'llamaparsePremium.ts',
+      targetFormat: premiumConfiguration.target_format,
+      apiVersion: 'v2alpha1',
+      timestamp: new Date().toISOString()
+    });
+    
+    console.log('🚀 Sending request to LlamaParse v2alpha1 (forced parse_without_llm)...');
     
     // Use the same API endpoint as test-v2
     const response = await fetch("https://api.cloud.llamaindex.ai/api/v2alpha1/parse/upload", {
