@@ -6,7 +6,7 @@ import { useAuth } from '@/lib/auth-context';
 import AuthModal from '@/components/AuthModal';
 import CreditBar from '@/components/CreditBar';
 import LoadingScreen from '@/components/LoadingScreen';
-import TutorChat from '@/components/TutorChat';
+import TutorChat, { TutorChatRef } from '@/components/TutorChat';
 import HistoryView from '@/components/HistoryView';
 import AudioPlayer from '@/components/AudioPlayer';
 import OralExamSection from '@/components/OralExamSection';
@@ -1324,6 +1324,7 @@ const StudiusAIV2: React.FC = () => {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const tutorChatRef = useRef<TutorChatRef>(null);
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
   const { canPurchaseRecharge, subscription } = useSubscription();
   const { showSuccess, showError, showInfo } = useToast();
@@ -3043,25 +3044,38 @@ const StudiusAIV2: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Back to Tabs Button */}
-                    <button
-                      onClick={() => {
-                        setActiveTab('riassunto_breve');
-                        // Scroll to tabs section
-                        const tabsSection = document.querySelector('[data-tabs-section]');
-                        if (tabsSection) {
-                          tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }}
-                      className="flex items-center gap-2 bg-white/10 text-white px-4 py-2 rounded-xl hover:bg-white/20 transition-all border border-white/20"
-                    >
-                      <span>← Torna ai Tabs</span>
-                    </button>
+                    {/* Navigation Buttons */}
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <button
+                        onClick={() => {
+                          setActiveTab('riassunto_breve');
+                          // Scroll to tabs section
+                          const tabsSection = document.querySelector('[data-tabs-section]');
+                          if (tabsSection) {
+                            tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          }
+                        }}
+                        className="flex items-center gap-2 bg-white/10 text-white px-3 sm:px-4 py-2 rounded-xl hover:bg-white/20 transition-all border border-white/20"
+                      >
+                        <span className="hidden sm:inline">← Torna ai Tabs</span>
+                        <span className="sm:hidden">← Tabs</span>
+                      </button>
+                      
+                      <button
+                        onClick={() => {
+                          tutorChatRef.current?.scrollToInput();
+                        }}
+                        className="flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 sm:px-4 py-2 rounded-xl hover:bg-purple-500/30 hover:text-purple-200 transition-all border border-purple-500/30"
+                      >
+                        <span>✏️ Scrivi</span>
+                      </button>
+                    </div>
                   </div>
 
 
                   <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10">
                     <TutorChat
+                      ref={tutorChatRef}
                       docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
                       sessionId={results.sessionId}
                       authToken={token || undefined}

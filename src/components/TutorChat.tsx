@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { Send, Bot, User, Loader2, Coins } from 'lucide-react';
 
 interface Message {
@@ -19,14 +19,18 @@ interface TutorChatProps {
   onBackToTabs?: () => void;
 }
 
-const TutorChat: React.FC<TutorChatProps> = ({ 
+export interface TutorChatRef {
+  scrollToInput: () => void;
+}
+
+const TutorChat = forwardRef<TutorChatRef, TutorChatProps>(({ 
   docContext, 
   sessionId, 
   authToken,
   onCreditsUpdate,
   documentId,
   onBackToTabs 
-}) => {
+}, ref) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const [loading, setLoading] = useState(false);
@@ -36,6 +40,7 @@ const TutorChat: React.FC<TutorChatProps> = ({
   const [messageCount, setMessageCount] = useState<number>(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const inputAreaRef = useRef<HTMLDivElement>(null);
 
   // Load chat history and message count on mount
   useEffect(() => {
@@ -138,6 +143,14 @@ const TutorChat: React.FC<TutorChatProps> = ({
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const scrollToInput = () => {
+    inputAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+  };
+
+  useImperativeHandle(ref, () => ({
+    scrollToInput
+  }));
 
   const fetchTutorCount = async () => {
     if (!authToken || !documentId) return;
@@ -362,7 +375,7 @@ const TutorChat: React.FC<TutorChatProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="relative">
+      <div ref={inputAreaRef} className="relative">
         <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 p-2 sm:p-4">
           <div className="flex items-end gap-2 sm:gap-4">
             <div className="flex-1">
@@ -375,7 +388,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
                     ? `Fai una domanda... (${freeMessagesRemaining} gratis)`
                     : "Fai una domanda... (2 crediti)"
                 }
-                className="w-full bg-transparent text-white text-sm sm:text-base placeholder-gray-300 resize-none focus:outline-none min-h-[45px] sm:min-h-[60px] max-h-[90px] sm:max-h-[120px]"
+                className="w-full bg-transparent text-white text-base placeholder-gray-300 resize-none focus:outline-none min-h-[45px] sm:min-h-[60px] max-h-[90px] sm:max-h-[120px]"
+                style={{ fontSize: 'max(16px, 1rem)' }}
                 disabled={loading}
               />
             </div>
@@ -429,6 +443,8 @@ const TutorChat: React.FC<TutorChatProps> = ({
       </div>
     </div>
   );
-};
+});
+
+TutorChat.displayName = 'TutorChat';
 
 export default TutorChat;
