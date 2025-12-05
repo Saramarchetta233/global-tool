@@ -13,6 +13,7 @@ import OralExamSection from '@/components/OralExamSection';
 import InsufficientCreditsModal from '@/components/InsufficientCreditsModal';
 import RechargeModal from '@/components/RechargeModal';
 import SubscriptionModal from '@/components/SubscriptionModal';
+import RecentDocumentsSection from '@/components/RecentDocumentsSection';
 import { saveStudySession, convertResultsToHistory, getStudySession } from '@/lib/study-history';
 import { useStudySessionStore } from '@/store/useStudySessionStore';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -2315,6 +2316,15 @@ const StudiusAIV2: React.FC = () => {
                     </div>
                   </div>
                 )}
+                
+                {/* Recent Documents Section - only show if user has documents and not viewing results/history */}
+                {user && !loading && !showHistory && !results && (
+                  <RecentDocumentsSection
+                    onSelectDocument={handleSelectFromHistory}
+                    onShowAllDocuments={() => setShowHistory(true)}
+                  />
+                )}
+
                 <div className="text-center mb-6 sm:mb-8">
                   <div className="inline-flex items-center justify-center w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl mb-4">
                     <Upload className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
