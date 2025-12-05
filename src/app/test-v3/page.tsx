@@ -200,26 +200,26 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
   }
 
   return (
-    <div className="max-w-lg mx-auto">
+    <div className="max-w-lg mx-auto px-2 sm:px-0">
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-3xl blur-xl"></div>
 
-        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
-          <div className="text-center mb-6">
+        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-[200px] sm:min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
+          <div className="text-center mb-3 sm:mb-6">
             <span className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-3 py-1 rounded-full text-sm font-medium">
               {currentCard + 1} / {flashcards.length}
             </span>
           </div>
 
-          <div className="flex-grow flex items-center justify-center text-center mb-6">
-            <p className="text-xl text-white leading-relaxed font-medium">
+          <div className="flex-grow flex items-center justify-center text-center mb-4 sm:mb-6 px-2">
+            <p className="text-base sm:text-lg md:text-xl text-white leading-relaxed font-medium">
               {showBack ? flashcards[currentCard].back : flashcards[currentCard].front}
             </p>
           </div>
 
           <button
             onClick={() => updateFlashcardState({ showBack: !showBack })}
-            className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-3 rounded-xl mb-6 hover:from-pink-700 hover:to-rose-700 font-semibold transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]"
+            className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-4 sm:mb-6 hover:from-pink-700 hover:to-rose-700 font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]"
           >
             {showBack ? 'Mostra Domanda' : 'Mostra Risposta'}
           </button>
@@ -227,15 +227,15 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
           <div className="flex justify-between">
             <button
               onClick={prevCard}
-              className="bg-white/10 text-white p-3 rounded-xl hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300"
+              className="bg-white/10 text-white p-2 sm:p-3 rounded-xl hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300"
             >
-              <ChevronLeft size={24} />
+              <ChevronLeft size={20} className="sm:w-6 sm:h-6" />
             </button>
             <button
               onClick={nextCard}
-              className="bg-white/10 text-white p-3 rounded-xl hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300"
+              className="bg-white/10 text-white p-2 sm:p-3 rounded-xl hover:bg-white/20 backdrop-blur-sm border border-white/20 transition-all duration-300"
             >
-              <ChevronRight size={24} />
+              <ChevronRight size={20} className="sm:w-6 sm:h-6" />
             </button>
           </div>
         </div>
@@ -771,8 +771,8 @@ const ExamSimulatorView: React.FC<{
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-orange-500/20 to-amber-500/20 rounded-3xl blur-xl"></div>
 
-        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-          <h3 className="text-2xl font-semibold mb-8 text-white leading-relaxed">{question.question || question.text}</h3>
+        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 md:p-8 border border-white/20 shadow-2xl">
+          <h3 className="text-lg md:text-2xl font-semibold mb-6 md:mb-8 text-white leading-relaxed">{question.question || question.text}</h3>
 
           {question.type === 'open' ? (
             /* Open Question */
@@ -837,7 +837,7 @@ const ExamSimulatorView: React.FC<{
                       }`}>
                       {String.fromCharCode(65 + index)}
                     </div>
-                    <span className="text-lg">{option}</span>
+                    <span className="text-sm md:text-lg">{option}</span>
                   </div>
                 </button>
               ))}
@@ -857,6 +857,33 @@ const ExamSimulatorView: React.FC<{
               </div>
             </div>
           )}
+
+          {/* Navigation Buttons Bottom - Mobile */}
+          <div className="block md:hidden mb-6">
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={prevQuestion}
+                disabled={currentQuestion === 0}
+                className="flex items-center gap-1 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+              >
+                <ChevronLeft size={16} />
+                Indietro
+              </button>
+              <button
+                onClick={nextQuestion}
+                className="flex items-center gap-1 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm"
+              >
+                {currentQuestion === currentQuestions.length - 1 ? (
+                  <>⏹️ Termina</>
+                ) : (
+                  <>
+                    Avanti
+                    <ChevronRight size={16} />
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           {/* Progress Bar */}
           <div className="mt-6">
@@ -927,7 +954,7 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
             Genera un piano di studio personalizzato basato sui giorni disponibili prima dell'esame.
           </p>
 
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
             <div className="flex items-center gap-2">
               <label className="text-blue-300 text-sm font-medium">
                 Ho l'esame tra:
@@ -946,7 +973,7 @@ const StudyPlanSection: React.FC<{ docContext: string; authToken?: string }> = (
             <button
               onClick={generateStudyPlan}
               disabled={isGenerating}
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-3 sm:px-4 py-2 sm:py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium text-xs sm:text-sm transition-all duration-300 disabled:opacity-50 w-full sm:w-auto"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-4 py-3 md:px-3 md:py-2 lg:px-4 lg:py-3 rounded-lg hover:from-blue-700 hover:to-cyan-700 font-medium text-sm transition-all duration-300 disabled:opacity-50 w-full md:w-auto"
             >
               {isGenerating ? '⏳ Generando...' : (
                 <div className="text-center">
@@ -2158,6 +2185,15 @@ const StudiusAIV2: React.FC = () => {
               <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
                 <HistoryView 
                   onSelectDocument={handleSelectFromHistory} 
+                  onBackToHome={() => {
+                    setShowHistory(false);
+                    resetSession();
+                    setFile(null);
+                    setError(null);
+                    if (fileInputRef.current) {
+                      fileInputRef.current.value = '';
+                    }
+                  }}
                   refreshTrigger={historyRefreshTrigger} 
                 />
                 <div className="mt-8 text-center">
@@ -2640,16 +2676,16 @@ const StudiusAIV2: React.FC = () => {
 
                 {activeTab === 'flashcard' && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
-                        <BookOpen className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white">Flashcard</h3>
-                        <p className="text-gray-400">Carte per memorizzazione attiva</p>
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">Flashcard</h3>
+                        <p className="text-sm sm:text-base text-gray-400">Carte per memorizzazione attiva</p>
                       </div>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                    <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
                       <FlashCardView flashcards={results.flashcard} />
                     </div>
                   </div>
@@ -2658,18 +2694,18 @@ const StudiusAIV2: React.FC = () => {
                 {activeTab === 'quiz' && (
                   <div>
                     {/* Header */}
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center">
-                        <Play className="w-6 h-6 text-white" />
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl flex items-center justify-center">
+                        <Play className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                       </div>
                       <div>
-                        <h3 className="text-2xl font-bold text-white">Simula Esame</h3>
-                        <p className="text-gray-400">Simulazione d'esame personalizzabile</p>
+                        <h3 className="text-xl sm:text-2xl font-bold text-white">Simula Esame</h3>
+                        <p className="text-sm sm:text-base text-gray-400">Simulazione d'esame personalizzabile</p>
                       </div>
                     </div>
 
                     {/* Sub-tabs Navigation */}
-                    <div className="bg-white/5 rounded-2xl p-2 border border-white/10 mb-6 flex gap-2">
+                    <div className="bg-white/5 rounded-2xl p-2 border border-white/10 mb-4 sm:mb-6 flex gap-1 sm:gap-2">
                       <button
                         onClick={() => setExamSubTab('scritto')}
                         className={`flex-1 px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 ${examSubTab === 'scritto'
@@ -2693,7 +2729,7 @@ const StudiusAIV2: React.FC = () => {
                     </div>
 
                     {/* Sub-tab Content */}
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                    <div className="bg-white/5 rounded-2xl p-4 md:p-6 border border-white/10">
                       {examSubTab === 'scritto' && (
                         <div>
                           <div className="flex items-center gap-3 mb-6">
@@ -2718,13 +2754,13 @@ const StudiusAIV2: React.FC = () => {
 
                       {examSubTab === 'orale' && (
                         <div>
-                          <div className="flex items-center gap-3 mb-6">
-                            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-                              <MessageCircle className="w-5 h-5 text-white" />
+                          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+                              <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
                             </div>
-                            <div>
-                              <h4 className="text-xl font-bold text-white">Esame Orale</h4>
-                              <p className="text-gray-400">Simulazione di colloquio con valutazione AI</p>
+                            <div className="flex-1">
+                              <h4 className="text-lg sm:text-xl font-bold text-white">Modalità Orale</h4>
+                              <p className="text-sm sm:text-base text-gray-400">Simulazione esame orale con professore AI</p>
                             </div>
                           </div>
 
@@ -2749,17 +2785,21 @@ const StudiusAIV2: React.FC = () => {
 
                 {activeTab === 'guida_esame' && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl flex items-center justify-center">
-                        <Clock className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="text-2xl font-bold text-white">Studia in 1 ora</h3>
-                        <p className="text-gray-400">Piano strategico per imparare rapidamente</p>
+                    {/* Header - Mobile friendly layout */}
+                    <div className="mb-6">
+                      {/* Main header */}
+                      <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-violet-500 to-purple-500 rounded-2xl flex items-center justify-center">
+                          <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl sm:text-2xl font-bold text-white">Studia in 1 ora</h3>
+                          <p className="text-sm sm:text-base text-gray-400">Piano strategico per imparare rapidamente</p>
+                        </div>
                       </div>
 
-                      {/* Language Selector */}
-                      <div className="flex items-center gap-3">
+                      {/* Language Selector - Hidden on mobile */}
+                      <div className="hidden md:flex items-center gap-3">
                         <label className="text-sm font-medium text-gray-300">
                           Lingua del riassunto:
                         </label>
@@ -2779,7 +2819,7 @@ const StudiusAIV2: React.FC = () => {
                     </div>
 
 
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 space-y-8">
+                    <div className="bg-white/5 rounded-2xl p-4 md:p-6 border border-white/10 space-y-6 md:space-y-8">
                       {/* Piano Studio Rapido */}
                       <StudyPlanSection
                         docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
@@ -2795,7 +2835,7 @@ const StudiusAIV2: React.FC = () => {
                       />
 
                       {/* Guida Originale */}
-                      <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm p-6 rounded-2xl mb-6 border border-green-500/30">
+                      <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm p-4 md:p-6 rounded-2xl mb-4 md:mb-6 border border-green-500/30">
                         <h4 className="text-lg font-semibold text-green-300 mb-3 flex items-center gap-2">
                           <Target className="w-5 h-5" />
                           🎯 Strategia per Studiare in 1 ora

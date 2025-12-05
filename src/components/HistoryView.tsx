@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Calendar, Clock, Eye, Trash2, Search } from 'lucide-react';
+import { FileText, Calendar, Clock, Eye, Trash2, Search, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 
 interface HistoryViewProps {
   onSelectDocument: (document: any) => void;
+  onBackToHome?: () => void; // New prop for navigation to home
   refreshTrigger?: number; // Optional prop to trigger refresh
 }
 
@@ -26,7 +27,7 @@ interface HistoryDocument {
   sessionId: string;
 }
 
-const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrigger }) => {
+const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, onBackToHome, refreshTrigger }) => {
   const [history, setHistory] = useState<HistoryDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,13 +125,52 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
 
   return (
     <div>
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-          <Clock className="w-6 h-6 text-white" />
+      {/* Header with Back Button */}
+      <div className="mb-6 sm:mb-8">
+        {/* Desktop: Side by side layout */}
+        <div className="hidden sm:flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
+              <Clock className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h3 className="text-2xl font-bold text-white">Storico Documenti</h3>
+              <p className="text-base text-gray-400">I tuoi documenti elaborati precedentemente</p>
+            </div>
+          </div>
+          
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              className="flex items-center gap-2 px-4 py-3 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 text-white rounded-xl transition-all duration-300 hover:scale-[1.02] group"
+            >
+              <ArrowLeft className="w-5 h-5 group-hover:translate-x-[-2px] transition-transform" />
+              <span className="text-base font-medium">Torna alla Home</span>
+            </button>
+          )}
         </div>
-        <div>
-          <h3 className="text-2xl font-bold text-white">Storico Documenti</h3>
-          <p className="text-gray-400">I tuoi documenti elaborati precedentemente</p>
+
+        {/* Mobile: Stacked layout */}
+        <div className="sm:hidden">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
+              <Clock className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-white">Storico Documenti</h3>
+              <p className="text-sm text-gray-400">I tuoi documenti elaborati precedentemente</p>
+            </div>
+          </div>
+          
+          {onBackToHome && (
+            <button
+              onClick={onBackToHome}
+              className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 text-white rounded-xl transition-all duration-300 group"
+            >
+              <ArrowLeft className="w-4 h-4 group-hover:translate-x-[-2px] transition-transform" />
+              <span className="text-sm font-medium">Home</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -166,20 +206,20 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
           {filteredHistory.map((item) => (
             <div
               key={item.id}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl p-6 transition-all duration-300 cursor-pointer"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl p-4 sm:p-6 transition-all duration-300 cursor-pointer"
               onClick={() => onSelectDocument(item)}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-white" />
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-white group-hover:text-purple-300 transition-colors">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-base sm:text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate max-w-[200px] sm:max-w-full">
                         {item.title || item.fileName}
                       </h4>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400 flex-wrap">
                         <Calendar className="w-4 h-4" />
                         <span>{formatDate(item.processedAt)}</span>
                         {item.pageCount && (
@@ -229,20 +269,20 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, refreshTrig
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 ml-4">
+                <div className="flex items-center gap-1 sm:gap-2 ml-2 sm:ml-4 flex-shrink-0">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       // Document is already in the correct format from API
                       onSelectDocument(item);
                     }}
-                    className="p-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded-lg transition-colors"
                   >
                     <Eye className="w-4 h-4" />
                   </button>
                   <button
                     onClick={(e) => handleDelete(item.id, e)}
-                    className="p-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
+                    className="p-1.5 sm:p-2 bg-red-500/20 hover:bg-red-500/30 text-red-300 rounded-lg transition-colors"
                   >
                     <Trash2 className="w-4 h-4" />
                   </button>

@@ -88,10 +88,44 @@ export async function saveStudySession(
     console.error('❌ [SAVE_HISTORY] Database error, falling back to localStorage only:', dbError);
   }
   
-  // Mantieni anche il localStorage come backup
-  const existingSessions = getStoredSessions();
-  existingSessions.push(studySession);
-  localStorage.setItem('studyHistory', JSON.stringify(existingSessions));
+  // Mantieni anche il localStorage come backup con gestione quota
+  try {
+    const existingSessions = getStoredSessions();
+    existingSessions.push(studySession);
+    
+    // Limita a ultime 50 sessioni per evitare QuotaExceededError
+    const limitedSessions = existingSessions.slice(-50);
+    
+    try {
+      localStorage.setItem('studyHistory', JSON.stringify(limitedSessions));
+      console.log('✅ Study session saved to localStorage:', studySession.id.substring(0, 8));
+    } catch (quotaError) {
+      if (quotaError instanceof Error && quotaError.name === 'QuotaExceededError') {
+        console.warn('⚠️ localStorage quota exceeded, cleaning old sessions...');
+        
+        // Riduci ulteriormente a 25 sessioni e riprova
+        const reducedSessions = limitedSessions.slice(-25);
+        
+        try {
+          localStorage.setItem('studyHistory', JSON.stringify(reducedSessions));
+          console.log('✅ Study session saved after cleanup:', studySession.id.substring(0, 8));
+        } catch (secondError) {
+          console.error('❌ Failed to save even with reduced history:', secondError);
+          // Ultimo tentativo: salva solo la sessione corrente
+          try {
+            localStorage.setItem('studyHistory', JSON.stringify([studySession]));
+            console.log('✅ Study session saved (history reset):', studySession.id.substring(0, 8));
+          } catch (finalError) {
+            console.error('❌ Complete localStorage failure:', finalError);
+          }
+        }
+      } else {
+        throw quotaError;
+      }
+    }
+  } catch (error) {
+    console.error('❌ Failed to save to localStorage (non-blocking):', error);
+  }
   
   return studySession;
 }
@@ -113,7 +147,19 @@ export async function updateStudySession(sessionId: string, updates: Partial<Stu
     updatedAt: new Date().toISOString()
   };
   
-  localStorage.setItem('studyHistory', JSON.stringify(sessions));
+  try {
+    // Limita a ultime 50 sessioni prima di salvare
+    const limitedSessions = sessions.slice(-50);
+    localStorage.setItem('studyHistory', JSON.stringify(limitedSessions));
+  } catch (quotaError) {
+    if (quotaError instanceof Error && quotaError.name === 'QuotaExceededError') {
+      console.warn('⚠️ localStorage quota exceeded during update, reducing sessions...');
+      const reducedSessions = sessions.slice(-25);
+      localStorage.setItem('studyHistory', JSON.stringify(reducedSessions));
+    } else {
+      throw quotaError;
+    }
+  }
   return sessions[sessionIndex];
 }
 
@@ -172,7 +218,17 @@ export async function deleteStudySession(sessionId: string): Promise<boolean> {
     return false; // Sessione non trovata
   }
   
-  localStorage.setItem('studyHistory', JSON.stringify(filteredSessions));
+  try {
+    localStorage.setItem('studyHistory', JSON.stringify(filteredSessions));
+  } catch (quotaError) {
+    if (quotaError instanceof Error && quotaError.name === 'QuotaExceededError') {
+      console.warn('⚠️ localStorage quota exceeded during delete, reducing sessions...');
+      const reducedSessions = filteredSessions.slice(-25);
+      localStorage.setItem('studyHistory', JSON.stringify(reducedSessions));
+    } else {
+      throw quotaError;
+    }
+  }
   return true;
 }
 

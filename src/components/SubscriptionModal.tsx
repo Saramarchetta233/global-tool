@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Crown, Calendar, Star, Zap, CreditCard, Shield } from 'lucide-react';
 import { useAuth } from '@/lib/auth-context';
 import { useGeolocation } from '@/hooks/useGeolocation';
@@ -19,6 +19,37 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
   const { currency, country, language, loading: geoLoading } = useGeolocation();
+
+  // Fix scroll mobile: blocca scroll pagina quando modal è aperto
+  useEffect(() => {
+    if (isOpen) {
+      // Salva la posizione attuale dello scroll
+      const scrollY = window.scrollY;
+      // Blocca lo scroll della pagina
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.top = `-${scrollY}px`;
+      document.body.style.width = '100%';
+    } else {
+      // Ripristina lo scroll quando il modal si chiude
+      const scrollY = document.body.style.top;
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+      if (scrollY) {
+        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
+      }
+    }
+
+    // Cleanup quando il componente viene smontato
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.width = '';
+    };
+  }, [isOpen]);
 
   const plans = [
     {
@@ -157,7 +188,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-6 max-w-2xl w-full border border-purple-500/30 relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-6 max-w-2xl w-full border border-purple-500/30 relative max-h-[90vh] overflow-y-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
         {/* Close Button */}
         <button
           onClick={onClose}

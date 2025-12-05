@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { Brain, Sparkles, FileText, BookOpen, Play, Clock } from 'lucide-react';
+import MiniQuiz from './MiniQuiz';
 
 interface LoadingScreenProps {
   stage?: 'extracting' | 'generating' | 'finishing';
@@ -34,7 +35,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ stage = 'extracting', pro
   const IconComponent = currentStage.icon;
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 z-50 overflow-y-auto">
       {/* Animated background */}
       <div className="absolute inset-0 opacity-20">
         <div className="absolute top-20 left-20 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl animate-blob"></div>
@@ -42,7 +43,7 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ stage = 'extracting', pro
         <div className="absolute bottom-20 left-40 w-72 h-72 bg-pink-500 rounded-full mix-blend-multiply filter blur-xl animate-blob animation-delay-4000"></div>
       </div>
 
-      <div className="relative max-w-md mx-auto p-8 text-center">
+      <div className="relative max-w-md mx-auto p-8 text-center min-h-screen flex flex-col justify-center">
         {/* Main Loading Animation */}
         <div className="relative mb-8">
           {/* Outer rotating ring */}
@@ -107,6 +108,9 @@ const LoadingScreen: React.FC<LoadingScreenProps> = ({ stage = 'extracting', pro
             );
           })}
         </div>
+
+        {/* Mini Quiz - Solo durante la generazione o finishing per non distrarre */}
+        {(stage === 'generating' || stage === 'finishing') && <MiniQuiz />}
 
         {/* Encouraging message */}
         <div className="mt-8 p-4 bg-white/5 rounded-2xl border border-white/10">

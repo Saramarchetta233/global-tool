@@ -363,28 +363,31 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   }
 
   return (
-    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center">
-            <Mic className="w-6 h-6 text-white" />
+    <div className="md:bg-white/5 md:rounded-2xl md:p-6 md:border md:border-white/10 w-full">
+      <div className="flex items-center justify-between mb-4 md:mb-6 px-4 md:px-0 py-3 md:py-0 bg-white/5 md:bg-transparent border-b border-white/10 md:border-none">
+        <div className="flex items-center gap-2 md:gap-3">
+          <div className="w-8 h-8 md:w-12 md:h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-xl md:rounded-2xl flex items-center justify-center">
+            <Mic className="w-4 h-4 md:w-6 md:h-6 text-white" />
           </div>
-          <div>
+          <div className="hidden md:block">
             <h4 className="text-lg font-semibold text-white">🎤 Modalità Orale</h4>
             <p className="text-gray-400 text-sm">Simulazione esame orale con professore AI</p>
+          </div>
+          <div className="md:hidden">
+            <h4 className="text-sm font-semibold text-white">Esame Orale</h4>
           </div>
         </div>
 
         {/* Timer and Status */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
           {examStatus === 'in_progress' && (
-            <div className="flex items-center gap-2 bg-red-500/20 px-3 py-1 rounded-lg border border-red-500/30">
-              <Clock className="w-4 h-4 text-red-300" />
-              <span className="text-red-300 font-mono text-sm">{formatTime(timer)}</span>
+            <div className="flex items-center gap-1 md:gap-2 bg-red-500/20 px-2 md:px-3 py-1 rounded-lg border border-red-500/30">
+              <Clock className="w-3 h-3 md:w-4 md:h-4 text-red-300" />
+              <span className="text-red-300 font-mono text-xs md:text-sm">{formatTime(timer)}</span>
             </div>
           )}
           
-          <div className={`px-3 py-1 rounded-lg text-xs font-medium ${
+          <div className={`px-2 md:px-3 py-1 rounded-lg text-xs font-medium ${
             examStatus === 'not_started' ? 'bg-gray-500/20 text-gray-300' :
             examStatus === 'in_progress' ? 'bg-orange-500/20 text-orange-300' :
             'bg-green-500/20 text-green-300'
@@ -448,11 +451,11 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
         /* Exam Interface */
         <div className="space-y-6">
           {/* Messages */}
-          <div className="bg-white/5 rounded-xl p-4 border border-white/10">
-            <div className="space-y-4">
+          <div className="md:bg-white/5 md:rounded-xl p-2 md:p-4 md:border md:border-white/10 pb-48 md:pb-2">
+            <div className="space-y-3 md:space-y-4">
               {messages.map((message) => (
-                <div key={message.id} className={`flex ${message.role === 'student' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`max-w-[80%] rounded-xl px-4 py-3 ${
+                <div key={message.id} className={`flex ${message.role === 'student' ? 'justify-end' : 'justify-start'} px-2 md:px-0`}>
+                  <div className={`max-w-[95%] md:max-w-[80%] rounded-xl px-3 md:px-4 py-2 md:py-3 ${
                     message.role === 'student' 
                       ? 'bg-blue-500 text-white ml-auto'
                       : 'bg-red-500/20 text-red-100 border border-red-500/30'
@@ -469,7 +472,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                         </div>
                       )}
                       <div className={`flex-1 ${message.role === 'student' ? 'order-0' : ''}`}>
-                        <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                        <p className="text-sm md:text-sm leading-relaxed whitespace-pre-wrap">
                           {message.content}
                         </p>
                         <p className="text-xs mt-1 opacity-70">
@@ -501,14 +504,15 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
           {/* Input Area */}
           {examStatus === 'in_progress' && (
             <div className="space-y-4">
-              <div className="bg-white/5 rounded-xl p-4 border border-white/10">
+              <div className="md:bg-white/5 md:rounded-xl p-4 md:border md:border-white/10 fixed md:relative bottom-0 left-0 right-0 md:bottom-auto md:left-auto md:right-auto bg-purple-900/90 md:bg-transparent border-t md:border-t-0 border-white/20 md:border-white/10 z-10">
+                {/* Input */}
                 <div className="flex items-end gap-4">
                   <div className="flex-1">
                     <textarea
                       value={userAnswer}
                       onChange={(e) => setUserAnswer(e.target.value)}
                       placeholder="Scrivi la tua risposta qui..."
-                      className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[80px]"
+                      className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[50px] md:min-h-[80px] text-base md:text-sm"
                       disabled={isLoading}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.ctrlKey) {
@@ -529,31 +533,61 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                 <div className="flex justify-center items-center mt-3 text-xs text-gray-400">
                   <span>Ctrl+Invio per inviare • Risposte GRATIS</span>
                 </div>
+
+                {/* Exam Control Buttons - Inclusi nell'area fissa su mobile */}
+                <div className="mt-4 md:hidden">
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      onClick={resetExam}
+                      disabled={isLoading}
+                      className="px-2 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      🔄 Azzera
+                    </button>
+                    <button
+                      onClick={resetExam}
+                      disabled={isLoading}
+                      className="px-2 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      🔄 Ricomincia
+                    </button>
+                    <button
+                      onClick={finishExam}
+                      disabled={isLoading}
+                      className="px-2 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-medium transition-colors disabled:opacity-50"
+                    >
+                      ⏹️ Termina
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              {/* Exam Control Buttons */}
-              <div className="bg-white/5 p-4 rounded-xl border border-white/10 mb-4">
+              {/* Exam Control Buttons - Solo desktop */}
+              <div className="hidden md:block md:bg-white/5 p-3 md:p-4 md:rounded-xl md:border md:border-white/10 mb-4">
                 <div className="flex flex-wrap gap-3 justify-center">
                   <button
                     onClick={resetExam}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    className="px-2 md:px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-xs md:text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    🔄 Azzera Esame
+                    <span className="md:hidden">🔄 Azzera</span>
+                    <span className="hidden md:inline">🔄 Azzera Esame</span>
                   </button>
                   <button
                     onClick={resetExam}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    className="px-2 md:px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-xs md:text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    🔄 Ricomincia Esame Orale
+                    <span className="md:hidden">🔄 Ricomincia</span>
+                    <span className="hidden md:inline">🔄 Ricomincia Esame Orale</span>
                   </button>
                   <button
                     onClick={finishExam}
                     disabled={isLoading}
-                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    className="px-2 md:px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs md:text-sm font-medium transition-colors disabled:opacity-50"
                   >
-                    ⏹️ Termina Esame
+                    <span className="md:hidden">⏹️ Termina</span>
+                    <span className="hidden md:inline">⏹️ Termina Esame</span>
                   </button>
                 </div>
               </div>
