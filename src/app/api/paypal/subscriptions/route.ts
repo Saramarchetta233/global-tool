@@ -91,9 +91,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      subscriptionId: subscription.id,
-      approvalUrl: approveLink.href,
-      status: subscription.status
+      subscriptionId: subscription.id
     });
 
   } catch (error) {

@@ -10,8 +10,16 @@ const PricingPage = () => {
   const [selectedPlanForPayPal, setSelectedPlanForPayPal] = useState<'monthly' | 'lifetime' | null>(null);
   const [paypalReady, setPaypalReady] = useState(false);
 
-  // PayPal SDK configuration
-  const paypalOptions = {
+  // PayPal SDK configuration (per subscription)
+  const paypalSubscriptionOptions = {
+    "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+    currency: 'EUR',
+    intent: 'subscription',
+    "disable-funding": 'credit,card'
+  };
+
+  // PayPal SDK configuration (per orders)
+  const paypalOrderOptions = {
     "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
     currency: 'EUR',
     intent: 'capture',
@@ -143,7 +151,7 @@ const PricingPage = () => {
   }
 
   return (
-    <PayPalScriptProvider options={paypalOptions}>
+    <div>
       <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-4">
       <div className="max-w-6xl mx-auto">
         
@@ -237,7 +245,8 @@ const PricingPage = () => {
                       <div className="bg-white rounded-2xl p-2">
                         {plan.id === 'monthly' ? (
                           // MENSILE: USA SUBSCRIPTIONS
-                          <PayPalButtons
+                          <PayPalScriptProvider options={paypalSubscriptionOptions}>
+                            <PayPalButtons
                             style={{ 
                               layout: 'horizontal',
                               label: 'subscribe',
@@ -290,9 +299,11 @@ const PricingPage = () => {
                               setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
+                          </PayPalScriptProvider>
                         ) : (
                           // LIFETIME: USA ORDERS
-                          <PayPalButtons
+                          <PayPalScriptProvider options={paypalOrderOptions}>
+                            <PayPalButtons
                             style={{ 
                               layout: 'horizontal',
                               label: 'paypal',
@@ -354,6 +365,7 @@ const PricingPage = () => {
                               setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
+                          </PayPalScriptProvider>
                         )}
                       </div>
                     ) : (
@@ -420,7 +432,7 @@ const PricingPage = () => {
         </div>
       </div>
       </div>
-    </PayPalScriptProvider>
+    </div>
   );
 };
 
