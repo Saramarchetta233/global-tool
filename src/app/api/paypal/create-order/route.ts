@@ -26,6 +26,19 @@ async function getPayPalAccessToken() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Verifica variabili ambiente critiche
+    if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
+      console.error('❌ Missing PayPal credentials:', {
+        client_id: !!PAYPAL_CLIENT_ID,
+        secret: !!PAYPAL_SECRET,
+        env: process.env.NODE_ENV
+      });
+      return NextResponse.json(
+        { error: 'PayPal configuration error' }, 
+        { status: 500 }
+      );
+    }
+
     const { planType, userId, countryCode, version = '1' } = await req.json();
     
     if (!planType || !userId) {
@@ -97,7 +110,12 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     console.error('❌ PayPal order creation error:', error);
     return NextResponse.json(
-      { error: 'Failed to create PayPal order' }, 
+      { 
+        error: 'Failed to create PayPal order',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        environment: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      }, 
       { status: 500 }
     );
   }

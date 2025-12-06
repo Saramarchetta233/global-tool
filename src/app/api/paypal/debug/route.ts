@@ -1,0 +1,71 @@
+import { NextRequest, NextResponse } from 'next/server';
+
+const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+const PAYPAL_SECRET = process.env.PAYPAL_SECRET;
+const PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID;
+const PAYPAL_PRODUCT_ID = process.env.PAYPAL_PRODUCT_ID;
+const PAYPAL_MONTHLY_PLAN_ID = process.env.PAYPAL_MONTHLY_PLAN_ID;
+const PAYPAL_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://api-m.paypal.com' 
+  : 'https://api-m.sandbox.paypal.com';
+
+// Test PayPal access token
+async function testPayPalAccess() {
+  if (!PAYPAL_CLIENT_ID || !PAYPAL_SECRET) {
+    return { error: 'Missing PayPal credentials' };
+  }
+
+  try {
+    const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`).toString('base64');
+    
+    const response = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Basic ${auth}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: 'grant_type=client_credentials',
+    });
+
+    const data = await response.json();
+    
+    return {
+      success: response.ok,
+      status: response.status,
+      hasToken: !!data.access_token,
+      error: data.error || null
+    };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+export async function GET(req: NextRequest) {
+  const accessTest = await testPayPalAccess();
+
+  return NextResponse.json({
+    environment: process.env.NODE_ENV,
+    paypal_base_url: PAYPAL_BASE_URL,
+    
+    // Variabili ambiente (masking per sicurezza)
+    credentials: {
+      client_id: PAYPAL_CLIENT_ID ? `${PAYPAL_CLIENT_ID.slice(0, 10)}...` : 'MISSING',
+      secret: PAYPAL_SECRET ? 'SET (hidden)' : 'MISSING',
+      webhook_id: PAYPAL_WEBHOOK_ID ? `${PAYPAL_WEBHOOK_ID.slice(0, 10)}...` : 'MISSING',
+      product_id: PAYPAL_PRODUCT_ID ? PAYPAL_PRODUCT_ID : 'MISSING',
+      plan_id: PAYPAL_MONTHLY_PLAN_ID ? PAYPAL_MONTHLY_PLAN_ID : 'MISSING',
+    },
+    
+    // Test connessione PayPal
+    access_test: accessTest,
+    
+    timestamp: new Date().toISOString(),
+    
+    // Headers ricevuti (per debug)
+    headers: {
+      host: req.headers.get('host'),
+      origin: req.headers.get('origin'),
+      'user-agent': req.headers.get('user-agent'),
+    }
+  });
+}
