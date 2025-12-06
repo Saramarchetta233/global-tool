@@ -71,18 +71,29 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
   console.log(`💰 Processing completed checkout: ${session.id}`);
   
   const userId = session.client_reference_id || session.metadata?.userId;
-  const planType = session.metadata?.planType;
-  const currency = session.metadata?.currency;
-  const version = session.metadata?.version || '1';
-
+  const sessionType = session.metadata?.type; // 'recharge' o undefined (abbonamento)
+  
   if (!userId) {
     console.error('❌ No userId found in checkout session');
     return;
   }
 
-  console.log(`👤 User: ${userId}, Plan: ${planType}, Currency: ${currency}, Version: ${version}`);
+  console.log(`👤 User: ${userId}, Type: ${sessionType || 'subscription'}`);
 
   try {
+    // NUOVA LOGICA: Gestisci ricariche crediti
+    if (sessionType === 'recharge') {
+      await handleRechargePayment(session, userId);
+      return;
+    }
+
+    // LOGICA ESISTENTE: Gestisci abbonamenti (mantieni inalterata)
+    const planType = session.metadata?.planType;
+    const currency = session.metadata?.currency;
+    const version = session.metadata?.version || '1';
+
+    console.log(`👤 User: ${userId}, Plan: ${planType}, Currency: ${currency}, Version: ${version}`);
+
     // Determine subscription settings based on plan type and version
     let subscriptionType = null;
     let subscriptionActive = false;
@@ -265,4 +276,48 @@ async function handleSubscriptionCanceled(subscription: Stripe.Subscription) {
   } catch (error) {
     console.error(`❌ Error processing subscription cancellation:`, error);
   }
+}
+
+// NUOVA FUNZIONE: Gestione pagamento ricariche
+async function handleRechargePayment(session: Stripe.Checkout.Session, userId: string) {
+  console.log(`🔋 Processing recharge payment: ${session.id}`);
+  
+  const credits = parseInt(session.metadata?.credits || '0');
+  const packageType = session.metadata?.packageType;
+  
+  if (!credits || !packageType) {
+    console.error('❌ Invalid recharge metadata');
+    return;
+  }
+
+  try {
+    // Aggiungi crediti usando la funzione esistente del database
+    const { data: rechargeResult, error: rechargeError } = await supabaseAdmin!
+      .rpc('purchase_credit_recharge', {
+        p_user_id: userId,
+        p_amount: credits,
+        p_price_paid: getRechargePrice(packageType),
+        p_description: `Ricarica Stripe ${credits} crediti (${packageType})`
+      });
+
+    if (rechargeError || !rechargeResult?.success) {
+      console.error(`❌ Database recharge failed:`, rechargeError || rechargeResult);
+      return;
+    }
+
+    console.log(`✅ Recharge completed for user ${userId}: +${credits} credits`);
+
+  } catch (error) {
+    console.error(`❌ Error processing recharge:`, error);
+  }
+}
+
+// Funzione helper per ottenere il prezzo
+function getRechargePrice(packageType: string): number {
+  const prices = {
+    '1000': 9.99,
+    '3000': 14.99,
+    '10000': 39.99
+  };
+  return prices[packageType as keyof typeof prices] || 0;
 }

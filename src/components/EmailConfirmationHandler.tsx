@@ -20,9 +20,9 @@ export default function EmailConfirmationHandler() {
         // Clean the URL
         window.history.replaceState(null, '', window.location.pathname);
         
-        // After 5 seconds, redirect to test-v3
+        // After 5 seconds, redirect to app
         setTimeout(() => {
-          router.push('/test-v3');
+          router.push('/app');
         }, 5000);
       }
     }

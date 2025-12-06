@@ -11,6 +11,7 @@ interface RechargeModalProps {
 
 const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal'>('stripe');
   const { user, refreshProfile } = useAuth();
 
   const rechargeOptions = [
@@ -34,7 +35,82 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
     }
   ];
 
-  const handleRecharge = async (option: typeof rechargeOptions[0]) => {
+  const handleStripeRecharge = async (option: typeof rechargeOptions[0]) => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/credits/stripe-checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
+        },
+        body: JSON.stringify({
+          packageType: option.packageType,
+          userId: user.id
+        })
+      });
+
+      if (response.ok) {
+        const { url } = await response.json();
+        
+        if (url) {
+          window.location.href = url;
+        } else {
+          throw new Error('No checkout URL received');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore nella creazione del checkout');
+      }
+    } catch (error) {
+      console.error('Errore Stripe checkout:', error);
+      alert('Errore durante la creazione del checkout Stripe. Riprova più tardi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePayPalRecharge = async (option: typeof rechargeOptions[0]) => {
+    if (!user?.id) return;
+    
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/paypal/recharge-order', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          packageType: option.packageType,
+          userId: user.id
+        })
+      });
+
+      if (response.ok) {
+        const { approvalUrl, orderId } = await response.json();
+        
+        if (approvalUrl && orderId) {
+          // Salva orderId per il capture al ritorno
+          sessionStorage.setItem('paypal_order_id', orderId);
+          window.location.href = approvalUrl;
+        } else {
+          throw new Error('No approval URL or order ID received');
+        }
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore nella creazione dell\'ordine PayPal');
+      }
+    } catch (error) {
+      console.error('Errore PayPal order:', error);
+      alert('Errore durante la creazione dell\'ordine PayPal. Riprova più tardi.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRecharge = (option: typeof rechargeOptions[0]) => {
     if (!user?.id) return;
     
     // Check if user can purchase recharges
@@ -43,41 +119,11 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
       onClose();
       return;
     }
-    
-    setIsLoading(true);
-    try {
-      const response = await fetch('/api/credits/recharge', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
-        },
-        body: JSON.stringify({
-          packageType: option.packageType
-        })
-      });
 
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Refresh user profile to get updated credits
-        await refreshProfile();
-        
-        alert(`🎉 Ricarica completata!\nAggiunti ${option.credits.toLocaleString()} crediti\nNuovo saldo: ${data.credits.newBalance.toLocaleString()} crediti`);
-        onClose();
-      } else {
-        const errorData = await response.json();
-        if (errorData.error === 'subscription_required') {
-          alert('⚠️ ' + errorData.message);
-        } else {
-          throw new Error(errorData.error || 'Errore nella ricarica');
-        }
-      }
-    } catch (error) {
-      console.error('Errore ricarica:', error);
-      alert('Errore durante la ricarica. Riprova più tardi.');
-    } finally {
-      setIsLoading(false);
+    if (paymentMethod === 'stripe') {
+      handleStripeRecharge(option);
+    } else {
+      handlePayPalRecharge(option);
     }
   };
 
@@ -110,6 +156,35 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
             <p className="text-yellow-400 text-sm font-medium">⚠️ Ricariche disponibili solo con abbonamento attivo</p>
           )}
         </div>
+
+        {/* Payment Method Selector */}
+        {user?.canPurchaseRecharge && (
+          <div className="mb-6">
+            <h3 className="text-white text-sm font-medium mb-3">Metodo di pagamento:</h3>
+            <div className="flex border border-white/20 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setPaymentMethod('stripe')}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                  paymentMethod === 'stripe' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                💳 Stripe
+              </button>
+              <button
+                onClick={() => setPaymentMethod('paypal')}
+                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
+                  paymentMethod === 'paypal' 
+                    ? 'bg-blue-600 text-white' 
+                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                }`}
+              >
+                🅿️ PayPal
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Options */}
         <div className="space-y-3 mb-6">
@@ -168,8 +243,8 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
               </p>
             </div>
           )}
-          <p>💳 Per ora è simulato - i crediti vengono aggiunti immediatamente</p>
-          <p>🔒 Pagamenti sicuri con Stripe (prossimamente)</p>
+          <p>🔒 Pagamenti sicuri con {paymentMethod === 'stripe' ? 'Stripe' : 'PayPal'}</p>
+          <p>💳 I crediti verranno aggiunti dopo il pagamento</p>
         </div>
 
         {/* Loading Overlay */}

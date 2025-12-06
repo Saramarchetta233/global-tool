@@ -1408,6 +1408,113 @@ const StudiusAIV2: React.FC = () => {
     loadUserCredits();
   }, [user, updateCredits, refreshCredits]);
 
+  // Gestione parametri URL per ricariche Stripe e subscription PayPal
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const rechargeStatus = urlParams.get('recharge');
+    const rechargeMethod = urlParams.get('method');
+    const packageType = urlParams.get('package');
+    const subscriptionStatus = urlParams.get('subscription');
+    
+    if (rechargeStatus === 'success') {
+      // Gestione ricarica PayPal - richiede capture
+      if (rechargeMethod === 'paypal') {
+        console.log('💰 Processando ricarica PayPal...');
+        
+        // Estrai orderId dall'URL fragment o sessionStorage
+        const urlFragment = window.location.hash;
+        const paypalOrderId = urlFragment.includes('token=') 
+          ? urlFragment.split('token=')[1].split('&')[0] 
+          : sessionStorage.getItem('paypal_order_id');
+        
+        if (paypalOrderId) {
+          // Cattura il pagamento PayPal
+          fetch('/api/paypal/capture-recharge', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ orderId: paypalOrderId })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              console.log(`✅ Ricarica PayPal completata: +${data.credits} crediti`);
+              setTimeout(() => {
+                alert(`🎉 Ricarica PayPal completata con successo!\\n+${data.credits} crediti aggiunti al tuo account.`);
+                // Refresh dei crediti
+                window.location.reload();
+              }, 500);
+            } else {
+              console.error('❌ Errore cattura PayPal:', data.error);
+              setTimeout(() => {
+                alert('❌ Errore durante il completamento della ricarica PayPal. Contatta il supporto.');
+              }, 500);
+            }
+            
+            // Pulisci URL
+            window.history.replaceState({}, '', '/app');
+            sessionStorage.removeItem('paypal_order_id');
+          })
+          .catch(error => {
+            console.error('❌ Errore richiesta capture:', error);
+            setTimeout(() => {
+              alert('❌ Errore di rete durante il completamento. Ricarica la pagina.');
+            }, 500);
+            window.history.replaceState({}, '', '/app');
+          });
+        } else {
+          console.error('❌ Order ID PayPal non trovato');
+          setTimeout(() => {
+            alert('❌ Dati pagamento PayPal non trovati. Ricarica non completata.');
+          }, 500);
+          window.history.replaceState({}, '', '/app');
+        }
+      } else {
+        // Ricarica Stripe (esistente)
+        console.log('🔋 Ricarica Stripe completata con successo!');
+        
+        setTimeout(() => {
+          alert('🎉 Ricarica completata con successo!\\nI tuoi crediti sono stati aggiunti al tuo account.');
+        }, 500);
+        
+        window.history.replaceState({}, '', '/app');
+      }
+      
+    } else if (rechargeStatus === 'cancelled') {
+      // Mostra notifica cancellazione
+      const method = rechargeMethod === 'paypal' ? 'PayPal' : 'Stripe';
+      console.log(`❌ Ricarica ${method} cancellata dall'utente`);
+      
+      setTimeout(() => {
+        alert(`❌ Ricarica ${method} cancellata.\\nNessun addebito è stato effettuato.`);
+      }, 500);
+      
+      // Rimuovi parametro URL
+      window.history.replaceState({}, '', '/app');
+    }
+    
+    // Gestione subscription PayPal
+    if (subscriptionStatus === 'success') {
+      console.log('✅ Abbonamento PayPal attivato con successo!');
+      
+      setTimeout(() => {
+        alert('🎉 Abbonamento attivato con successo!\nOra hai accesso illimitato a StudiusAI con 2000 crediti al mese.');
+      }, 500);
+      
+      window.history.replaceState({}, '', '/app');
+      
+    } else if (subscriptionStatus === 'cancelled') {
+      console.log('❌ Abbonamento PayPal cancellato dall\'utente');
+      
+      setTimeout(() => {
+        alert('❌ Abbonamento cancellato.\nNessun addebito è stato effettuato.');
+      }, 500);
+      
+      window.history.replaceState({}, '', '/app');
+    }
+  }, []);
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
     if (uploadedFile && uploadedFile.type === 'application/pdf') {

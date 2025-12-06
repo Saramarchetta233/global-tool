@@ -55,6 +55,28 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
 
   const handlePayPalPayment = async (selectedPlanType: PlanType) => {
     try {
+      // Per mensile usa subscriptions API
+      if (selectedPlanType === 'monthly') {
+        const response = await fetch('/api/paypal/subscriptions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId
+          }),
+        });
+
+        const data = await response.json();
+        if (data.approvalUrl) {
+          // Redirect a PayPal per approvare subscription
+          window.location.href = data.approvalUrl;
+          return null; // Non ritorniamo orderId per subscriptions
+        }
+        throw new Error('No approval URL received');
+      }
+      
+      // Per lifetime/onetime usa orders API (esistente)
       const response = await fetch('/api/paypal/create-order', {
         method: 'POST',
         headers: {
@@ -71,7 +93,7 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
       const data = await response.json();
       return data.orderId;
     } catch (error) {
-      console.error('PayPal order creation error:', error);
+      console.error('PayPal payment error:', error);
       throw error;
     }
   };
@@ -194,8 +216,17 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                     ) : (
                       <PayPalButtons
                         style={{ layout: "horizontal", height: 40 }}
-                        createOrder={() => handlePayPalPayment('monthly')}
-                        onApprove={(data) => handlePayPalCapture(data.orderID)}
+                        createOrder={async () => {
+                          // Per mensile, gestisce il redirect direttamente
+                          const orderId = await handlePayPalPayment('monthly');
+                          return orderId || ''; // Ritorna stringa vuota se è subscription
+                        }}
+                        onApprove={async (data) => {
+                          // Non fare nulla per monthly, il webhook gestirà tutto
+                          if (data.orderID) {
+                            await handlePayPalCapture(data.orderID);
+                          }
+                        }}
                         onError={(err) => {
                           console.error('💥 PayPal error details:', err);
                           alert(`Errore PayPal: ${JSON.stringify(err)}`);

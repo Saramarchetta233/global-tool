@@ -9,9 +9,9 @@ const OnetimeRegisterPage = () => {
   const { user, isLoading } = useAuth();
 
   useEffect(() => {
-    // Se l'utente è già loggato, reindirizza direttamente a test-v3
+    // Se l'utente è già loggato, reindirizza direttamente a app
     if (!isLoading && user) {
-      router.push('/test-v3');
+      router.push('/app');
     }
   }, [user, isLoading, router]);
 
@@ -55,7 +55,7 @@ const OnetimeRegisterPage = () => {
             // Salva flag nel sessionStorage per indicare registrazione onetime
             sessionStorage.setItem('registrationType', 'onetime_payment');
             // Reindirizza alla registrazione normale
-            window.location.href = '/test-v3';
+            window.location.href = '/app';
           }}
           className="mt-8 bg-gradient-to-r from-yellow-500 to-orange-500 text-black font-bold py-4 px-8 rounded-2xl text-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 transform hover:scale-105 shadow-xl w-full"
         >

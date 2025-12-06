@@ -53,7 +53,7 @@ const StudiusLandingPage = () => {
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
               <button
-                onClick={() => window.open('/test-v3', '_blank')}
+                onClick={() => window.open('/app', '_blank')}
                 className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center"
               >
                 Provala gratis!
@@ -181,7 +181,7 @@ const StudiusLandingPage = () => {
 
           <div className="text-center">
             <button
-              onClick={() => window.open('/test-v3', '_blank')}
+              onClick={() => window.open('/app', '_blank')}
               className="bg-indigo-600 text-white px-8 py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg"
             >
               Inizia ora – Provala gratis!
@@ -436,7 +436,7 @@ const StudiusLandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={() => window.open('/test-v3', '_blank')}
+                onClick={() => window.open('/app', '_blank')}
                 className="w-full bg-indigo-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-indigo-700 transition-colors"
               >
                 Inizia la prova gratuita!
@@ -469,7 +469,7 @@ const StudiusLandingPage = () => {
                 </li>
               </ul>
               <button
-                onClick={() => window.open('/test-v3', '_blank')}
+                onClick={() => window.open('/app', '_blank')}
                 className="w-full bg-purple-600 text-white py-4 rounded-xl text-lg font-semibold hover:bg-purple-700 transition-colors"
               >
                 Sblocca accesso a vita
@@ -562,7 +562,7 @@ const StudiusLandingPage = () => {
             su quello che conta davvero: capire e ricordare.
           </p>
           <button
-            onClick={() => window.open('/test-v3', '_blank')}
+            onClick={() => window.open('/app', '_blank')}
             className="bg-white text-indigo-600 px-12 py-4 rounded-xl text-lg font-semibold hover:bg-gray-100 transition-colors shadow-lg hover:shadow-xl transform hover:scale-105 inline-flex items-center"
           >
             Inizia ora – Provala gratis!

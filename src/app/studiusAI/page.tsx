@@ -143,7 +143,7 @@ export default function StudiusAILanding() {
               <a href="#features" className="hover:text-purple-400 transition-colors">Funzionalità</a>
               <a href="#how-it-works" className="hover:text-purple-400 transition-colors">Come Funziona</a>
               <a href="#pricing" className="hover:text-purple-400 transition-colors">Prezzi</a>
-              <Link href="/test-v3" className="bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-500/25 transition-all transform hover:scale-105">
+              <Link href="/app" className="bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-2 rounded-full hover:shadow-lg hover:shadow-purple-500/25 transition-all transform hover:scale-105">
                 Prova Gratis
               </Link>
             </div>
@@ -166,7 +166,7 @@ export default function StudiusAILanding() {
               <a href="#features" className="block py-2 hover:text-purple-400 transition-colors">Funzionalità</a>
               <a href="#how-it-works" className="block py-2 hover:text-purple-400 transition-colors">Come Funziona</a>
               <a href="#pricing" className="block py-2 hover:text-purple-400 transition-colors">Prezzi</a>
-              <Link href="/test-v3" className="block w-full bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 rounded-full text-center hover:shadow-lg hover:shadow-purple-500/25 transition-all">
+              <Link href="/app" className="block w-full bg-gradient-to-r from-purple-500 to-blue-500 px-6 py-3 rounded-full text-center hover:shadow-lg hover:shadow-purple-500/25 transition-all">
                 Prova Gratis
               </Link>
             </div>
@@ -226,7 +226,7 @@ export default function StudiusAILanding() {
             className="flex flex-col md:flex-row gap-4 justify-center mb-12"
           >
             <Link
-              href="/test-v3"
+              href="/app"
               className="group relative px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full text-lg font-semibold hover:shadow-2xl hover:shadow-purple-500/25 transition-all transform hover:scale-105"
             >
               <span className="relative z-10">Prova Gratis</span>
@@ -384,7 +384,7 @@ export default function StudiusAILanding() {
                     arrivi all'esame già preparato su tutto.
                   </p>
                   <Link
-                    href="/test-v3"
+                    href="/app"
                     className="inline-flex items-center gap-2 bg-purple-500 hover:bg-purple-600 px-6 py-3 rounded-full font-semibold transition-all transform hover:scale-105"
                   >
                     <Play size={20} />
@@ -647,7 +647,7 @@ export default function StudiusAILanding() {
               </ul>
 
               <Link
-                href="/test-v3"
+                href="/app"
                 className="block w-full bg-gradient-to-r from-purple-500 to-blue-500 py-4 rounded-full text-center font-semibold hover:shadow-lg hover:shadow-purple-500/25 transition-all transform hover:scale-105"
               >
                 Inizia la Prova Gratuita
@@ -695,7 +695,7 @@ export default function StudiusAILanding() {
               </ul>
 
               <Link
-                href="/test-v3"
+                href="/app"
                 className="block w-full bg-white text-gray-900 py-4 rounded-full text-center font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
               >
                 Compra Ora
@@ -771,13 +771,13 @@ export default function StudiusAILanding() {
 
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             <Link
-              href="/test-v3"
+              href="/app"
               className="px-8 py-4 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full text-lg font-semibold hover:shadow-2xl hover:shadow-purple-500/25 transition-all transform hover:scale-105"
             >
               Prova Gratis
             </Link>
             <Link
-              href="/test-v3"
+              href="/app"
               className="px-8 py-4 bg-white text-gray-900 rounded-full text-lg font-semibold hover:bg-gray-100 transition-all transform hover:scale-105"
             >
               Compra Lifetime
