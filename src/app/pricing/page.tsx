@@ -1,13 +1,40 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
 
 const PricingPage = () => {
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [selectedPlanForPayPal, setSelectedPlanForPayPal] = useState<'monthly' | 'lifetime' | null>(null);
+  const [paypalReady, setPaypalReady] = useState(false);
+
+  // PayPal SDK configuration
+  const paypalOptions = {
+    "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+    currency: 'EUR',
+    intent: 'capture',
+    "disable-funding": 'credit,card'
+  };
+
+  useEffect(() => {
+    // Debug PayPal configuration
+    const clientId = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID;
+    console.log('🅿️ PayPal Config:', {
+      clientId: clientId ? `${clientId.substring(0, 10)}...` : 'MISSING',
+      environment: process.env.NODE_ENV,
+      hasValidId: clientId && clientId.startsWith('A')
+    });
+    
+    // Only set ready if we have a valid client ID
+    if (clientId && clientId.startsWith('A')) {
+      setPaypalReady(true);
+    } else {
+      console.error('❌ PayPal Client ID non valido o mancante');
+      setPaypalReady(true); // Still show the page, but PayPal won't work
+    }
+  }, []);
 
   const handlePlanSelection = async (planType: 'monthly' | 'lifetime') => {
     setLoading(planType);
@@ -104,8 +131,20 @@ const PricingPage = () => {
     }
   ];
 
+  if (!paypalReady) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-4 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-yellow-400 border-t-transparent mx-auto mb-4"></div>
+          <p className="text-gray-300">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-4">
+    <PayPalScriptProvider options={paypalOptions}>
+      <div className="min-h-screen bg-gradient-to-br from-indigo-900 via-purple-900 to-black p-4">
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
@@ -196,13 +235,7 @@ const PricingPage = () => {
                   <div className="relative">
                     {selectedPlanForPayPal === plan.id ? (
                       <div className="bg-white rounded-2xl p-2">
-                        <PayPalScriptProvider 
-                          options={{ 
-                            "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                            currency: 'EUR'
-                          }}
-                        >
-                          {plan.id === 'monthly' ? (
+                        {plan.id === 'monthly' ? (
                           // MENSILE: USA SUBSCRIPTIONS
                           <PayPalButtons
                             style={{ 
@@ -212,6 +245,7 @@ const PricingPage = () => {
                             }}
                             createSubscription={async (data, actions) => {
                               try {
+                                console.log('🔄 Creazione subscription PayPal...');
                                 const response = await fetch('/api/paypal/subscriptions', {
                                   method: 'POST',
                                   headers: {
@@ -223,27 +257,37 @@ const PricingPage = () => {
                                 });
 
                                 if (!response.ok) {
-                                  throw new Error(`HTTP ${response.status}`);
+                                  const errorText = await response.text();
+                                  console.error('❌ Errore API subscription:', errorText);
+                                  throw new Error(`HTTP ${response.status}: ${errorText}`);
                                 }
 
-                                const data = await response.json();
-                                if (!data.subscriptionId) {
+                                const responseData = await response.json();
+                                console.log('✅ Subscription response:', responseData);
+                                
+                                if (!responseData.subscriptionId) {
                                   throw new Error('No subscription ID received');
                                 }
 
-                                return data.subscriptionId;
+                                return responseData.subscriptionId;
                               } catch (error) {
-                                console.error('Subscription creation error:', error);
+                                console.error('❌ Subscription creation error:', error);
+                                alert('Errore durante la creazione dell\'abbonamento. Riprova.');
                                 throw error;
                               }
                             }}
                             onApprove={async (data) => {
                               console.log('✅ Subscription approved:', data.subscriptionID);
-                              window.location.href = `/app?subscription=success`;
+                              window.location.href = `/success?payment=paypal&subscription=${data.subscriptionID}`;
                             }}
                             onError={(err) => {
-                              console.error('PayPal subscription error:', err);
+                              console.error('❌ PayPal subscription error:', err);
                               alert('Errore durante la creazione dell\'abbonamento PayPal.');
+                              setSelectedPlanForPayPal(null); // Reset to allow retry
+                            }}
+                            onCancel={(data) => {
+                              console.log('❌ PayPal subscription cancelled:', data);
+                              setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
                         ) : (
@@ -256,6 +300,7 @@ const PricingPage = () => {
                             }}
                             createOrder={async () => {
                               try {
+                                console.log('🔄 Creazione order PayPal...');
                                 const response = await fetch('/api/paypal/create-order', {
                                   method: 'POST',
                                   headers: {
@@ -270,35 +315,46 @@ const PricingPage = () => {
                                 });
 
                                 if (!response.ok) {
-                                  throw new Error(`HTTP ${response.status}`);
+                                  const errorText = await response.text();
+                                  console.error('❌ Errore API order:', errorText);
+                                  throw new Error(`HTTP ${response.status}: ${errorText}`);
                                 }
 
-                                const data = await response.json();
-                                if (!data.orderId) {
+                                const responseData = await response.json();
+                                console.log('✅ Order response:', responseData);
+                                
+                                if (!responseData.orderId) {
                                   throw new Error('No order ID received');
                                 }
 
-                                return data.orderId;
+                                return responseData.orderId;
                               } catch (error) {
-                                console.error('Order creation error:', error);
+                                console.error('❌ Order creation error:', error);
+                                alert('Errore durante la creazione dell\'ordine. Riprova.');
                                 throw error;
                               }
                             }}
                             onApprove={async (data) => {
                               try {
+                                console.log('✅ Order approved, capturing...');
                                 await handlePayPalCapture(data.orderID);
                               } catch (error) {
-                                console.error('Capture error:', error);
+                                console.error('❌ Capture error:', error);
                                 alert('Errore durante il completamento del pagamento.');
+                                setSelectedPlanForPayPal(null); // Reset to allow retry
                               }
                             }}
                             onError={(err) => {
-                              console.error('PayPal order error:', err);
+                              console.error('❌ PayPal order error:', err);
                               alert('Errore durante la creazione dell\'ordine PayPal.');
+                              setSelectedPlanForPayPal(null); // Reset to allow retry
+                            }}
+                            onCancel={(data) => {
+                              console.log('❌ PayPal order cancelled:', data);
+                              setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
                         )}
-                        </PayPalScriptProvider>
                       </div>
                     ) : (
                       <button
@@ -363,7 +419,8 @@ const PricingPage = () => {
           </p>
         </div>
       </div>
-    </div>
+      </div>
+    </PayPalScriptProvider>
   );
 };
 

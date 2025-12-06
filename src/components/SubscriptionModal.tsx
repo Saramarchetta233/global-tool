@@ -136,8 +136,40 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
     }
   };
 
-  const handlePayPalPayment = async () => {
-    if (!selectedPlan) return;
+  // Funzione per creare subscription PayPal (mensile)
+  const handlePayPalSubscription = async () => {
+    if (!selectedPlan || selectedPlan !== 'monthly') return;
+    
+    try {
+      const response = await fetch('/api/paypal/subscriptions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: user?.id
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.subscriptionId) {
+        throw new Error('No subscription ID received');
+      }
+
+      return data.subscriptionId;
+    } catch (error) {
+      console.error('PayPal subscription creation error:', error);
+      throw error;
+    }
+  };
+
+  // Funzione per creare order PayPal (lifetime)
+  const handlePayPalOrder = async () => {
+    if (!selectedPlan || selectedPlan !== 'lifetime') return;
     
     try {
       const response = await fetch('/api/paypal/create-order', {
@@ -153,7 +185,15 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
         }),
       });
 
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
       const data = await response.json();
+      if (!data.orderId) {
+        throw new Error('No order ID received');
+      }
+
       return data.orderId;
     } catch (error) {
       console.error('PayPal order creation error:', error);
@@ -422,21 +462,47 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                           currency: currency || 'EUR'
                         }}
                       >
-                        <PayPalButtons
-                          style={{ 
-                            layout: 'horizontal',
-                            label: 'paypal',
-                            height: 48
-                          }}
-                          createOrder={handlePayPalPayment}
-                          onApprove={async (data) => {
-                            await handlePayPalCapture(data.orderID);
-                          }}
-                          onError={(err) => {
-                            console.error('PayPal error:', err);
-                            alert(t('payment.error', language));
-                          }}
-                        />
+                        {selectedPlan === 'monthly' ? (
+                          // MENSILE: USA SUBSCRIPTIONS
+                          <PayPalButtons
+                            style={{ 
+                              layout: 'horizontal',
+                              label: 'subscribe',
+                              height: 48
+                            }}
+                            createSubscription={handlePayPalSubscription}
+                            onApprove={async (data) => {
+                              console.log('✅ Subscription approved:', data.subscriptionID);
+                              window.location.href = `/app?subscription=success`;
+                            }}
+                            onError={(err) => {
+                              console.error('PayPal subscription error:', err);
+                              alert('Errore durante la creazione dell\'abbonamento PayPal.');
+                            }}
+                          />
+                        ) : (
+                          // LIFETIME: USA ORDERS
+                          <PayPalButtons
+                            style={{ 
+                              layout: 'horizontal',
+                              label: 'paypal',
+                              height: 48
+                            }}
+                            createOrder={handlePayPalOrder}
+                            onApprove={async (data) => {
+                              try {
+                                await handlePayPalCapture(data.orderID);
+                              } catch (error) {
+                                console.error('Capture error:', error);
+                                alert('Errore durante il completamento del pagamento.');
+                              }
+                            }}
+                            onError={(err) => {
+                              console.error('PayPal order error:', err);
+                              alert('Errore durante la creazione dell\'ordine PayPal.');
+                            }}
+                          />
+                        )}
                       </PayPalScriptProvider>
                     )}
                   </div>
