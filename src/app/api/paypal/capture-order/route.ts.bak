@@ -4,6 +4,8 @@ import { supabaseAdmin } from '@/lib/supabase';
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
 const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Forza LIVE per credenziali Live
+  ? 'https://api-m.paypal.com' 
+  : 'https://api-m.sandbox.paypal.com';
 
 // Get PayPal access token
 async function getPayPalAccessToken() {
@@ -92,22 +94,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user profile in database
-    const updateData: any = {
-      subscription_type: subscriptionType,
-      subscription_active: subscriptionActive,
-      lifetime_active: lifetimeActive,
-      subscription_renewal_date: planType === 'monthly' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
-      updated_at: new Date().toISOString()
-    };
-
-    // Set registration_type for onetime users
-    if (version === '2' && planType === 'onetime') {
-      updateData.registration_type = 'onetime_payment';
-    }
-
     const { data, error } = await supabaseAdmin!
       .from('profiles')
-      .update(updateData)
+      .update({
+        subscription_type: subscriptionType,
+        subscription_active: subscriptionActive,
+        lifetime_active: lifetimeActive,
+        subscription_renewal_date: planType === 'monthly' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
+        updated_at: new Date().toISOString()
+      })
       .eq('user_id', userId)
       .select();
 

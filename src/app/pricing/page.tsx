@@ -14,7 +14,8 @@ const PricingPage = () => {
   const paypalSubscriptionOptions = {
     "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
     currency: 'EUR',
-    intent: 'subscription',
+    vault: true,
+    commit: false,
     "disable-funding": 'credit,card'
   };
 
@@ -243,9 +244,15 @@ const PricingPage = () => {
                   <div className="relative">
                     {selectedPlanForPayPal === plan.id ? (
                       <div className="bg-white rounded-2xl p-2">
-                        {plan.id === 'monthly' ? (
-                          // MENSILE: USA SUBSCRIPTIONS
-                          <PayPalScriptProvider options={paypalSubscriptionOptions}>
+                        <PayPalScriptProvider
+                          key={`pricing-paypal-${plan.id}`} // Force remount quando cambia piano
+                          options={plan.id === 'monthly' ? paypalSubscriptionOptions : paypalOrderOptions}
+                          onLoadStart={() => console.log(`🔄 PayPal ${plan.id} SDK loading...`)}
+                          onLoadEnd={() => console.log(`✅ PayPal ${plan.id} SDK loaded`)}
+                          onError={(err) => console.error(`❌ PayPal ${plan.id} SDK error:`, err)}
+                        >
+                          {plan.id === 'monthly' ? (
+                            // MENSILE: USA SUBSCRIPTIONS
                             <PayPalButtons
                             style={{ 
                               layout: 'horizontal',
@@ -299,10 +306,8 @@ const PricingPage = () => {
                               setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
-                          </PayPalScriptProvider>
-                        ) : (
+                          ) : (
                           // LIFETIME: USA ORDERS
-                          <PayPalScriptProvider options={paypalOrderOptions}>
                             <PayPalButtons
                             style={{ 
                               layout: 'horizontal',
@@ -365,8 +370,8 @@ const PricingPage = () => {
                               setSelectedPlanForPayPal(null); // Reset button
                             }}
                           />
-                          </PayPalScriptProvider>
-                        )}
+                          )}
+                        </PayPalScriptProvider>
                       </div>
                     ) : (
                       <button
@@ -380,6 +385,13 @@ const PricingPage = () => {
                     )}
                   </div>
 
+                  {/* Messaggio helper PayPal */}
+                  {selectedPlanForPayPal === plan.id && (
+                    <p className="text-yellow-300 text-xs text-center mt-2 mb-2">
+                      💡 Se PayPal non appare, non funziona o mostra il piano sbagliato (es. mensile invece di lifetime), ricarica la pagina
+                    </p>
+                  )}
+                  
                   {/* Note pagamento sicuro */}
                   <p className="text-center text-xs text-gray-400 mt-2">
                     🔒 Pagamento sicuro con SSL

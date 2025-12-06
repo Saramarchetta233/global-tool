@@ -20,6 +20,14 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
   const { user } = useAuth();
   const { currency, country, language, loading: geoLoading } = useGeolocation();
 
+  // Reset stati quando modal si chiude
+  useEffect(() => {
+    if (!isOpen) {
+      setSelectedPlan(null);
+      setPaymentMethod('stripe');
+    }
+  }, [isOpen]);
+
   // Fix scroll mobile: blocca scroll pagina quando modal è aperto
   useEffect(() => {
     if (isOpen) {
@@ -340,6 +348,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
             <div className="border-t border-white/20 pt-6 relative">
               <h3 className="text-lg font-semibold text-white mb-4 text-center">Come vuoi pagare?</h3>
               
+
               {/* Payment Method Toggle */}
               <div className="flex gap-3 justify-center mb-6">
                 <button
@@ -462,65 +471,53 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                         <p className="text-gray-400 mt-2">Caricamento PayPal...</p>
                       </div>
                     ) : (
-                      <div>
+                      <PayPalScriptProvider 
+                        options={{
+                          "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
+                          currency: currency || 'EUR'
+                          // Nessun intent specifico - PayPal gestisce automaticamente
+                        }}
+                      >
                         {selectedPlan === 'monthly' ? (
-                          // MENSILE: USA SUBSCRIPTIONS
-                          <PayPalScriptProvider 
-                            options={{ 
-                              "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                              currency: currency || 'EUR',
-                              intent: 'subscription'
+                          <PayPalButtons
+                            style={{ 
+                              layout: 'horizontal',
+                              label: 'subscribe',
+                              height: 48
                             }}
-                          >
-                            <PayPalButtons
-                              style={{ 
-                                layout: 'horizontal',
-                                label: 'subscribe',
-                                height: 48
-                              }}
-                              createSubscription={handlePayPalSubscription}
-                              onApprove={async (data) => {
-                                console.log('✅ Subscription approved:', data.subscriptionID);
-                                window.location.href = `/app?subscription=success`;
-                              }}
-                              onError={(err) => {
-                                console.error('PayPal subscription error:', err);
-                                alert('Errore durante la creazione dell\'abbonamento PayPal.');
-                              }}
-                            />
-                          </PayPalScriptProvider>
+                            createSubscription={handlePayPalSubscription}
+                            onApprove={async (data) => {
+                              console.log('✅ Subscription approved:', data.subscriptionID);
+                              window.location.href = `/app?subscription=success`;
+                            }}
+                            onError={(err) => {
+                              console.error('PayPal subscription error:', err);
+                              alert('Errore durante la creazione dell\'abbonamento PayPal.');
+                            }}
+                          />
                         ) : (
-                          // LIFETIME: USA ORDERS
-                          <PayPalScriptProvider 
-                            options={{ 
-                              "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                              currency: currency || 'EUR',
-                              intent: 'capture'
+                          <PayPalButtons
+                            style={{ 
+                              layout: 'horizontal',
+                              label: 'paypal',
+                              height: 48
                             }}
-                          >
-                            <PayPalButtons
-                              style={{ 
-                                layout: 'horizontal',
-                                label: 'paypal',
-                                height: 48
-                              }}
-                              createOrder={handlePayPalOrder}
-                              onApprove={async (data) => {
-                                try {
-                                  await handlePayPalCapture(data.orderID);
-                                } catch (error) {
-                                  console.error('Capture error:', error);
-                                  alert('Errore durante il completamento del pagamento.');
-                                }
-                              }}
-                              onError={(err) => {
-                                console.error('PayPal order error:', err);
-                                alert('Errore durante la creazione dell\'ordine PayPal.');
-                              }}
-                            />
-                          </PayPalScriptProvider>
+                            createOrder={handlePayPalOrder}
+                            onApprove={async (data) => {
+                              try {
+                                await handlePayPalCapture(data.orderID);
+                              } catch (error) {
+                                console.error('Capture error:', error);
+                                alert('Errore durante il completamento del pagamento.');
+                              }
+                            }}
+                            onError={(err) => {
+                              console.error('PayPal order error:', err);
+                              alert('Errore durante la creazione dell\'ordine PayPal.');
+                            }}
+                          />
                         )}
-                      </div>
+                      </PayPalScriptProvider>
                     )}
                   </div>
                 )}
@@ -544,6 +541,12 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
 
         {/* Footer */}
         <div className="text-center text-gray-400 text-xs space-y-1 mt-4">
+          {/* Messaggio helper PayPal */}
+          {selectedPlan && paymentMethod === 'paypal' && (
+            <p className="text-yellow-300 mb-2">
+              💡 Se PayPal non appare, non funziona o mostra il piano sbagliato (es. mensile invece di lifetime), ricarica la pagina
+            </p>
+          )}
           <p>🔒 Pagamenti sicuri con crittografia SSL</p>
           {!selectedPlan && <p>👆 Seleziona un piano per continuare</p>}
         </div>

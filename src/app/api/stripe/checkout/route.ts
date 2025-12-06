@@ -44,8 +44,12 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${req.headers.get('origin')}/pricing`,
+      success_url: version === '2' 
+        ? `${req.headers.get('origin')}/onetime-register?session_id={CHECKOUT_SESSION_ID}`
+        : `${req.headers.get('origin')}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: version === '2' 
+        ? `${req.headers.get('origin')}/studius-onetime`
+        : `${req.headers.get('origin')}/pricing`,
       client_reference_id: userId,
       metadata: {
         userId,

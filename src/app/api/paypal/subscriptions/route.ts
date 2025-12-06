@@ -3,9 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
 const PAYPAL_MONTHLY_PLAN_ID = process.env.PAYPAL_MONTHLY_PLAN_ID!;
-const PAYPAL_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://api-m.paypal.com' 
-  : 'https://api-m.sandbox.paypal.com';
+const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Forza LIVE per credenziali Live
 
 // Get PayPal access token
 async function getPayPalAccessToken() {
@@ -36,9 +34,17 @@ export async function POST(req: NextRequest) {
     }
 
     console.log(`🔄 Creating PayPal subscription for user: ${userId}`);
+    console.log(`🔧 PayPal Config:`, {
+      clientId: PAYPAL_CLIENT_ID ? `${PAYPAL_CLIENT_ID.substring(0, 10)}...` : 'MISSING',
+      planId: PAYPAL_MONTHLY_PLAN_ID,
+      baseUrl: PAYPAL_BASE_URL,
+      environment: process.env.NODE_ENV
+    });
 
     // Get PayPal access token
+    console.log('🔄 Getting PayPal access token...');
     const accessToken = await getPayPalAccessToken();
+    console.log(`✅ Access token obtained: ${accessToken ? 'YES' : 'NO'}`);
 
     // Create subscription
     const subscriptionData = {
@@ -74,8 +80,11 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const error = await response.text();
-      console.error('❌ PayPal subscription creation failed:', error);
-      throw new Error('Failed to create PayPal subscription');
+      console.error('❌ PayPal subscription creation failed:');
+      console.error('Status:', response.status);
+      console.error('Response:', error);
+      console.error('Request data:', JSON.stringify(subscriptionData, null, 2));
+      throw new Error(`PayPal API Error: ${response.status} - ${error}`);
     }
 
     const subscription = await response.json();

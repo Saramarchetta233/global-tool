@@ -119,16 +119,22 @@ async function handleCheckoutCompleted(session: Stripe.Checkout.Session) {
     }
 
     // Update user profile in database
+    const updateData: any = {
+      subscription_type: subscriptionType,
+      subscription_active: subscriptionActive,
+      lifetime_active: lifetimeActive,
+      subscription_renewal_date: planType === 'monthly' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
+      updated_at: new Date().toISOString()
+    };
+
+    // Set registration_type for onetime users
+    if (version === '2' && planType === 'onetime') {
+      updateData.registration_type = 'onetime_payment';
+    }
+
     const { data, error } = await supabaseAdmin!
       .from('profiles')
-      .update({
-        subscription_type: subscriptionType,
-        subscription_active: subscriptionActive,
-        lifetime_active: lifetimeActive,
-        subscription_renewal_date: planType === 'monthly' ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() : null,
-        updated_at: new Date().toISOString(),
-        ...(creditsToAdd > 0 && { credits: supabaseAdmin!.rpc('increment_credits', { user_id: userId, amount: creditsToAdd }) })
-      })
+      .update(updateData)
       .eq('user_id', userId)
       .select();
 
