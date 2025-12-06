@@ -45,50 +45,7 @@ const PricingPage = () => {
     router.push('/app');
   };
 
-  const handlePayPalPayment = async (planType: 'monthly' | 'lifetime') => {
-    try {
-      // Per mensile usa subscriptions API
-      if (planType === 'monthly') {
-        const response = await fetch('/api/paypal/subscriptions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: 'guest-user'
-          }),
-        });
-
-        const data = await response.json();
-        if (data.approvalUrl) {
-          // Redirect a PayPal per approvare subscription
-          window.location.href = data.approvalUrl;
-          return null; // Non ritorniamo orderId per subscriptions
-        }
-        throw new Error('No approval URL received');
-      }
-      
-      // Per lifetime usa orders API (esistente)
-      const response = await fetch('/api/paypal/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planType: planType,
-          userId: 'guest-user',
-          countryCode: 'IT',
-          version: '1'
-        }),
-      });
-
-      const data = await response.json();
-      return data.orderId;
-    } catch (error) {
-      console.error('PayPal payment error:', error);
-      throw error;
-    }
-  };
+  // Funzione per catturare pagamenti lifetime PayPal
 
   const handlePayPalCapture = async (orderId: string) => {
     try {
@@ -245,6 +202,52 @@ const PricingPage = () => {
                             currency: 'EUR'
                           }}
                         >
+                          {plan.id === 'monthly' ? (
+                          // MENSILE: USA SUBSCRIPTIONS
+                          <PayPalButtons
+                            style={{ 
+                              layout: 'horizontal',
+                              label: 'subscribe',
+                              height: 48
+                            }}
+                            createSubscription={async (data, actions) => {
+                              try {
+                                const response = await fetch('/api/paypal/subscriptions', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    userId: 'guest-user'
+                                  }),
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error(`HTTP ${response.status}`);
+                                }
+
+                                const data = await response.json();
+                                if (!data.subscriptionId) {
+                                  throw new Error('No subscription ID received');
+                                }
+
+                                return data.subscriptionId;
+                              } catch (error) {
+                                console.error('Subscription creation error:', error);
+                                throw error;
+                              }
+                            }}
+                            onApprove={async (data) => {
+                              console.log('✅ Subscription approved:', data.subscriptionID);
+                              window.location.href = `/app?subscription=success`;
+                            }}
+                            onError={(err) => {
+                              console.error('PayPal subscription error:', err);
+                              alert('Errore durante la creazione dell\'abbonamento PayPal.');
+                            }}
+                          />
+                        ) : (
+                          // LIFETIME: USA ORDERS
                           <PayPalButtons
                             style={{ 
                               layout: 'horizontal',
@@ -252,24 +255,49 @@ const PricingPage = () => {
                               height: 48
                             }}
                             createOrder={async () => {
-                              if (plan.id === 'monthly') {
-                                // Per mensile, gestisce il redirect direttamente
-                                await handlePayPalPayment('monthly');
-                                return ''; // Dummy order ID
+                              try {
+                                const response = await fetch('/api/paypal/create-order', {
+                                  method: 'POST',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                  },
+                                  body: JSON.stringify({
+                                    planType: plan.id,
+                                    userId: 'guest-user',
+                                    countryCode: 'IT',
+                                    version: '1'
+                                  }),
+                                });
+
+                                if (!response.ok) {
+                                  throw new Error(`HTTP ${response.status}`);
+                                }
+
+                                const data = await response.json();
+                                if (!data.orderId) {
+                                  throw new Error('No order ID received');
+                                }
+
+                                return data.orderId;
+                              } catch (error) {
+                                console.error('Order creation error:', error);
+                                throw error;
                               }
-                              return await handlePayPalPayment(plan.id as 'lifetime');
                             }}
                             onApprove={async (data) => {
-                              // Solo per lifetime, monthly usa redirect
-                              if (plan.id === 'lifetime') {
+                              try {
                                 await handlePayPalCapture(data.orderID);
+                              } catch (error) {
+                                console.error('Capture error:', error);
+                                alert('Errore durante il completamento del pagamento.');
                               }
                             }}
                             onError={(err) => {
-                              console.error('PayPal error:', err);
-                              alert('Errore PayPal. Riprova.');
+                              console.error('PayPal order error:', err);
+                              alert('Errore durante la creazione dell\'ordine PayPal.');
                             }}
                           />
+                        )}
                         </PayPalScriptProvider>
                       </div>
                     ) : (

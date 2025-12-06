@@ -53,50 +53,7 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
     }
   };
 
-  const handlePayPalPayment = async (selectedPlanType: PlanType) => {
-    try {
-      // Per mensile usa subscriptions API
-      if (selectedPlanType === 'monthly') {
-        const response = await fetch('/api/paypal/subscriptions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId
-          }),
-        });
-
-        const data = await response.json();
-        if (data.approvalUrl) {
-          // Redirect a PayPal per approvare subscription
-          window.location.href = data.approvalUrl;
-          return null; // Non ritorniamo orderId per subscriptions
-        }
-        throw new Error('No approval URL received');
-      }
-      
-      // Per lifetime/onetime usa orders API (esistente)
-      const response = await fetch('/api/paypal/create-order', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          planType: selectedPlanType,
-          userId,
-          countryCode: currency === 'EUR' ? 'IT' : currency === 'USD' ? 'US' : currency === 'GBP' ? 'GB' : currency === 'CAD' ? 'CA' : 'AU',
-          version
-        }),
-      });
-
-      const data = await response.json();
-      return data.orderId;
-    } catch (error) {
-      console.error('PayPal payment error:', error);
-      throw error;
-    }
-  };
+  // PayPal capture handler per orders (lifetime/onetime)
 
   const handlePayPalCapture = async (orderId: string) => {
     try {
@@ -215,24 +172,44 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                       </button>
                     ) : (
                       <PayPalButtons
-                        style={{ layout: "horizontal", height: 40 }}
-                        createOrder={async () => {
-                          // Per mensile, gestisce il redirect direttamente
-                          const orderId = await handlePayPalPayment('monthly');
-                          return orderId || ''; // Ritorna stringa vuota se è subscription
-                        }}
-                        onApprove={async (data) => {
-                          // Non fare nulla per monthly, il webhook gestirà tutto
-                          if (data.orderID) {
-                            await handlePayPalCapture(data.orderID);
+                        style={{ layout: "horizontal", height: 40, label: "subscribe" }}
+                        createSubscription={async (data, actions) => {
+                          try {
+                            const response = await fetch('/api/paypal/subscriptions', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                userId
+                              }),
+                            });
+
+                            if (!response.ok) {
+                              throw new Error(`HTTP ${response.status}`);
+                            }
+
+                            const data = await response.json();
+                            if (!data.subscriptionId) {
+                              throw new Error('No subscription ID received');
+                            }
+
+                            return data.subscriptionId;
+                          } catch (error) {
+                            console.error('Subscription creation error:', error);
+                            throw error;
                           }
                         }}
+                        onApprove={async (data) => {
+                          console.log('✅ Subscription approved:', data.subscriptionID);
+                          window.location.href = `/app?subscription=success`;
+                        }}
                         onError={(err) => {
-                          console.error('💥 PayPal error details:', err);
-                          alert(`Errore PayPal: ${JSON.stringify(err)}`);
+                          console.error('PayPal subscription error:', err);
+                          alert('Errore durante la creazione dell\'abbonamento PayPal.');
                         }}
                         onCancel={(data) => {
-                          console.log('PayPal payment cancelled:', data);
+                          console.log('PayPal subscription cancelled:', data);
                         }}
                       />
                     )}
@@ -262,11 +239,47 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                     ) : (
                       <PayPalButtons
                         style={{ layout: "horizontal" }}
-                        createOrder={() => handlePayPalPayment('lifetime')}
-                        onApprove={(data) => handlePayPalCapture(data.orderID)}
+                        createOrder={async () => {
+                          try {
+                            const response = await fetch('/api/paypal/create-order', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                              },
+                              body: JSON.stringify({
+                                planType: 'lifetime',
+                                userId,
+                                countryCode: currency === 'EUR' ? 'IT' : currency === 'USD' ? 'US' : currency === 'GBP' ? 'GB' : currency === 'CAD' ? 'CA' : 'AU',
+                                version
+                              }),
+                            });
+
+                            if (!response.ok) {
+                              throw new Error(`HTTP ${response.status}`);
+                            }
+
+                            const data = await response.json();
+                            if (!data.orderId) {
+                              throw new Error('No order ID received');
+                            }
+
+                            return data.orderId;
+                          } catch (error) {
+                            console.error('Order creation error:', error);
+                            throw error;
+                          }
+                        }}
+                        onApprove={async (data) => {
+                          try {
+                            await handlePayPalCapture(data.orderID);
+                          } catch (error) {
+                            console.error('Capture error:', error);
+                            alert('Errore durante il completamento del pagamento.');
+                          }
+                        }}
                         onError={(err) => {
-                          console.error('PayPal error:', err);
-                          alert(t('payment.error', language));
+                          console.error('PayPal order error:', err);
+                          alert('Errore durante la creazione dell\'ordine PayPal.');
                         }}
                       />
                     )}
@@ -295,11 +308,47 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                   ) : (
                     <PayPalButtons
                       style={{ layout: "horizontal" }}
-                      createOrder={() => handlePayPalPayment('onetime')}
-                      onApprove={(data) => handlePayPalCapture(data.orderID)}
+                      createOrder={async () => {
+                        try {
+                          const response = await fetch('/api/paypal/create-order', {
+                            method: 'POST',
+                            headers: {
+                              'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                              planType: 'onetime',
+                              userId,
+                              countryCode: currency === 'EUR' ? 'IT' : currency === 'USD' ? 'US' : currency === 'GBP' ? 'GB' : currency === 'CAD' ? 'CA' : 'AU',
+                              version
+                            }),
+                          });
+
+                          if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`);
+                          }
+
+                          const data = await response.json();
+                          if (!data.orderId) {
+                            throw new Error('No order ID received');
+                          }
+
+                          return data.orderId;
+                        } catch (error) {
+                          console.error('Order creation error:', error);
+                          throw error;
+                        }
+                      }}
+                      onApprove={async (data) => {
+                        try {
+                          await handlePayPalCapture(data.orderID);
+                        } catch (error) {
+                          console.error('Capture error:', error);
+                          alert('Errore durante il completamento del pagamento.');
+                        }
+                      }}
                       onError={(err) => {
-                        console.error('PayPal error:', err);
-                        alert(t('payment.error', language));
+                        console.error('PayPal order error:', err);
+                        alert('Errore durante la creazione dell\'ordine PayPal.');
                       }}
                     />
                   )}
