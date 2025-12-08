@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket, Shield, Star, Trophy, Upload, Users, X, Zap } from "lucide-react";
+import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket, Shield, Star, Trophy, Upload, Users, Volume2, VolumeX, X, Zap } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAuth } from '@/lib/auth-context';
@@ -13,6 +13,7 @@ export default function StudiusOnetimePage() {
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showStickyButton, setShowStickyButton] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(true);
   const { user } = useAuth();
 
   const { scrollY } = useScroll();
@@ -32,6 +33,14 @@ export default function StudiusOnetimePage() {
 
   const handlePurchase = () => {
     setShowPaymentModal(true);
+  };
+
+  const handleVideoUnmute = () => {
+    const video = document.querySelector('#hero-video') as HTMLVideoElement;
+    if (video) {
+      video.muted = false;
+      setIsVideoMuted(false);
+    }
   };
 
   const features = [
@@ -271,14 +280,53 @@ export default function StudiusOnetimePage() {
             className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 mb-8 shadow-2xl"
           >
             <video
+              id="hero-video"
               controls
+              autoPlay
+              muted
               preload="metadata"
               poster="/images/Studius/Poster1.png"
               className="w-full h-full object-cover"
+              onVolumeChange={(e) => {
+                const video = e.target as HTMLVideoElement;
+                setIsVideoMuted(video.muted);
+              }}
             >
               <source src="https://studius-ai.s3.eu-west-3.amazonaws.com/Vid1.mp4" type="video/mp4" />
               Il tuo browser non supporta i video HTML5.
             </video>
+            
+            {/* Audio Activation Overlay */}
+            {isVideoMuted && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 flex items-center justify-center bg-black/20 cursor-pointer z-10"
+                onClick={handleVideoUnmute}
+              >
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.8, 1, 0.8]
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Infinity,
+                    ease: "easeInOut"
+                  }}
+                  className="bg-white/20 backdrop-blur-sm rounded-full p-6 border border-white/40"
+                >
+                  <VolumeX className="w-12 h-12 text-white" />
+                </motion.div>
+                <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm rounded-full px-4 py-2 border border-white/30">
+                  <p className="text-white text-sm font-medium flex items-center gap-2">
+                    <Volume2 className="w-4 h-4" />
+                    Clicca per attivare l'audio
+                  </p>
+                </div>
+              </motion.div>
+            )}
           </motion.div>
 
           {/* Vedi come funziona button - positioned after hero video */}
