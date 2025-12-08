@@ -1,7 +1,7 @@
 'use client';
 
 import { CheckCircle, ChevronRight, Clock, DollarSign, Rocket, Star, Target, TrendingUp, Zap } from 'lucide-react';
-import React, { useEffect,useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const GlobalToolFactory = () => {
   const [scrollY, setScrollY] = useState(0);
@@ -53,7 +53,7 @@ const GlobalToolFactory = () => {
     {
       icon: <Zap className="w-8 h-8" />,
       title: "Tecnologia Pronta",
-      desc: "AI tools in 48h con Claude - impossibile 2 anni fa"
+      desc: "AI tools in 48h con Claude - impossibile 2 anni fa!"
     },
     {
       icon: <DollarSign className="w-8 h-8" />,
