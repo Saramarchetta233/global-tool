@@ -1,8 +1,8 @@
 "use client";
 
 import { motion, useScroll, useTransform } from "framer-motion";
-import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket,Shield, Star, Trophy, Upload, Users, X, Zap } from "lucide-react";
-import { useEffect,useState } from "react";
+import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket, Shield, Star, Trophy, Upload, Users, X, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { useAuth } from '@/lib/auth-context';
 
@@ -274,12 +274,9 @@ export default function StudiusOnetimePage() {
             transition={{ duration: 0.8, delay: 0.3 }}
             className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 mb-8 shadow-2xl"
           >
-            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent pointer-events-none z-10"></div>
-            <video 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
+            <video
+              controls
+              preload="metadata"
               className="w-full h-full object-cover"
             >
               <source src="/video/vid1.mp4" type="video/mp4" />
@@ -360,7 +357,7 @@ export default function StudiusOnetimePage() {
         </motion.div>
 
         {/* Enhanced Floating elements with parallax */}
-        <motion.div 
+        <motion.div
           animate={{
             y: [0, -20, 0],
             x: [0, 10, 0],
@@ -374,7 +371,7 @@ export default function StudiusOnetimePage() {
           }}
           className="absolute top-20 left-10 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"
         />
-        <motion.div 
+        <motion.div
           animate={{
             y: [0, 15, 0],
             x: [0, -15, 0],
@@ -389,7 +386,7 @@ export default function StudiusOnetimePage() {
           }}
           className="absolute bottom-20 right-10 w-64 h-64 md:w-96 md:h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"
         />
-        <motion.div 
+        <motion.div
           animate={{
             y: [0, -10, 0],
             x: [0, 8, 0],
@@ -422,7 +419,7 @@ export default function StudiusOnetimePage() {
         />
         <div className="max-w-6xl mx-auto relative">
           <div className="grid grid-cols-2 md:flex md:flex-wrap justify-center items-center gap-4 md:gap-8 text-center px-4">
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileInView={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 0.6, delay: 0.1 }}
@@ -434,7 +431,7 @@ export default function StudiusOnetimePage() {
                 <Trophy className="w-8 h-8 text-yellow-400" />
               </motion.div>
               <div>
-                <motion.p 
+                <motion.p
                   className="text-2xl font-bold"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
@@ -445,7 +442,7 @@ export default function StudiusOnetimePage() {
                 <p className="text-sm text-gray-200">Esami Superati</p>
               </div>
             </motion.div>
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileInView={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 0.6, delay: 0.2 }}
@@ -457,7 +454,7 @@ export default function StudiusOnetimePage() {
                 <Star className="w-8 h-8 text-green-400" />
               </motion.div>
               <div>
-                <motion.p 
+                <motion.p
                   className="text-2xl font-bold"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
@@ -468,7 +465,7 @@ export default function StudiusOnetimePage() {
                 <p className="text-sm text-gray-200">Voto Medio</p>
               </div>
             </motion.div>
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileInView={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 0.6, delay: 0.3 }}
@@ -480,7 +477,7 @@ export default function StudiusOnetimePage() {
                 <Users className="w-8 h-8 text-blue-400" />
               </motion.div>
               <div>
-                <motion.p 
+                <motion.p
                   className="text-2xl font-bold"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
@@ -491,13 +488,13 @@ export default function StudiusOnetimePage() {
                 <p className="text-sm text-gray-200">Promossi al 1° tentativo</p>
               </div>
             </motion.div>
-            <motion.div 
+            <motion.div
               className="flex items-center gap-3"
               whileInView={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 0.6, delay: 0.4 }}
             >
               <motion.div
-                animate={{ 
+                animate={{
                   scale: [1, 1.3, 1],
                   rotate: [0, 10, -10, 0]
                 }}
@@ -506,7 +503,7 @@ export default function StudiusOnetimePage() {
                 <Zap className="w-8 h-8 text-purple-400" />
               </motion.div>
               <div>
-                <motion.p 
+                <motion.p
                   className="text-2xl font-bold"
                   initial={{ scale: 0.8, opacity: 0 }}
                   whileInView={{ scale: 1, opacity: 1 }}
@@ -596,26 +593,26 @@ export default function StudiusOnetimePage() {
               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
             />
             <div className="grid md:grid-cols-2 gap-8 relative">
-              <motion.div 
+              <motion.div
                 className="text-center"
                 whileInView={{ x: [-20, 0], opacity: [0, 1] }}
                 transition={{ duration: 0.8 }}
               >
-                <motion.h3 
+                <motion.h3
                   className="text-2xl font-semibold mb-4 text-red-400"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   Prima 😰
                 </motion.h3>
-                <motion.div 
+                <motion.div
                   className="bg-gray-800/50 rounded-xl overflow-hidden relative"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.img 
-                    src="/images/studius/Prima.jpg" 
-                    alt="Prima di usare StudiusAI" 
+                  <motion.img
+                    src="/images/studius/Prima.jpg"
+                    alt="Prima di usare StudiusAI"
                     className="w-full h-full object-cover"
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.5 }}
@@ -623,26 +620,26 @@ export default function StudiusOnetimePage() {
                   <div className="absolute inset-0 bg-red-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
                 </motion.div>
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="text-center"
                 whileInView={{ x: [20, 0], opacity: [0, 1] }}
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
-                <motion.h3 
+                <motion.h3
                   className="text-2xl font-semibold mb-4 text-green-400"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
                 >
                   Dopo 🚀
                 </motion.h3>
-                <motion.div 
+                <motion.div
                   className="bg-gray-800/50 rounded-xl overflow-hidden relative"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                 >
-                  <motion.img 
-                    src="/images/studius/Dopo.jpg" 
-                    alt="Dopo aver usato StudiusAI" 
+                  <motion.img
+                    src="/images/studius/Dopo.jpg"
+                    alt="Dopo aver usato StudiusAI"
                     className="w-full h-full object-cover"
                     whileHover={{ scale: 1.05 }}
                     transition={{ duration: 0.5 }}
@@ -713,9 +710,9 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <motion.h2 
+            <motion.h2
               className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent"
-              animate={{ 
+              animate={{
                 backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
               }}
               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
@@ -760,10 +757,10 @@ export default function StudiusOnetimePage() {
                   </button>
                 </div>
                 <div className="bg-gray-800/50 rounded-2xl overflow-hidden">
-                  <video 
-                    autoPlay 
-                    loop 
-                    muted 
+                  <video
+                    autoPlay
+                    loop
+                    muted
                     playsInline
                     className="w-full h-full object-cover"
                   >
@@ -791,7 +788,7 @@ export default function StudiusOnetimePage() {
                 >
                   {/* Glow effect on hover */}
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 to-blue-600/0 group-hover:from-purple-600/10 group-hover:to-blue-600/10 transition-all duration-500"></div>
-                  
+
                   <div className="relative p-6 flex flex-col h-full">
                     <div className="flex items-start gap-4 mb-4">
                       <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all duration-300 transform group-hover:scale-110">
@@ -807,17 +804,17 @@ export default function StudiusOnetimePage() {
                     {/* Feature Video with enhanced styling - Fixed height for alignment */}
                     <div className="relative rounded-xl overflow-hidden bg-gray-900/50 shadow-inner mt-auto" style={{ height: '180px' }}>
                       <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent pointer-events-none z-10"></div>
-                      <video 
-                        autoPlay 
-                        loop 
-                        muted 
+                      <video
+                        autoPlay
+                        loop
+                        muted
                         playsInline
                         className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
                       >
                         <source src={`/video/${feature.video}`} type="video/mp4" />
                         Il tuo browser non supporta i video HTML5.
                       </video>
-                      
+
                     </div>
                   </div>
                 </motion.div>
@@ -951,14 +948,14 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="relative max-w-3xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10"
           >
-            <video 
-              autoPlay 
-              loop 
-              muted 
+            <video
+              autoPlay
+              loop
+              muted
               playsInline
               className="w-full h-full object-cover"
             >
-              <source src="/video/vid1.mp4" type="video/mp4" />
+              <source src="/video/Video_caricamento.mp4" type="video/mp4" />
               Il tuo browser non supporta i video HTML5.
             </video>
           </motion.div>
@@ -1112,8 +1109,8 @@ export default function StudiusOnetimePage() {
                 whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, delay: idx * 0.1 }}
                 viewport={{ once: true }}
-                whileHover={{ 
-                  y: -8, 
+                whileHover={{
+                  y: -8,
                   scale: 1.02,
                   boxShadow: "0 20px 40px rgba(168, 85, 247, 0.4)"
                 }}
@@ -1166,14 +1163,12 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="relative max-w-5xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 shadow-2xl"
           >
-            <video 
-              autoPlay 
-              loop 
-              muted 
-              playsInline
+            <video
+              controls
+              preload="metadata"
               className="w-full h-full object-cover"
             >
-              <source src="/video/vid1.mp4" type="video/mp4" />
+              <source src="https://studius-ai.s3.eu-west-3.amazonaws.com/Vid2_Presentazione.mp4" type="video/mp4" />
               Il tuo browser non supporta i video HTML5.
             </video>
           </motion.div>
@@ -1311,7 +1306,7 @@ export default function StudiusOnetimePage() {
             />
           ))}
         </div>
-        
+
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -1319,14 +1314,14 @@ export default function StudiusOnetimePage() {
           viewport={{ once: true }}
           className="max-w-4xl mx-auto text-center relative"
         >
-          <motion.h2 
+          <motion.h2
             className="text-4xl md:text-5xl font-bold mb-6"
             whileInView={{ scale: [0.95, 1.02, 1] }}
             transition={{ duration: 0.8 }}
           >
             Un investimento nel tuo <span className="bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">futuro accademico</span>
           </motion.h2>
-          <motion.p 
+          <motion.p
             className="text-xl text-gray-300 mb-8"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -1335,7 +1330,7 @@ export default function StudiusOnetimePage() {
             €49 oggi per risparmiare migliaia di euro e centinaia di ore nei prossimi anni
           </motion.p>
 
-          <motion.div 
+          <motion.div
             className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-3xl p-8 max-w-2xl mx-auto border border-purple-500/30 mb-8 relative overflow-hidden"
             whileHover={{ scale: 1.02 }}
             transition={{ duration: 0.3 }}
@@ -1352,8 +1347,8 @@ export default function StudiusOnetimePage() {
                 ease: "easeInOut"
               }}
             />
-            
-            <motion.div 
+
+            <motion.div
               className="text-6xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-transparent bg-clip-text"
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 2, repeat: Infinity }}
@@ -1382,7 +1377,7 @@ export default function StudiusOnetimePage() {
             </motion.button>
 
             <div className="grid grid-cols-3 gap-4 text-sm text-gray-400 mt-6">
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center"
                 whileInView={{ y: [10, 0], opacity: [0, 1] }}
                 transition={{ delay: 0.1 }}
@@ -1390,7 +1385,7 @@ export default function StudiusOnetimePage() {
                 <Shield className="w-6 h-6 mb-1 text-green-400" />
                 <span>Pagamento sicuro</span>
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center"
                 whileInView={{ y: [10, 0], opacity: [0, 1] }}
                 transition={{ delay: 0.2 }}
@@ -1398,7 +1393,7 @@ export default function StudiusOnetimePage() {
                 <Zap className="w-6 h-6 mb-1 text-yellow-400" />
                 <span>Attivazione istantanea</span>
               </motion.div>
-              <motion.div 
+              <motion.div
                 className="flex flex-col items-center"
                 whileInView={{ y: [10, 0], opacity: [0, 1] }}
                 transition={{ delay: 0.3 }}
@@ -1409,13 +1404,13 @@ export default function StudiusOnetimePage() {
             </div>
           </motion.div>
 
-          <motion.p 
+          <motion.p
             className="text-gray-400 text-lg"
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
-            Unisciti a <motion.span 
+            Unisciti a <motion.span
               className="text-purple-400 font-bold"
               animate={{ scale: [1, 1.05, 1] }}
               transition={{ duration: 1.5, repeat: Infinity }}
