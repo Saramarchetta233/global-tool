@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
+
 import { getPdfCost, getPdfCostDescription } from '@/lib/credits/calcPdfCost';
+import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
 
 /**
  * Estrazione testo PDF con LlamaParse - UNICO METODO

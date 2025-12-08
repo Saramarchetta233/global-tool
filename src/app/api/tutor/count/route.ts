@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { verifyAuth } from '@/lib/middleware';
+
 import { CreditCosts } from '@/lib/credits/creditRules';
-import { supabaseAdmin } from '@/lib/supabase';
+import { verifyAuth } from '@/lib/middleware';
 import { cache } from '@/lib/redis-cache';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

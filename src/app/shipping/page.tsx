@@ -1,7 +1,7 @@
 "use client";
 
+import { Clock, CreditCard, MapPin, Package, Shield,Truck } from 'lucide-react';
 import React from 'react';
-import { Truck, Clock, MapPin, Package, CreditCard, Shield } from 'lucide-react';
 
 export default function ShippingInfo() {
   const countries = [

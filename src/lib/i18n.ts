@@ -1,4 +1,3 @@
-import { getCurrencyFromCountry } from './stripe-config';
 
 // Language mapping based on country
 export const COUNTRY_TO_LANGUAGE = {

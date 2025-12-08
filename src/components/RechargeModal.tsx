@@ -1,7 +1,8 @@
 'use client';
 
+import { Coins, X, Zap } from 'lucide-react';
 import React, { useState } from 'react';
-import { X, Coins, Zap } from 'lucide-react';
+
 import { useAuth } from '@/lib/auth-context';
 
 interface RechargeModalProps {

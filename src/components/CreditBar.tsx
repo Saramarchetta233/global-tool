@@ -1,7 +1,8 @@
 'use client';
 
+import { Coins, Info,LogOut, Plus, User } from 'lucide-react';
 import React, { useState } from 'react';
-import { Coins, Plus, User, LogOut, Info } from 'lucide-react';
+
 import { useAuth } from '@/lib/auth-context';
 
 interface CreditBarProps {

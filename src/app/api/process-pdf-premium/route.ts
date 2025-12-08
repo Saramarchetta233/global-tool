@@ -1,16 +1,16 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
-import { supabase } from '@/lib/supabase';
+
 import { extractTextFromPDFPremium } from '@/lib/llamaparsePremium';
+import { withCredits } from '@/lib/middleware';
 import { 
-  createSummaryPrompt,
-  createFlashcardsPrompt,
   createConceptMapPrompt,
+  createExamGuidePrompt,
+  createFlashcardsPrompt,
   createQuizPrompt,
-  createExamGuidePrompt
-} from '@/lib/prompts';
-import crypto from 'crypto';
+  createSummaryPrompt} from '@/lib/prompts';
+import { supabase } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

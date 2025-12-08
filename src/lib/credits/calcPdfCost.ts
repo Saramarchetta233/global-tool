@@ -1,6 +1,6 @@
 import { CreditCosts } from './creditRules';
 
-export function getPdfCost(pageCount: number, isPremium: boolean = false): number {
+export function getPdfCost(pageCount: number, isPremium = false): number {
   let baseCost = 0;
 
   if (pageCount <= 40) {
@@ -26,7 +26,7 @@ export function getPdfCost(pageCount: number, isPremium: boolean = false): numbe
   return baseCost;
 }
 
-export function getPdfCostDescription(pageCount: number, isPremium: boolean = false): string {
+export function getPdfCostDescription(pageCount: number, isPremium = false): string {
   let description = '';
   
   if (pageCount <= 40) {

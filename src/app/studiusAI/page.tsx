@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Play, Upload, CheckCircle, Trophy, Star, Menu, X, ChevronDown, Mic, Brain, Calendar, Zap, BookOpen, Headphones, CreditCard, HelpCircle, FileText, Clock, Users } from "lucide-react";
+import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, FileText, Headphones, HelpCircle, Menu, Mic, Play, Star, Trophy, Upload, Users,X, Zap } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 export default function StudiusAILanding() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

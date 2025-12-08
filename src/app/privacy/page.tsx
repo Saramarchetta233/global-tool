@@ -1,7 +1,7 @@
 "use client";
 
+import { AlertTriangle, Eye, Globe, Lock, Mail, MapPin,Shield, Users } from 'lucide-react';
 import React from 'react';
-import { Shield, Eye, Lock, Users, Globe, AlertTriangle, Mail, MapPin } from 'lucide-react';
 
 export default function PrivacyPolicy() {
   return (

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { FileText } from 'lucide-react';
+
 import LoadingScreen from '@/components/LoadingScreen';
 
 const StudiusAIV2Test: React.FC = () => {

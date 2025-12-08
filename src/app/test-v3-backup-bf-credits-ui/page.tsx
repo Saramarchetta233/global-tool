@@ -1,17 +1,20 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Upload, FileText, Brain, Download, Play, ChevronLeft, ChevronRight, Sparkles, Zap, Target, Clock, BookOpen, Star, Rocket, Award, MessageCircle, Coins, User, LogOut, History, Calendar, Volume2, FileType, Palette } from 'lucide-react';
+import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, Clock, Coins, Download, FileText, History, LogOut, MessageCircle,Play, Rocket, Sparkles, Star, Target, Upload, User, Volume2, Zap } from 'lucide-react';
+import React, { useEffect,useRef, useState } from 'react';
+
 import { useAuth } from '@/lib/auth-context';
+import { convertResultsToHistory, getStudySession,saveStudySession } from '@/lib/study-history';
+
+import AudioPlayer from '@/components/AudioPlayer';
 import AuthModal from '@/components/AuthModal';
 import CreditBar from '@/components/CreditBar';
-import LoadingScreen from '@/components/LoadingScreen';
-import TutorChat from '@/components/TutorChat';
 import HistoryView from '@/components/HistoryView';
-import AudioPlayer from '@/components/AudioPlayer';
-import OralExamSection from '@/components/OralExamSection';
 import InsufficientCreditsModal from '@/components/InsufficientCreditsModal';
-import { saveStudySession, convertResultsToHistory, getStudySession } from '@/lib/study-history';
+import LoadingScreen from '@/components/LoadingScreen';
+import OralExamSection from '@/components/OralExamSection';
+import TutorChat from '@/components/TutorChat';
+
 import { useStudySessionStore } from '@/store/useStudySessionStore';
 
 // Types (same as before but with sessionId)
@@ -118,7 +121,7 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
     );
   }
 
-  const renderNode = (node: ConceptNode, level: number = 0) => {
+  const renderNode = (node: ConceptNode, level = 0) => {
     if (!node || typeof node.title !== 'string') {
       console.warn('⚠️ Nodo non valido nella mappa:', node);
       return null;
@@ -1028,7 +1031,7 @@ const StudiusAIV2: React.FC = () => {
         const response = await fetch(`/api/credits/add?userId=${user.id}`);
         if (response.ok) {
           const data = await response.json();
-          let credits = data.credits || 0;
+          const credits = data.credits || 0;
           
           
           setUserCredits(credits);

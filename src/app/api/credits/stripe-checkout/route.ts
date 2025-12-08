@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
+
 import { verifyAuth } from '@/lib/middleware';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {

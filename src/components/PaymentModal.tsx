@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useGeolocation } from '@/hooks/useGeolocation';
-import { getPriceDisplay, type PlanType } from '@/lib/stripe-config';
+import { PayPalButtons,PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { Crown,X } from 'lucide-react';
+import { useEffect,useState } from 'react';
+
 import { t } from '@/lib/i18n';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
-import { X, Crown, CreditCard, Shield, Star } from 'lucide-react';
+import { type PlanType,getPriceDisplay } from '@/lib/stripe-config';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -153,29 +154,29 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className={`bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-6 w-full border border-purple-500/30 relative ${
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50">
+      <div className={`bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-4 md:p-6 w-full border border-purple-500/30 relative ${
         version === '2' 
-          ? 'max-w-md max-h-[95vh] overflow-y-auto' 
-          : 'max-w-2xl max-h-[90vh] overflow-y-auto'
+          ? 'max-w-md max-h-[98vh] md:max-h-[95vh] overflow-y-auto' 
+          : 'max-w-2xl max-h-[98vh] md:max-h-[90vh] overflow-y-auto'
       }`} style={{ WebkitOverflowScrolling: 'touch' }}>
-        {/* Close Button */}
+        {/* Enhanced Close Button for mobile */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white transition-colors z-10"
+          className="absolute top-2 right-2 md:top-4 md:right-4 text-gray-400 hover:text-white transition-colors z-20 p-2 bg-black/20 rounded-full backdrop-blur-sm"
         >
-          <X className="w-6 h-6" />
+          <X className="w-5 h-5 md:w-6 md:h-6" />
         </button>
 
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Crown className="w-8 h-8 text-white" />
+        {/* Header - Mobile optimized */}
+        <div className="text-center mb-6 md:mb-8 pt-4 md:pt-0">
+          <div className="w-12 h-12 md:w-16 md:h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-3 md:mb-4">
+            <Crown className="w-6 h-6 md:w-8 md:h-8 text-white" />
           </div>
-          <h2 className="text-3xl font-bold text-white mb-2">
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">
             {version === '2' ? 'StudiusAI Premium' : t('pricing.title', language)}
           </h2>
-          <p className="text-gray-300">
+          <p className="text-gray-300 text-sm md:text-base">
             {version === '2' ? 'Accesso a vita per €49' : 'Sblocca tutto il potenziale di StudiusAI'}
           </p>
         </div>
@@ -370,40 +371,40 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
             ) : (
               // Versione 2: PROFESSIONAL CONVERSION-OPTIMIZED DESIGN
               <>
-                {/* 1. URGENZA - Timer Countdown */}
-                <div className="bg-gradient-to-r from-red-500 to-orange-500 -mx-6 -mt-6 mb-4 px-4 py-3 rounded-t-2xl">
+                {/* 1. URGENZA - Timer Countdown - Mobile optimized */}
+                <div className="bg-gradient-to-r from-red-500 to-orange-500 -mx-4 md:-mx-6 -mt-4 md:-mt-6 mb-3 md:mb-4 px-3 md:px-4 py-2 md:py-3 rounded-t-2xl">
                   <div className="text-center text-white font-bold text-xs sm:text-sm">
-                    ⏰ Offerta scade tra: <span className="text-lg sm:text-xl font-mono">{formatTime(timeLeft)}</span>
+                    ⏰ Offerta scade tra: <span className="text-sm sm:text-lg md:text-xl font-mono">{formatTime(timeLeft)}</span>
                   </div>
                 </div>
 
-                {/* 2. HEADER PRODOTTO */}
-                <div className="text-center mb-4">
-                  <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">StudiusAI Premium</h2>
-                  <div className="flex items-center justify-center gap-2 sm:gap-3 mb-2">
-                    <span className="text-lg sm:text-xl text-gray-400 line-through">{onetimePrice.symbol}199</span>
-                    <span className="text-3xl sm:text-4xl font-bold text-green-400">{onetimePrice.symbol}{onetimePrice.amount}</span>
-                    <span className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-2 py-1 rounded-lg text-xs sm:text-sm font-bold">
+                {/* 2. HEADER PRODOTTO - Mobile optimized */}
+                <div className="text-center mb-3 md:mb-4">
+                  <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-white mb-2">StudiusAI Premium</h2>
+                  <div className="flex items-center justify-center gap-1 md:gap-2 lg:gap-3 mb-2 flex-wrap">
+                    <span className="text-sm md:text-lg lg:text-xl text-gray-400 line-through">{onetimePrice.symbol}199</span>
+                    <span className="text-2xl md:text-3xl lg:text-4xl font-bold text-green-400">{onetimePrice.symbol}{onetimePrice.amount}</span>
+                    <span className="bg-gradient-to-r from-red-500 to-orange-500 text-white px-1.5 md:px-2 py-1 rounded-lg text-xs font-bold">
                       −75%
                     </span>
                   </div>
-                  <p className="text-gray-300 text-xs sm:text-sm">Pagamento unico • Accesso a vita</p>
+                  <p className="text-gray-300 text-xs md:text-sm">Pagamento unico • Accesso a vita</p>
                 </div>
 
-                {/* 3. BENEFICI (3 righe compatte) */}
-                <div className="bg-white/5 backdrop-blur-sm rounded-xl p-4 mb-4 border border-white/10">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-400 text-lg">✓</span>
-                      <span className="text-white font-medium">4.000 crediti inclusi</span>
+                {/* 3. BENEFICI (3 righe compatte) - Mobile optimized */}
+                <div className="bg-white/5 backdrop-blur-sm rounded-xl p-3 md:p-4 mb-3 md:mb-4 border border-white/10">
+                  <div className="space-y-1.5 md:space-y-2">
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <span className="text-green-400 text-sm md:text-lg">✓</span>
+                      <span className="text-white font-medium text-sm md:text-base">4.000 crediti inclusi</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-400 text-lg">✓</span>
-                      <span className="text-white font-medium">Tutte le funzionalità AI</span>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <span className="text-green-400 text-sm md:text-lg">✓</span>
+                      <span className="text-white font-medium text-sm md:text-base">Tutte le funzionalità AI</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-green-400 text-lg">✓</span>
-                      <span className="text-white font-medium">Ricariche sempre disponibili</span>
+                    <div className="flex items-center gap-2 md:gap-3">
+                      <span className="text-green-400 text-sm md:text-lg">✓</span>
+                      <span className="text-white font-medium text-sm md:text-base">Ricariche sempre disponibili</span>
                     </div>
                   </div>
                 </div>

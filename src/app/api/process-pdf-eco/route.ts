@@ -1,16 +1,10 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+
+import { extractTextFromPDFEco } from '@/lib/llamaparseEco';
 import { withCredits } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
-import { extractTextFromPDFEco } from '@/lib/llamaparseEco';
-import { 
-  createSummaryPrompt,
-  createFlashcardsPrompt,
-  createConceptMapPrompt,
-  createQuizPrompt,
-  createExamGuidePrompt
-} from '@/lib/prompts';
-import crypto from 'crypto';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

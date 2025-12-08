@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { demoAuth, isDemoMode } from '@/lib/demo-auth';
 import { CREDIT_COSTS } from '@/lib/prompts';
 

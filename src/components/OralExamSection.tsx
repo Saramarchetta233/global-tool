@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Send, Mic, Clock, BookOpen, User, Bot, CheckCircle } from 'lucide-react';
+import { BookOpen, Bot, CheckCircle,Clock, Mic, Send, User } from 'lucide-react';
+import React, { useEffect,useRef, useState } from 'react';
+
 import { useStudySessionStore } from '@/store/useStudySessionStore';
 
 interface OralMessage {

@@ -1,10 +1,11 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { withCredits } from '@/lib/middleware';
-import { supabase } from '@/lib/supabase';
 import { fromBuffer } from 'pdf2pic';
 import Tesseract from 'tesseract.js';
-import crypto from 'crypto';
+
+import { withCredits } from '@/lib/middleware';
+import { supabase } from '@/lib/supabase';
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

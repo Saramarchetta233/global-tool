@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { verifyAuth } from '@/lib/middleware';
-import { supabaseAdmin } from '@/lib/supabase';
 import { cache } from '@/lib/redis-cache';
+import { supabaseAdmin } from '@/lib/supabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

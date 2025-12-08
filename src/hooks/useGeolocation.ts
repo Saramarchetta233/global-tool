@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
-import { getCurrencyFromCountry, type Currency } from '@/lib/stripe-config';
-import { getLanguageFromCountry, type Language } from '@/lib/i18n';
+import { useEffect,useState } from 'react';
+
+import { type Language,getLanguageFromCountry } from '@/lib/i18n';
+import { type Currency,getCurrencyFromCountry } from '@/lib/stripe-config';
 
 interface GeolocationData {
   country: string;

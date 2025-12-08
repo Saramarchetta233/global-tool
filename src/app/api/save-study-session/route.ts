@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+
 import { cache } from '@/lib/redis-cache';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 

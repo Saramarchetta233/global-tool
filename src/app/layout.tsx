@@ -1,14 +1,15 @@
 import { Metadata } from 'next';
-import * as React from 'react';
 import Script from 'next/script'
+import * as React from 'react';
 
 import '@/styles/globals.css';
 // !STARTERCONF This is for demo purposes, remove @/styles/colors.css import immediately
 import '@/styles/colors.css';
 
-import { siteConfig } from '@/constant/config';
 import { AuthProvider } from '@/lib/auth-context';
 import { ToastProvider } from '@/hooks/useToast';
+
+import { siteConfig } from '@/constant/config';
 
 // !STARTERCONF Change these default meta
 // !STARTERCONF Look at @/constant/config to change them

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Send, Bot, User, Loader2, MessageCircle, FileText, Brain, Coins } from 'lucide-react';
+import { Bot, Coins, Loader2, MessageCircle, Send, User } from 'lucide-react';
+import React, { useEffect, useRef,useState } from 'react';
 
 interface Message {
   id: string;

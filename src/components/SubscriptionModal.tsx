@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Crown, Calendar, Star, Zap, CreditCard, Shield } from 'lucide-react';
+import { PayPalButtons,PayPalScriptProvider } from '@paypal/react-paypal-js';
+import { Calendar, CreditCard, Crown, Shield,Star, X } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+
 import { useAuth } from '@/lib/auth-context';
-import { useGeolocation } from '@/hooks/useGeolocation';
-import { getPriceDisplay, type PlanType } from '@/lib/stripe-config';
 import { t } from '@/lib/i18n';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 interface SubscriptionModalProps {
   isOpen: boolean;

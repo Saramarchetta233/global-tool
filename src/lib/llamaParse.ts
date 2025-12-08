@@ -210,7 +210,7 @@ export function validateLlamaParseConfig(): boolean {
 /**
  * Poll for job completion
  */
-async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts: number = 30): Promise<string> {
+async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts = 30): Promise<string> {
   console.log(`🔄 Starting polling for job ${jobId}...`);
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

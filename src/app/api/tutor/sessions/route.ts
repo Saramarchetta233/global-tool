@@ -1,7 +1,8 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
+
 import { withAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
-import crypto from 'crypto';
 
 export const POST = withAuth(async (request: NextRequest, user) => {
   try {

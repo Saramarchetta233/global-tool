@@ -75,7 +75,7 @@ export class CreditManager {
     userId: string, 
     amount: number, 
     description?: string,
-    operation: string = 'add'
+    operation = 'add'
   ): Promise<CreditResult> {
     try {
       const { data, error } = await supabase
@@ -101,7 +101,7 @@ export class CreditManager {
     }
   }
 
-  static async getCreditLogs(userId: string, limit: number = 50) {
+  static async getCreditLogs(userId: string, limit = 50) {
     try {
       const { data, error } = await supabase
         .from('credit_logs')

@@ -1,7 +1,7 @@
 "use client";
 
+import { AlertCircle, CheckCircle, Download, Edit, Eye, Lock, Mail, Phone,Shield, Trash2 } from 'lucide-react';
 import React, { useState } from 'react';
-import { Shield, Eye, Lock, Download, Trash2, Edit, AlertCircle, CheckCircle, Mail, Phone } from 'lucide-react';
 
 export default function GDPRCompliance() {
   const [requestType, setRequestType] = useState('');

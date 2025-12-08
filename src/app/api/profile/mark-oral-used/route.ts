@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+
 import { verifyAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 

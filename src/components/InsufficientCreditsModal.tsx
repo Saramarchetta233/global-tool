@@ -1,7 +1,7 @@
 'use client';
 
+import { Coins } from 'lucide-react';
 import React from 'react';
-import { X, Coins, CreditCard, Crown, Zap } from 'lucide-react';
 
 interface InsufficientCreditsModalProps {
   isOpen: boolean;

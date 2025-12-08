@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, Clock, Eye, Trash2, Search } from 'lucide-react';
+import { Calendar, Clock, Eye, FileText, Search } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+
 import { useAuth } from '@/lib/auth-context';
 
 interface HistoryItem {

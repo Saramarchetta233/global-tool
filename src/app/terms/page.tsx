@@ -1,7 +1,7 @@
 "use client";
 
+import { AlertTriangle, CreditCard, FileText, Scale, Shield, Truck } from 'lucide-react';
 import React from 'react';
-import { FileText, Scale, AlertTriangle, Shield, CreditCard, Truck } from 'lucide-react';
 
 export default function TermsOfService() {
   return (

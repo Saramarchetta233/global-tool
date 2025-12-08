@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+
 import { verifyAuth } from '@/lib/middleware';
 
 // Force dynamic rendering

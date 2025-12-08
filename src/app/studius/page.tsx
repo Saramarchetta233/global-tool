@@ -1,7 +1,7 @@
 'use client';
 
+import { ArrowRight, Brain, Check, ChevronDown, ChevronUp, FileText, Star, Target, Upload } from 'lucide-react';
 import React from 'react';
-import { ArrowRight, FileText, Brain, Target, Check, Star, ChevronDown, ChevronUp, Upload, Zap } from 'lucide-react';
 
 const StudiusLandingPage = () => {
   const [openFaq, setOpenFaq] = React.useState<number | null>(null);

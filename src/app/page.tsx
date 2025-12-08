@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Play, Upload, CheckCircle, Trophy, Star, Menu, X, ChevronDown, Mic, Brain, Calendar, Zap, BookOpen, Headphones, CreditCard, HelpCircle, FileText, Clock, Users, Shield, Diamond, Rocket } from "lucide-react";
-import { PaymentModal } from '@/components/PaymentModal';
+import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket,Shield, Star, Trophy, Upload, Users, X, Zap } from "lucide-react";
+import { useEffect,useState } from "react";
+
 import { useAuth } from '@/lib/auth-context';
+
+import { PaymentModal } from '@/components/PaymentModal';
 
 export default function StudiusOnetimePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,89 +44,100 @@ export default function StudiusOnetimePage() {
       title: "SIMULAZIONE ESAME ORALE",
       subtitle: "Preparati come se fossi già davanti al prof",
       description: "L'AI ti fa domande come farebbe il professore. Risponde alle tue risposte e ti corregge in tempo reale.",
-      isHero: true
+      isHero: true,
+      video: "EsameOrale.mp4"
     },
     {
       icon: FileText,
       title: "QUIZ E SIMULAZIONI SCRITTE",
       subtitle: "Test personalizzati dal tuo materiale",
       description: "Quiz a risposta multipla e domande aperte con correzione AI. Feedback immediato e spiegazioni.",
-      isHero: false
+      isHero: false,
+      video: "Quiz.mp4"
     },
     {
       icon: Brain,
       title: "TUTOR AI PERSONALE",
       subtitle: "Hai dubbi? Chiedi al tuo tutor AI",
       description: "Risponde a qualsiasi domanda sul materiale. Spiega i concetti difficili in modo semplice. Disponibile 24/7.",
-      isHero: false
+      isHero: false,
+      video: "Tutor.mp4"
     },
     {
       icon: Calendar,
       title: "PIANO STUDIO INTELLIGENTE",
       subtitle: "Esame tra 5 giorni? Ti organizziamo noi",
       description: "Inserisci la data dell'esame, l'AI crea un piano giorno per giorno. Mai più 'non so da dove iniziare'.",
-      isHero: false
+      isHero: false,
+      video: "Piano.mp4"
     },
     {
       icon: Zap,
       title: "STUDIA IN 1 ORA",
       subtitle: "Per chi ha poco tempo",
       description: "L'AI estrae solo l'essenziale. Perfetto per ripassi last-minute quando il tempo stringe.",
-      isHero: false
+      isHero: false,
+      video: "Studia1ora.mp4"
     },
     {
       icon: BookOpen,
       title: "RIASSUNTI AUTOMATICI",
       subtitle: "Carica il PDF, ricevi il riassunto",
       description: "Diversi livelli di dettaglio, formattati per essere studiati facilmente. Risparmi ore di lavoro.",
-      isHero: false
+      isHero: false,
+      video: "Riassunti.mp4"
     },
     {
       icon: Headphones,
       title: "AUDIO PODCAST",
       subtitle: "Studia mentre fai altro",
       description: "Trasforma i riassunti in audio. Studia mentre cammini, in palestra, sui mezzi. Voce naturale, non robotica.",
-      isHero: false
+      isHero: false,
+      video: "Audio.mp4"
     },
     {
       icon: CreditCard,
       title: "FLASHCARD INTELLIGENTI",
       subtitle: "Memorizza velocemente",
       description: "Generate automaticamente dal materiale. Sistema di ripetizione spaziata. Tracciamento del progresso.",
-      isHero: false
+      isHero: false,
+      video: "Flashcard.mp4"
     },
     {
       icon: HelpCircle,
       title: "DOMANDE PROBABILI",
       subtitle: "Ecco cosa ti chiederà il prof",
       description: "L'AI analizza il materiale e prevede le domande più probabili. Studia in modo strategico.",
-      isHero: false
+      isHero: false,
+      video: "Domande.mp4"
     },
     {
       icon: Clock,
       title: "RIPRENDI DOVE AVEVI LASCIATO",
       subtitle: "Non perdere mai il filo",
       description: "Interrompi e riprendi lo studio quando vuoi. L'AI ricorda tutto: progressi, risposte, sessioni di studio.",
-      isHero: false
+      isHero: false,
+      video: "Riprendi.mp4"
     },
     {
       icon: BookOpen,
       title: "CARICA UNA VOLTA, STUDIA PER SEMPRE",
       subtitle: "Il tuo archivio personale",
       description: "Tutti i tuoi documenti salvati per sempre. Torna a studiare lo stesso materiale anche dopo mesi, senza ricaricare nulla.",
-      isHero: false
+      isHero: false,
+      video: "Storico.mp4"
     }
   ];
 
   const testimonials = [
-    { name: "Marco R.", uni: "Economia - Bocconi", text: "Ho passato Diritto Commerciale al primo colpo. L'esame orale simulato mi ha salvato!", rating: 5 },
-    { name: "Giulia S.", uni: "Medicina - Statale Milano", text: "Anatomia in 3 giorni? Sembrava impossibile. StudiusAI mi ha organizzato tutto perfettamente.", rating: 5 },
-    { name: "Lorenzo M.", uni: "Ingegneria - Polimi", text: "I riassunti automatici sono incredibili. Ho risparmiato almeno 20 ore per Analisi 2.", rating: 5 },
-    { name: "Sara B.", uni: "Psicologia - Padova", text: "Il tutor AI è come avere un assistente personale. Risponde a tutte le mie domande, anche alle 2 di notte!", rating: 5 },
-    { name: "Alessandro F.", uni: "Giurisprudenza - Bologna", text: "Le simulazioni d'esame sono identiche a quelle vere. Non ho mai avuto così poca ansia prima di un orale.", rating: 5 },
-    { name: "Chiara V.", uni: "Lettere - Roma Tre", text: "La funzione 'Studia in 1 ora' mi ha salvato più volte. Perfetta per noi procrastinatori!", rating: 5 },
-    { name: "Davide P.", uni: "Informatica - Sapienza", text: "I podcast audio sono geniali. Studio mentre vado in palestra. Multitasking al massimo!", rating: 5 },
-    { name: "Elisa T.", uni: "Architettura - IUAV", text: "Ho passato Storia dell'Arte con 30. Le domande probabili erano ESATTAMENTE quelle dell'esame!", rating: 5 }
+    { name: "Marco R.", uni: "Economia - Bocconi", text: "Ho passato Diritto Commerciale con Ghidini con 28 dopo 2 bocciature. Le simulazioni orali mi hanno fatto capire esattamente come rispondere.", rating: 5 },
+    { name: "Giulia S.", uni: "Medicina - Statale", text: "Anatomia con Anastasi in 4 giorni: caricato il Netter, StudiusAI mi ha fatto 300 domande mirate. Risultato: 29.", rating: 5 },
+    { name: "Lorenzo M.", uni: "Ingegneria - Polimi", text: "Analisi 2 con Quarteroni sembrava impossibile. I riassunti AI delle 400 pagine del libro mi hanno salvato: 27 al primo tentativo.", rating: 5 },
+    { name: "Sara B.", uni: "Psicologia - Padova", text: "Psicologia Generale con la Cornoldi: ho caricato 15 capitoli, l'AI me li ha spiegati meglio delle lezioni. Voto: 30L.", rating: 5 },
+    { name: "Alessandro F.", uni: "Giurisprudenza - Bologna", text: "Diritto Civile con Sesta: 1200 pagine del manuale trasformate in simulazioni perfette. Non credevo di prendere 30.", rating: 5 },
+    { name: "Chiara V.", uni: "Lettere - Roma Tre", text: "Storia Medievale: 800 pagine in 6 ore con 'Studia in 1 ora'. Il prof non credeva fosse il mio primo tentativo.", rating: 5 },
+    { name: "Davide P.", uni: "Informatica - Sapienza", text: "Algoritmi e Strutture Dati: i podcast generati mi hanno fatto studiare sui mezzi. 28 senza mai aprire il libro.", rating: 5 },
+    { name: "Elisa T.", uni: "Architettura - IUAV", text: "Storia dell'Arte Contemporanea: l'AI ha previsto 8 domande su 10 dell'orale. Non poteva andare meglio.", rating: 5 }
   ];
 
   const faqs = [
@@ -254,11 +267,47 @@ export default function StudiusOnetimePage() {
             <span className="text-purple-300 font-semibold"><br></br> Nessun abbonamento, nessun rinnovo.</span>
           </motion.p>
 
+          {/* Hero Video - Moved up here */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 mb-8 shadow-2xl"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-purple-900/40 to-transparent pointer-events-none z-10"></div>
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video/vid1.mp4" type="video/mp4" />
+              Il tuo browser non supporta i video HTML5.
+            </video>
+          </motion.div>
+
+          {/* Vedi come funziona button - positioned after hero video */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="flex justify-center mb-8"
+          >
+            <a
+              href="#demo-video"
+              className="px-8 py-4 border border-white/20 rounded-full text-lg font-semibold hover:bg-white/10 transition-all flex items-center gap-2 justify-center backdrop-blur-sm"
+            >
+              <Play size={20} />
+              Vedi come funziona
+            </a>
+          </motion.div>
+
           {/* Value Props */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
             className="grid md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-8"
           >
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
@@ -308,76 +357,166 @@ export default function StudiusOnetimePage() {
             </div>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-col md:flex-row gap-4 justify-center"
-          >
-            <a
-              href="#demo-video"
-              className="px-8 py-4 border border-white/20 rounded-full text-lg font-semibold hover:bg-white/10 transition-all flex items-center gap-2 justify-center"
-            >
-              <Play size={20} />
-              Vedi come funziona
-            </a>
-          </motion.div>
-
-          {/* Hero Video Placeholder */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="relative max-w-4xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 mt-12"
-          >
-            <div className="aspect-video flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                  <Play size={32} className="ml-1" />
-                </div>
-                <p className="text-gray-400">Video Demo (16:9) - Placeholder</p>
-              </div>
-            </div>
-          </motion.div>
         </motion.div>
 
-        {/* Floating elements */}
-        <div className="absolute top-20 left-10 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-20 right-10 w-64 h-64 md:w-96 md:h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none" />
+        {/* Enhanced Floating elements with parallax */}
+        <motion.div 
+          animate={{
+            y: [0, -20, 0],
+            x: [0, 10, 0],
+            scale: [1, 1.1, 1],
+            rotate: [0, 5, 0]
+          }}
+          transition={{
+            duration: 8,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+          className="absolute top-20 left-10 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div 
+          animate={{
+            y: [0, 15, 0],
+            x: [0, -15, 0],
+            scale: [1, 0.9, 1],
+            rotate: [0, -3, 0]
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1
+          }}
+          className="absolute bottom-20 right-10 w-64 h-64 md:w-96 md:h-96 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"
+        />
+        <motion.div 
+          animate={{
+            y: [0, -10, 0],
+            x: [0, 8, 0],
+            opacity: [0.3, 0.6, 0.3]
+          }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2
+          }}
+          className="absolute top-1/2 right-1/4 w-32 h-32 bg-green-500/15 rounded-full blur-2xl pointer-events-none"
+        />
       </section>
 
-      {/* Social Proof Bar */}
-      <section className="py-8 px-4 bg-purple-900/20 border-y border-purple-500/20">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap justify-center items-center gap-8 text-center">
-            <div className="flex items-center gap-3">
-              <Trophy className="w-8 h-8 text-yellow-400" />
+      {/* Enhanced Social Proof Bar with animations */}
+      <section className="py-8 px-4 bg-purple-900/20 border-y border-purple-500/20 relative overflow-hidden">
+        {/* Animated background gradient */}
+        <motion.div
+          animate={{
+            backgroundPosition: ['0% 0%', '100% 100%', '0% 0%']
+          }}
+          transition={{
+            duration: 15,
+            repeat: Infinity,
+            ease: "linear"
+          }}
+          className="absolute inset-0 bg-gradient-to-r from-purple-600/10 via-transparent to-blue-600/10"
+          style={{ backgroundSize: '200% 200%' }}
+        />
+        <div className="max-w-6xl mx-auto relative">
+          <div className="grid grid-cols-2 md:flex md:flex-wrap justify-center items-center gap-4 md:gap-8 text-center px-4">
+            <motion.div 
+              className="flex items-center gap-3"
+              whileInView={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+            >
+              <motion.div
+                animate={{ rotate: [0, 5, -5, 0] }}
+                transition={{ duration: 2, repeat: Infinity, delay: 1 }}
+              >
+                <Trophy className="w-8 h-8 text-yellow-400" />
+              </motion.div>
               <div>
-                <p className="text-2xl font-bold">15.000+</p>
+                <motion.p 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  15.000+
+                </motion.p>
                 <p className="text-sm text-gray-200">Esami Superati</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Star className="w-8 h-8 text-green-400" />
+            </motion.div>
+            <motion.div 
+              className="flex items-center gap-3"
+              whileInView={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <motion.div
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear", delay: 2 }}
+              >
+                <Star className="w-8 h-8 text-green-400" />
+              </motion.div>
               <div>
-                <p className="text-2xl font-bold">27,5</p>
+                <motion.p 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.1 }}
+                >
+                  27,5
+                </motion.p>
                 <p className="text-sm text-gray-200">Voto Medio</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Users className="w-8 h-8 text-blue-400" />
+            </motion.div>
+            <motion.div 
+              className="flex items-center gap-3"
+              whileInView={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+            >
+              <motion.div
+                animate={{ scale: [1, 1.2, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity, delay: 3 }}
+              >
+                <Users className="w-8 h-8 text-blue-400" />
+              </motion.div>
               <div>
-                <p className="text-2xl font-bold">89%</p>
+                <motion.p 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
+                >
+                  89%
+                </motion.p>
                 <p className="text-sm text-gray-200">Promossi al 1° tentativo</p>
               </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <Zap className="w-8 h-8 text-purple-400" />
+            </motion.div>
+            <motion.div 
+              className="flex items-center gap-3"
+              whileInView={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <motion.div
+                animate={{ 
+                  scale: [1, 1.3, 1],
+                  rotate: [0, 10, -10, 0]
+                }}
+                transition={{ duration: 0.8, repeat: Infinity, delay: 4 }}
+              >
+                <Zap className="w-8 h-8 text-purple-400" />
+              </motion.div>
               <div>
-                <p className="text-2xl font-bold">-75%</p>
+                <motion.p 
+                  className="text-2xl font-bold"
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  whileInView={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  -75%
+                </motion.p>
                 <p className="text-sm text-gray-200">Tempo di Studio</p>
               </div>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -435,28 +574,93 @@ export default function StudiusOnetimePage() {
             </div>
           </motion.div>
 
-          {/* Before/After Placeholder */}
+          {/* Enhanced Before/After with transition effects */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
             viewport={{ once: true }}
-            className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-2xl p-8 border border-white/10"
+            className="bg-gradient-to-r from-purple-900/20 to-blue-900/20 rounded-2xl p-8 border border-white/10 relative overflow-hidden"
           >
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="text-center">
-                <h3 className="text-2xl font-semibold mb-4 text-red-400">Prima 😰</h3>
-                <div className="bg-gray-800/50 rounded-xl p-6 h-48 flex items-center justify-center">
-                  <p className="text-gray-500">Immagine/GIF Before - Placeholder</p>
-                </div>
-              </div>
-              <div className="text-center">
-                <h3 className="text-2xl font-semibold mb-4 text-green-400">Dopo 🚀</h3>
-                <div className="bg-gray-800/50 rounded-xl p-6 h-48 flex items-center justify-center">
-                  <p className="text-gray-500">Immagine/GIF After - Placeholder</p>
-                </div>
-              </div>
+            {/* Animated background pattern */}
+            <motion.div
+              animate={{
+                x: ['-100%', '100%'],
+                opacity: [0, 0.3, 0]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent skew-x-12"
+            />
+            <div className="grid md:grid-cols-2 gap-8 relative">
+              <motion.div 
+                className="text-center"
+                whileInView={{ x: [-20, 0], opacity: [0, 1] }}
+                transition={{ duration: 0.8 }}
+              >
+                <motion.h3 
+                  className="text-2xl font-semibold mb-4 text-red-400"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                >
+                  Prima 😰
+                </motion.h3>
+                <motion.div 
+                  className="bg-gray-800/50 rounded-xl overflow-hidden relative"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.img 
+                    src="/images/studius/Prima.jpg" 
+                    alt="Prima di usare StudiusAI" 
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                  <div className="absolute inset-0 bg-red-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                </motion.div>
+              </motion.div>
+              <motion.div 
+                className="text-center"
+                whileInView={{ x: [20, 0], opacity: [0, 1] }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <motion.h3 
+                  className="text-2xl font-semibold mb-4 text-green-400"
+                  animate={{ scale: [1, 1.05, 1] }}
+                  transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                >
+                  Dopo 🚀
+                </motion.h3>
+                <motion.div 
+                  className="bg-gray-800/50 rounded-xl overflow-hidden relative"
+                  whileHover={{ scale: 1.02 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <motion.img 
+                    src="/images/studius/Dopo.jpg" 
+                    alt="Dopo aver usato StudiusAI" 
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.05 }}
+                    transition={{ duration: 0.5 }}
+                  />
+                  <div className="absolute inset-0 bg-green-500/20 opacity-0 hover:opacity-100 transition-opacity duration-300"></div>
+                </motion.div>
+              </motion.div>
             </div>
+            {/* Central arrow animation */}
+            <motion.div
+              className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 hidden md:block"
+              animate={{ x: [0, 10, 0], scale: [1, 1.2, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white">
+                →
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
@@ -509,7 +713,16 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold mb-4">Tutto incluso con l'accesso Premium</h2>
+            <motion.h2 
+              className="text-4xl md:text-5xl font-bold mb-4 bg-gradient-to-r from-white via-purple-400 to-blue-400 bg-clip-text text-transparent"
+              animate={{ 
+                backgroundPosition: ['0% 50%', '100% 50%', '0% 50%']
+              }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              style={{ backgroundSize: '200% 100%' }}
+            >
+              Tutto incluso con l'accesso Premium
+            </motion.h2>
             <p className="text-xl text-gray-200">4000 crediti per usare tutte le funzionalità senza limiti</p>
           </motion.div>
 
@@ -546,43 +759,66 @@ export default function StudiusOnetimePage() {
                     Attiva subito per €49
                   </button>
                 </div>
-                <div className="bg-gray-800/50 rounded-2xl p-6 aspect-video flex items-center justify-center">
-                  <div className="text-center">
-                    <Mic className="w-16 h-16 text-purple-400 mb-4 mx-auto" />
-                    <p className="text-gray-500">Video Demo Esame Orale - Placeholder</p>
-                  </div>
+                <div className="bg-gray-800/50 rounded-2xl overflow-hidden">
+                  <video 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline
+                    className="w-full h-full object-cover"
+                  >
+                    <source src="/video/EsameOrale.mp4" type="video/mp4" />
+                    Il tuo browser non supporta i video HTML5.
+                  </video>
                 </div>
               </div>
             </div>
           </motion.div>
 
-          {/* Other Features Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Other Features Grid - Fixed alignment */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.filter(f => !f.isHero).map((feature, idx) => {
               const Icon = feature.icon;
               return (
                 <motion.div
                   key={idx}
-                  initial={{ opacity: 0, y: 20 }}
+                  initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: idx * 0.1 }}
                   viewport={{ once: true }}
-                  className="group bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-purple-500/30 transition-all hover:bg-gray-900/80"
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="group relative bg-gradient-to-br from-gray-900/70 to-gray-900/50 backdrop-blur-sm rounded-2xl border border-white/10 hover:border-purple-500/50 transition-all duration-300 overflow-hidden flex flex-col h-full"
                 >
-                  <div className="flex items-start gap-4">
-                    <div className="p-3 bg-purple-500/20 rounded-xl group-hover:bg-purple-500/30 transition-colors">
-                      <Icon className="w-6 h-6 text-purple-400" />
+                  {/* Glow effect on hover */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600/0 to-blue-600/0 group-hover:from-purple-600/10 group-hover:to-blue-600/10 transition-all duration-500"></div>
+                  
+                  <div className="relative p-6 flex flex-col h-full">
+                    <div className="flex items-start gap-4 mb-4">
+                      <div className="p-3 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-xl group-hover:from-purple-500/30 group-hover:to-blue-500/30 transition-all duration-300 transform group-hover:scale-110">
+                        <Icon className="w-6 h-6 text-purple-400" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-bold mb-1 group-hover:text-purple-300 transition-colors">{feature.title}</h3>
+                        <p className="text-purple-300 text-sm mb-2">{feature.subtitle}</p>
+                        <p className="text-gray-300 text-sm leading-relaxed">{feature.description}</p>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h3 className="text-xl font-bold mb-1">{feature.title}</h3>
-                      <p className="text-purple-300 text-sm mb-2">{feature.subtitle}</p>
-                      <p className="text-gray-200 text-sm">{feature.description}</p>
-                    </div>
-                  </div>
 
-                  {/* Feature Screenshot Placeholder */}
-                  <div className="mt-4 bg-gray-800/50 rounded-lg p-4 aspect-video flex items-center justify-center">
-                    <p className="text-gray-600 text-xs">Screenshot/GIF - {feature.title}</p>
+                    {/* Feature Video with enhanced styling - Fixed height for alignment */}
+                    <div className="relative rounded-xl overflow-hidden bg-gray-900/50 shadow-inner mt-auto" style={{ height: '180px' }}>
+                      <div className="absolute inset-0 bg-gradient-to-t from-purple-900/20 to-transparent pointer-events-none z-10"></div>
+                      <video 
+                        autoPlay 
+                        loop 
+                        muted 
+                        playsInline
+                        className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-500"
+                      >
+                        <source src={`/video/${feature.video}`} type="video/mp4" />
+                        Il tuo browser non supporta i video HTML5.
+                      </video>
+                      
+                    </div>
                   </div>
                 </motion.div>
               );
@@ -707,7 +943,7 @@ export default function StudiusOnetimePage() {
             ))}
           </div>
 
-          {/* Tutorial Video Placeholder */}
+          {/* Tutorial Video */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -715,14 +951,16 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="relative max-w-3xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10"
           >
-            <div className="aspect-video flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                  <Play size={32} className="ml-1" />
-                </div>
-                <p className="text-gray-400">Video Tutorial (30-60 sec) - Placeholder</p>
-              </div>
-            </div>
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video/vid1.mp4" type="video/mp4" />
+              Il tuo browser non supporta i video HTML5.
+            </video>
           </motion.div>
         </div>
       </section>
@@ -850,18 +1088,18 @@ export default function StudiusOnetimePage() {
             className="text-center mb-16"
           >
             <h2 className="text-4xl md:text-5xl font-bold mb-4">Studenti che hanno già scelto l'accesso lifetime</h2>
-            <div className="flex justify-center gap-8 mt-8">
-              <div className="text-center">
-                <p className="text-4xl font-bold text-purple-400">15.000+</p>
-                <p className="text-gray-200">Studenti Premium</p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 mt-8 px-4 max-w-4xl mx-auto">
+              <div className="text-center bg-purple-900/20 rounded-xl p-4 border border-purple-500/30">
+                <p className="text-2xl md:text-4xl font-bold text-purple-400 mb-1">15.000+</p>
+                <p className="text-gray-200 text-sm md:text-base">Studenti Premium</p>
               </div>
-              <div className="text-center">
-                <p className="text-4xl font-bold text-purple-400">50.000+</p>
-                <p className="text-gray-200">Esami superati</p>
+              <div className="text-center bg-purple-900/20 rounded-xl p-4 border border-purple-500/30">
+                <p className="text-2xl md:text-4xl font-bold text-purple-400 mb-1">50.000+</p>
+                <p className="text-gray-200 text-sm md:text-base">Esami superati</p>
               </div>
-              <div className="text-center">
-                <p className="text-4xl font-bold text-purple-400">98%</p>
-                <p className="text-gray-200">Tasso di successo</p>
+              <div className="text-center bg-purple-900/20 rounded-xl p-4 border border-purple-500/30">
+                <p className="text-2xl md:text-4xl font-bold text-purple-400 mb-1">98%</p>
+                <p className="text-gray-200 text-sm md:text-base">Tasso di successo</p>
               </div>
             </div>
           </motion.div>
@@ -870,19 +1108,29 @@ export default function StudiusOnetimePage() {
             {testimonials.map((testimonial, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
                 transition={{ duration: 0.6, delay: idx * 0.1 }}
                 viewport={{ once: true }}
-                className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-purple-500/30 transition-all"
+                whileHover={{ 
+                  y: -8, 
+                  scale: 1.02,
+                  boxShadow: "0 20px 40px rgba(168, 85, 247, 0.4)"
+                }}
+                className="bg-gray-900/50 backdrop-blur-sm rounded-2xl p-6 border border-white/10 hover:border-purple-500/30 transition-all relative overflow-hidden group"
               >
+                {/* Animated background glow */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-br from-purple-600/0 to-blue-600/0 group-hover:from-purple-600/5 group-hover:to-blue-600/5"
+                  transition={{ duration: 0.5 }}
+                />
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
                     {testimonial.name.charAt(0)}
                   </div>
                   <div>
-                    <p className="font-semibold">{testimonial.name}</p>
-                    <p className="text-sm text-gray-400">{testimonial.uni}</p>
+                    <p className="font-semibold text-white">{testimonial.name}</p>
+                    <p className="text-xs text-gray-400">{testimonial.uni}</p>
                   </div>
                 </div>
                 <div className="flex gap-1 mb-3">
@@ -918,14 +1166,16 @@ export default function StudiusOnetimePage() {
             viewport={{ once: true }}
             className="relative max-w-5xl mx-auto rounded-2xl overflow-hidden bg-gradient-to-br from-purple-900/20 to-blue-900/20 backdrop-blur-sm border border-white/10 shadow-2xl"
           >
-            <div className="aspect-video flex items-center justify-center">
-              <div className="text-center">
-                <div className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mb-4 mx-auto hover:bg-white/30 transition-colors cursor-pointer">
-                  <Play size={40} className="ml-1" />
-                </div>
-                <p className="text-gray-300 text-lg">Video Demo Completo (16:9) - Placeholder</p>
-              </div>
-            </div>
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-cover"
+            >
+              <source src="/video/vid1.mp4" type="video/mp4" />
+              Il tuo browser non supporta i video HTML5.
+            </video>
           </motion.div>
         </div>
       </section>
@@ -1015,26 +1265,101 @@ export default function StudiusOnetimePage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-20 px-4">
+      {/* Enhanced Final CTA with floating particles */}
+      <section className="py-20 px-4 relative overflow-hidden">
+        {/* Static particles background - fixed positions to avoid hydration issues */}
+        <div className="absolute inset-0 pointer-events-none">
+          {[
+            { left: 10, top: 20, delay: 0 },
+            { left: 85, top: 15, delay: 0.5 },
+            { left: 25, top: 75, delay: 1 },
+            { left: 70, top: 80, delay: 1.5 },
+            { left: 50, top: 30, delay: 0.3 },
+            { left: 15, top: 60, delay: 0.8 },
+            { left: 90, top: 45, delay: 1.2 },
+            { left: 35, top: 10, delay: 0.6 },
+            { left: 60, top: 65, delay: 1.8 },
+            { left: 80, top: 25, delay: 0.2 },
+            { left: 5, top: 85, delay: 1.4 },
+            { left: 45, top: 50, delay: 0.9 },
+            { left: 75, top: 5, delay: 0.7 },
+            { left: 20, top: 40, delay: 1.1 },
+            { left: 95, top: 70, delay: 0.4 },
+            { left: 30, top: 90, delay: 1.6 },
+            { left: 65, top: 35, delay: 0.1 },
+            { left: 40, top: 55, delay: 1.3 },
+            { left: 85, top: 85, delay: 0.8 },
+            { left: 55, top: 15, delay: 1.7 }
+          ].map((particle, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-purple-400/40 rounded-full"
+              style={{
+                left: `${particle.left}%`,
+                top: `${particle.top}%`,
+              }}
+              animate={{
+                y: [0, -20, 0],
+                opacity: [0.4, 1, 0.4],
+                scale: [1, 1.5, 1]
+              }}
+              transition={{
+                duration: 2.5,
+                repeat: Infinity,
+                delay: particle.delay
+              }}
+            />
+          ))}
+        </div>
+        
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           viewport={{ once: true }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center relative"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-6">
+          <motion.h2 
+            className="text-4xl md:text-5xl font-bold mb-6"
+            whileInView={{ scale: [0.95, 1.02, 1] }}
+            transition={{ duration: 0.8 }}
+          >
             Un investimento nel tuo <span className="bg-gradient-to-r from-purple-400 to-blue-400 text-transparent bg-clip-text">futuro accademico</span>
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
+          </motion.h2>
+          <motion.p 
+            className="text-xl text-gray-300 mb-8"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+          >
             €49 oggi per risparmiare migliaia di euro e centinaia di ore nei prossimi anni
-          </p>
+          </motion.p>
 
-          <div className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-3xl p-8 max-w-2xl mx-auto border border-purple-500/30 mb-8">
-            <div className="text-6xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-transparent bg-clip-text">
+          <motion.div 
+            className="bg-gradient-to-r from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-3xl p-8 max-w-2xl mx-auto border border-purple-500/30 mb-8 relative overflow-hidden"
+            whileHover={{ scale: 1.02 }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Shimmer effect */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent -skew-x-12"
+              animate={{
+                x: ['-200%', '200%']
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+            
+            <motion.div 
+              className="text-6xl font-bold mb-4 bg-gradient-to-r from-yellow-400 to-orange-400 text-transparent bg-clip-text"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
               €49
-            </div>
+            </motion.div>
             <p className="text-xl text-gray-300 mb-2">
               <span className="line-through text-gray-500">€199</span> • Offerta speciale
             </p>
@@ -1042,32 +1367,62 @@ export default function StudiusOnetimePage() {
               4000 crediti • Accesso lifetime • Garanzia 30 giorni
             </p>
 
-            <button
+            <motion.button
               onClick={handlePurchase}
-              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 py-4 rounded-full text-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/25 transition-all transform hover:scale-105 mb-4"
+              className="w-full bg-gradient-to-r from-purple-500 to-blue-500 py-4 rounded-full text-xl font-semibold hover:shadow-2xl hover:shadow-purple-500/25 transition-all transform hover:scale-105 mb-4 relative overflow-hidden"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.98 }}
             >
-              🚀 Sì, voglio StudiusAI Premium per sempre
-            </button>
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-purple-600 to-blue-600 opacity-0"
+                whileHover={{ opacity: 1 }}
+                transition={{ duration: 0.2 }}
+              />
+              <span className="relative z-10">🚀 Sì, voglio StudiusAI Premium per sempre</span>
+            </motion.button>
 
             <div className="grid grid-cols-3 gap-4 text-sm text-gray-400 mt-6">
-              <div className="flex flex-col items-center">
+              <motion.div 
+                className="flex flex-col items-center"
+                whileInView={{ y: [10, 0], opacity: [0, 1] }}
+                transition={{ delay: 0.1 }}
+              >
                 <Shield className="w-6 h-6 mb-1 text-green-400" />
                 <span>Pagamento sicuro</span>
-              </div>
-              <div className="flex flex-col items-center">
+              </motion.div>
+              <motion.div 
+                className="flex flex-col items-center"
+                whileInView={{ y: [10, 0], opacity: [0, 1] }}
+                transition={{ delay: 0.2 }}
+              >
                 <Zap className="w-6 h-6 mb-1 text-yellow-400" />
                 <span>Attivazione istantanea</span>
-              </div>
-              <div className="flex flex-col items-center">
+              </motion.div>
+              <motion.div 
+                className="flex flex-col items-center"
+                whileInView={{ y: [10, 0], opacity: [0, 1] }}
+                transition={{ delay: 0.3 }}
+              >
                 <CheckCircle className="w-6 h-6 mb-1 text-purple-400" />
                 <span>Garanzia rimborso</span>
-              </div>
+              </motion.div>
             </div>
-          </div>
+          </motion.div>
 
-          <p className="text-gray-400 text-lg">
-            Unisciti a <span className="text-purple-400 font-bold">15.000+ studenti</span> che hanno già scelto l'accesso lifetime
-          </p>
+          <motion.p 
+            className="text-gray-400 text-lg"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+          >
+            Unisciti a <motion.span 
+              className="text-purple-400 font-bold"
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+            >
+              15.000+ studenti
+            </motion.span> che hanno già scelto l'accesso lifetime
+          </motion.p>
         </motion.div>
       </section>
 

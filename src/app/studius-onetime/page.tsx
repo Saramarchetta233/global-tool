@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import { Play, Upload, CheckCircle, Trophy, Star, Menu, X, ChevronDown, Mic, Brain, Calendar, Zap, BookOpen, Headphones, CreditCard, HelpCircle, FileText, Clock, Users, Shield, Diamond, Rocket } from "lucide-react";
-import { PaymentModal } from '@/components/PaymentModal';
+import { BookOpen, Brain, Calendar, CheckCircle, ChevronDown, Clock, CreditCard, Diamond, FileText, Headphones, HelpCircle, Menu, Mic, Play, Rocket,Shield, Star, Trophy, Upload, Users, X, Zap } from "lucide-react";
+import { useEffect,useState } from "react";
+
 import { useAuth } from '@/lib/auth-context';
+
+import { PaymentModal } from '@/components/PaymentModal';
 
 export default function StudiusOnetimePage() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);

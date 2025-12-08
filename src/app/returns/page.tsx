@@ -1,7 +1,7 @@
 "use client";
 
+import { CheckCircle, Clock, CreditCard,RotateCcw, Truck, XCircle } from 'lucide-react';
 import React from 'react';
-import { RotateCcw, CheckCircle, XCircle, Clock, Truck, CreditCard } from 'lucide-react';
 
 export default function Returns() {
   const returnSteps = [

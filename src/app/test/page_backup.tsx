@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, Brain, Download, Play, ChevronLeft, ChevronRight, Sparkles, Zap, Target, Clock, BookOpen, Star, Rocket, Award } from 'lucide-react';
+import React, { useRef,useState } from 'react';
 
 // Types
 interface FlashCard {

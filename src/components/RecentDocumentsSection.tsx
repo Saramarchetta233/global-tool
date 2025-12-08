@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { FileText, Calendar, ArrowRight } from 'lucide-react';
+import { ArrowRight,Calendar, FileText } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
+
 import { useAuth } from '@/lib/auth-context';
 
 interface HistoryDocument {
@@ -86,7 +87,7 @@ const RecentDocumentsSection: React.FC<RecentDocumentsSectionProps> = ({
     });
   };
 
-  const truncateFileName = (fileName: string, maxLength: number = 25) => {
+  const truncateFileName = (fileName: string, maxLength = 25) => {
     if (fileName.length <= maxLength) return fileName;
     return fileName.substring(0, maxLength) + '...';
   };

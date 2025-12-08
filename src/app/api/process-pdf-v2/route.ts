@@ -1,16 +1,16 @@
+import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+
 import { getPdfCost, getPdfCostDescription } from '@/lib/credits/calcPdfCost';
-import { 
-  createSummaryPrompt,
-  createFlashcardsPrompt,
-  createConceptMapPrompt,
-  createQuizPrompt,
-  createExamGuidePrompt
-} from '@/lib/prompts';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
-import crypto from 'crypto';
+import { 
+  createConceptMapPrompt,
+  createExamGuidePrompt,
+  createFlashcardsPrompt,
+  createQuizPrompt,
+  createSummaryPrompt} from '@/lib/prompts';
+import { supabaseAdmin } from '@/lib/supabase';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,

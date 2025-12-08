@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { parsePdfWithLlamaParse, validateLlamaParseConfig, getLlamaParseStatus } from '@/lib/llamaParse';
+
+import { getLlamaParseStatus,parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
 
 export async function GET() {
   const status = getLlamaParseStatus();

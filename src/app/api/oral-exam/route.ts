@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
+
 import { verifyAuth } from '@/lib/middleware';
-import { CreditCosts } from '@/lib/credits/creditRules';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
 import { cache } from '@/lib/redis-cache';
+import { supabase, supabaseAdmin } from '@/lib/supabase';
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';

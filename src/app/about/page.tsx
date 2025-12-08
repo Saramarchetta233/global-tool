@@ -1,7 +1,7 @@
 "use client";
 
+import { Award, ChevronRight, Clock,Globe, Lightbulb, Shield, Target, Users, Zap } from 'lucide-react';
 import React from 'react';
-import { Shield, Users, Globe, Zap, Award, Target, ChevronRight, Star, Lightbulb, Clock } from 'lucide-react';
 
 export default function AboutPage() {
   const values = [

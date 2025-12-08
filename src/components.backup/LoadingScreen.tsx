@@ -1,7 +1,7 @@
 'use client';
 
+import { BookOpen, Brain, Clock,FileText, Play, Sparkles } from 'lucide-react';
 import React from 'react';
-import { Brain, Sparkles, FileText, BookOpen, Play, Clock } from 'lucide-react';
 
 interface LoadingScreenProps {
   stage?: 'extracting' | 'generating' | 'finishing';

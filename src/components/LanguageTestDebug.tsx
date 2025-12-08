@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { t, type Language } from '@/lib/i18n';
-import { getPriceDisplay, type Currency } from '@/lib/stripe-config';
+
+import { type Language,t } from '@/lib/i18n';
+import { type Currency,getPriceDisplay } from '@/lib/stripe-config';
 
 // Component per testare le traduzioni e valute
 export function LanguageTestDebug() {

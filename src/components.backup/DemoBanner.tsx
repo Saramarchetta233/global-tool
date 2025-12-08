@@ -1,7 +1,7 @@
 'use client';
 
+import { Code, Database,Zap } from 'lucide-react';
 import React from 'react';
-import { Zap, Code, Database } from 'lucide-react';
 
 const DemoBanner: React.FC = () => {
   // Only show in development

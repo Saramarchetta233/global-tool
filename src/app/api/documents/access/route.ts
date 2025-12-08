@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+
 import { verifyAuth } from '@/lib/middleware';
+import { supabase } from '@/lib/supabase';
 
 export async function POST(request: NextRequest) {
   try {

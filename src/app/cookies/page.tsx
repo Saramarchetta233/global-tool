@@ -1,7 +1,7 @@
 "use client";
 
+import { AlertTriangle,BarChart, Cookie, Eye, Settings, Shield, Target } from 'lucide-react';
 import React, { useState } from 'react';
-import { Cookie, Settings, Eye, BarChart, Target, Shield, AlertTriangle } from 'lucide-react';
 
 export default function CookiePolicy() {
   const [cookieSettings, setCookieSettings] = useState({

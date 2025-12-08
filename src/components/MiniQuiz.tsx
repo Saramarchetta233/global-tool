@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { CheckCircle, XCircle, Brain } from 'lucide-react';
+import { Brain,CheckCircle, XCircle } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
 
 interface QuizQuestion {
   question: string;

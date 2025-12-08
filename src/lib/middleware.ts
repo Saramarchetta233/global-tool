@@ -1,8 +1,9 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { supabase, User, CreditLog } from './supabase';
-import { CREDIT_COSTS, CreditOperation } from './prompts';
-import { demoAuth, isDemoMode } from './demo-auth';
 import jwt from 'jsonwebtoken';
+import { NextRequest, NextResponse } from 'next/server';
+
+import { demoAuth } from './demo-auth';
+import { CREDIT_COSTS, CreditOperation } from './prompts';
+import {supabase } from './supabase';
 
 export interface AuthenticatedUser {
   id: string;

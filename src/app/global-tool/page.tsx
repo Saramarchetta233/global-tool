@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { ChevronRight, Zap, Globe, TrendingUp, Clock, Users, Star, CheckCircle, Target, Rocket, DollarSign, BarChart3, Award } from 'lucide-react';
+import { CheckCircle, ChevronRight, Clock, DollarSign, Rocket, Star, Target, TrendingUp, Zap } from 'lucide-react';
+import React, { useEffect,useState } from 'react';
 
 const GlobalToolFactory = () => {
   const [scrollY, setScrollY] = useState(0);

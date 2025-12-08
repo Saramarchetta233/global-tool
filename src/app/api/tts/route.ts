@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { verifyAuth } from '@/lib/middleware';
+
 import { CreditCosts } from '@/lib/credits/creditRules';
+import { verifyAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 
 // Force dynamic rendering

@@ -1,8 +1,8 @@
 'use client';
 
+import { PayPalButtons,PayPalScriptProvider } from '@paypal/react-paypal-js';
 import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
-import { PayPalScriptProvider, PayPalButtons } from '@paypal/react-paypal-js';
+import { useEffect,useState } from 'react';
 
 const PricingPage = () => {
   const router = useRouter();

@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Upload, FileText, Brain, Download, Play, ChevronLeft, ChevronRight, Sparkles, Zap, Target, Clock, BookOpen, Star, Rocket, Award } from 'lucide-react';
+import { Award,BookOpen, Brain, ChevronLeft, ChevronRight, Clock, Download, FileText, Play, Rocket, Sparkles, Target, Upload, Zap } from 'lucide-react';
+import React, { useRef,useState } from 'react';
 
 // Types
 interface FlashCard {
@@ -57,7 +57,7 @@ const processWithAI = async (file: File, language: string): Promise<StudyResults
 
 // Components
 const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
-  const renderNode = (node: ConceptNode, level: number = 0) => (
+  const renderNode = (node: ConceptNode, level = 0) => (
     <li key={node.title} className={`ml-${level * 4} mb-3`}>
       <div className={`${
         level === 0 

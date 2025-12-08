@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { CheckCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
 export default function EmailConfirmationHandler() {
   const [showConfirmation, setShowConfirmation] = useState(false);
