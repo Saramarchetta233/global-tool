@@ -273,6 +273,7 @@ export default function StudiusOnetimePage() {
             <video
               controls
               preload="metadata"
+              poster="/images/studius/Poster1.png"
               className="w-full h-full object-cover"
             >
               <source src="https://studius-ai.s3.eu-west-3.amazonaws.com/Vid1.mp4" type="video/mp4" />
@@ -1162,6 +1163,7 @@ export default function StudiusOnetimePage() {
             <video
               controls
               preload="metadata"
+              poster="/images/studius/Poster2.png"
               className="w-full h-full object-cover"
             >
               <source src="https://studius-ai.s3.eu-west-3.amazonaws.com/Vid2_Presentazione.mp4" type="video/mp4" />

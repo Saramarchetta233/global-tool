@@ -46,34 +46,19 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  // Fix scroll mobile: blocca scroll pagina quando modal è aperto
+  // Simplified scroll management - only prevent background scroll
   useEffect(() => {
     if (isOpen) {
-      // Salva la posizione attuale dello scroll
-      const scrollY = window.scrollY;
-      // Blocca lo scroll della pagina
+      // Simply prevent background scroll without position changes
       document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.top = `-${scrollY}px`;
-      document.body.style.width = '100%';
     } else {
-      // Ripristina lo scroll quando il modal si chiude
-      const scrollY = document.body.style.top;
+      // Restore background scroll without changing position
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
-      if (scrollY) {
-        window.scrollTo(0, parseInt(scrollY || '0', 10) * -1);
-      }
     }
 
     // Cleanup quando il componente viene smontato
     return () => {
       document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.top = '';
-      document.body.style.width = '';
     };
   }, [isOpen]);
 
@@ -154,16 +139,16 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
   });
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50">
-      <div className={`bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-4 md:p-6 w-full border border-purple-500/30 relative ${
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-2 md:p-4 z-50 overflow-y-auto">
+      <div className={`bg-gradient-to-br from-purple-900 to-blue-900 rounded-2xl p-4 md:p-6 w-full border border-purple-500/30 relative my-4 ${
         version === '2' 
-          ? 'max-w-md max-h-[98vh] md:max-h-[95vh] overflow-y-auto' 
-          : 'max-w-2xl max-h-[98vh] md:max-h-[90vh] overflow-y-auto'
+          ? 'max-w-md max-h-[90vh] overflow-y-auto' 
+          : 'max-w-2xl max-h-[90vh] overflow-y-auto'
       }`} style={{ WebkitOverflowScrolling: 'touch' }}>
-        {/* Enhanced Close Button for mobile */}
+        {/* Sticky Close Button - always visible */}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 md:top-4 md:right-4 text-gray-400 hover:text-white transition-colors z-20 p-2 bg-black/20 rounded-full backdrop-blur-sm"
+          className="sticky top-2 right-2 md:top-4 md:right-4 float-right text-gray-400 hover:text-white transition-colors z-30 p-2 bg-black/40 rounded-full backdrop-blur-sm border border-white/20"
         >
           <X className="w-5 h-5 md:w-6 md:h-6" />
         </button>
