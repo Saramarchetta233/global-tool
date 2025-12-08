@@ -31,10 +31,6 @@ export default function StudiusOnetimePage() {
   }, []);
 
   const handlePurchase = () => {
-    if (!user) {
-      window.location.href = '/onetime-register';
-      return;
-    }
     setShowPaymentModal(true);
   };
 
@@ -611,7 +607,7 @@ export default function StudiusOnetimePage() {
                   transition={{ duration: 0.3 }}
                 >
                   <motion.img
-                    src="/images/studius/Prima.jpg"
+                    src="/images/studius/Prima.png"
                     alt="Prima di usare StudiusAI"
                     className="w-full h-full object-cover"
                     whileHover={{ scale: 1.05 }}
@@ -638,7 +634,7 @@ export default function StudiusOnetimePage() {
                   transition={{ duration: 0.3 }}
                 >
                   <motion.img
-                    src="/images/studius/Dopo.jpg"
+                    src="/images/studius/Dopo.png"
                     alt="Dopo aver usato StudiusAI"
                     className="w-full h-full object-cover"
                     whileHover={{ scale: 1.05 }}
