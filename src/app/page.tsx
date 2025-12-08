@@ -279,7 +279,7 @@ export default function StudiusOnetimePage() {
               preload="metadata"
               className="w-full h-full object-cover"
             >
-              <source src="/video/vid1.mp4" type="video/mp4" />
+              <source src="https://studius-ai.s3.eu-west-3.amazonaws.com/Vid1.mp4" type="video/mp4" />
               Il tuo browser non supporta i video HTML5.
             </video>
           </motion.div>
