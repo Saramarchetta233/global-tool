@@ -180,43 +180,20 @@ export async function POST(req: NextRequest) {
     // Update user plan type and subscription type for BeCoolPro users (using admin client)
     console.log(`🔄 Updating profile for user ${authenticatedUser.id}: plan_type=${magicLink.plan_type}, subscription_type=one_time`);
     
-    // First, check if profile exists and what columns it has
-    const { data: existingProfile, error: checkError } = await supabaseAdmin
-      .from('profiles')
-      .select('id, user_id, subscription_type, plan_type')
-      .eq('user_id', authenticatedUser.id)
-      .single();
-    
-    console.log(`🔍 Existing profile before update:`, existingProfile);
-    console.log(`🔍 Check error:`, checkError);
-    
-    const { data: updateResult, error: planError } = await supabaseAdmin
+    const { error: planError } = await supabaseAdmin
       .from('profiles')
       .update({ 
         plan_type: magicLink.plan_type,
         subscription_type: 'one_time'
       })
-      .eq('user_id', authenticatedUser.id)
-      .select('id, user_id, subscription_type, plan_type');
+      .eq('user_id', authenticatedUser.id);
 
-    console.log(`📊 Update result:`, updateResult);
     if (planError) {
       console.error('❌ Failed to update plan and subscription type:', planError);
       // Don't fail the request for this, just log the error
     } else {
       console.log(`✅ Updated user plan_type: ${magicLink.plan_type}, subscription_type: one_time`);
-      console.log(`✅ Updated profile data:`, updateResult);
     }
-    
-    // Verify the update worked by reading it back
-    const { data: verifyProfile, error: verifyError } = await supabaseAdmin
-      .from('profiles')
-      .select('subscription_type, plan_type')
-      .eq('user_id', authenticatedUser.id)
-      .single();
-    
-    console.log(`🔍 Profile verification after update:`, verifyProfile);
-    console.log(`🔍 Verify error:`, verifyError);
 
     // Mark magic link as used
     console.log(`🏷️ Marking magic link ${magicLink.id} as used by user ${authenticatedUser.id}`);
