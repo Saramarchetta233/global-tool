@@ -77,10 +77,10 @@ export default function AccediPage() {
           console.log('✅ Magic link claimed successfully from /accedi');
           console.log('📊 Magic claim data:', data);
           
-          // Force update subscription type in context based on magic claim data
-          console.log('🔄 Force updating subscription type to one_time based on magic claim...');
-          updateCredits(data.newBalance);
-          forceUpdateSubscriptionType('one_time');
+          // Update credits context
+          if (updateCredits) {
+            updateCredits(data.newBalance);
+          }
           
           // Also try database refresh as backup
           setTimeout(async () => {
