@@ -9,6 +9,7 @@ const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Forza LIVE per credenzial
 async function getPayPalAccessToken() {
   const auth = Buffer.from(`${PAYPAL_CLIENT_ID}:${PAYPAL_SECRET}`).toString('base64');
   
+  console.log('🔄 Getting PayPal access token...');
   const response = await fetch(`${PAYPAL_BASE_URL}/v1/oauth2/token`, {
     method: 'POST',
     headers: {
@@ -18,7 +19,20 @@ async function getPayPalAccessToken() {
     body: 'grant_type=client_credentials',
   });
 
+  if (!response.ok) {
+    const error = await response.text();
+    console.error('❌ PayPal token request failed:', response.status, error);
+    throw new Error(`PayPal auth failed: ${response.status}`);
+  }
+
   const data = await response.json();
+  console.log('✅ PayPal access token obtained');
+  
+  if (!data.access_token) {
+    console.error('❌ No access token in PayPal response:', data);
+    throw new Error('No access token received from PayPal');
+  }
+  
   return data.access_token;
 }
 
@@ -55,14 +69,17 @@ export async function POST(req: NextRequest) {
           payer_selected: 'PAYPAL',
           payee_preferred: 'IMMEDIATE_PAYMENT_REQUIRED'
         },
-        return_url: `${req.headers.get('origin')}/app?subscription=success`,
-        cancel_url: `${req.headers.get('origin')}/app?subscription=cancelled`
+        return_url: `${req.headers.get('origin') || 'http://localhost:3000'}/app?subscription=success`,
+        cancel_url: `${req.headers.get('origin') || 'http://localhost:3000'}/app?subscription=cancelled`
       },
       subscriber: {
         email_address: undefined // L'utente inserirà l'email su PayPal
       }
     };
 
+    console.log('🔄 Sending subscription request to PayPal...');
+    console.log('Request data:', JSON.stringify(subscriptionData, null, 2));
+    
     const response = await fetch(`${PAYPAL_BASE_URL}/v1/billing/subscriptions`, {
       method: 'POST',
       headers: {
@@ -73,6 +90,9 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(subscriptionData),
     });
+
+    console.log('PayPal Response Status:', response.status);
+    console.log('PayPal Response Headers:', Object.fromEntries(response.headers.entries()));
 
     if (!response.ok) {
       const error = await response.text();
@@ -102,8 +122,13 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('❌ PayPal subscription error:', error);
+    console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     return NextResponse.json(
-      { error: 'Failed to create PayPal subscription' }, 
+      { 
+        error: 'Failed to create PayPal subscription',
+        details: error instanceof Error ? error.message : String(error),
+        timestamp: new Date().toISOString()
+      }, 
       { status: 500 }
     );
   }
