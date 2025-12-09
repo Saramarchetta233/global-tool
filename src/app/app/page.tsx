@@ -1390,8 +1390,6 @@ const StudiusAIV2: React.FC = () => {
       const savedToken = localStorage.getItem('magic_token');
       if (!savedToken) return;
       
-      // Rimuovi SUBITO il token PRIMA di fare la chiamata per evitare doppio claim
-      localStorage.removeItem('magic_token');
       console.log('🔗 Found saved magic link token, attempting to claim...', savedToken.substring(0, 8) + '...');
 
       try {
@@ -1407,6 +1405,8 @@ const StudiusAIV2: React.FC = () => {
         const data = await response.json();
 
         if (response.ok) {
+          localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
+          
           // Success! Credits activated
           console.log('✅ Magic link claimed successfully from app page');
           
@@ -1419,16 +1419,25 @@ const StudiusAIV2: React.FC = () => {
           showSuccess(`🎉 Perfetto! ${data.creditsAdded} crediti attivati sul tuo account!`);
           
           console.log(`💰 Credits added: ${data.creditsAdded}, New balance: ${data.newBalance}`);
+        } else if (response.status === 401) {
+          // Sessione non pronta, NON rimuovere il token, riproverà
+          console.log('⏳ Session not ready, will retry...');
         } else {
-          // Token might be invalid/expired/used
-          console.log('⚠️ Magic link token from storage could not be claimed');
+          // Altri errori, rimuovi il token
+          localStorage.removeItem('magic_token');
+          console.log('❌ Claim failed with status:', response.status);
         }
       } catch (error) {
         console.error('❌ Error claiming saved magic link token:', error);
       }
     };
 
-    claimSavedMagicToken();
+    // Aspetta che la sessione sia stabile
+    const timer = setTimeout(() => {
+      claimSavedMagicToken();
+    }, 1000); // 1 secondo di delay
+    
+    return () => clearTimeout(timer);
   }, [user, token, updateCredits, showSuccess]);
 
   // Load user credits

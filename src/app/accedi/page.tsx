@@ -35,8 +35,6 @@ export default function AccediPage() {
       const savedToken = localStorage.getItem('magic_token');
       if (!savedToken) return;
 
-      // Rimuovi SUBITO il token PRIMA di fare la chiamata per evitare doppio claim
-      localStorage.removeItem('magic_token');
       console.log('🔗 Attempting to claim saved magic link token from /accedi page');
       try {
         const response = await fetch('/api/magic/claim', {
@@ -48,10 +46,9 @@ export default function AccediPage() {
           body: JSON.stringify({ token: savedToken })
         });
 
-        const data = await response.json();
-
         if (response.ok) {
-          // Success! Credits activated
+          const data = await response.json();
+          localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
           setClaimSuccess(true);
           setShowSuccessModal(true); // Mostra il modal
           
@@ -66,13 +63,25 @@ export default function AccediPage() {
           setTimeout(() => {
             router.push('/app');
           }, 3000);
+        } else if (response.status === 401) {
+          // Sessione non pronta, NON rimuovere il token, riproverà
+          console.log('⏳ Session not ready, will retry...');
+        } else {
+          // Altri errori, rimuovi il token
+          localStorage.removeItem('magic_token');
+          console.log('❌ Claim failed with status:', response.status);
         }
       } catch (error) {
-        console.error('Error claiming saved magic link from /accedi:', error);
+        console.error('❌ Claim error:', error);
       }
     };
 
-    claimSavedMagicToken();
+    // Aspetta che la sessione sia stabile
+    const timer = setTimeout(() => {
+      claimSavedMagicToken();
+    }, 1000); // 1 secondo di delay
+    
+    return () => clearTimeout(timer);
   }, [user, claimSuccess, updateCredits, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
