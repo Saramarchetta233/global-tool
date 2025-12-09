@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase';
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
 
 // Supabase Admin client (service role) - ONLY for magic_links table
 const supabaseAdmin = createClient(
@@ -31,6 +32,20 @@ function maskEmail(email: string): string {
 
 export async function POST(req: NextRequest) {
   try {
+    // Create Supabase client with server-side cookies
+    const cookieStore = cookies();
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+        },
+      }
+    );
+    
     // Get user from Supabase session cookies
     const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
     
@@ -51,7 +66,7 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    console.log(`🔗 Claiming magic link for user: ${authenticatedUser.email}`);
+    console.log(`🔗 Claiming magic link for user: ${authenticatedUser.email} (ID: ${authenticatedUser.id})`);
     console.log(`🔑 Token: ${token.substring(0, 8)}...`);
 
     // Look up magic link in database
@@ -63,10 +78,13 @@ export async function POST(req: NextRequest) {
 
     if (error || !magicLink) {
       console.error('❌ Token not found in database:', error);
+      console.log(`🔍 Token attempted: ${token}`);
       return NextResponse.json({ 
         error: 'invalid_token' 
       }, { status: 400 });
     }
+
+    console.log(`✅ Magic link found - Email: ${magicLink.email}, Credits: ${magicLink.credits_to_grant}, Used: ${magicLink.is_used}`);
 
     // Check if already used
     if (magicLink.is_used) {
@@ -103,8 +121,8 @@ export async function POST(req: NextRequest) {
       }, { status: 400 });
     }
 
-    // Get current user profile from profiles table
-    const { data: profile, error: profileError } = await supabase
+    // Get current user profile from profiles table (using admin client)
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('credits, plan_type')
       .eq('user_id', authenticatedUser.id)
@@ -124,8 +142,8 @@ export async function POST(req: NextRequest) {
     console.log(`💰 Adding credits: ${magicLink.credits_to_grant}`);
     console.log(`💰 New total: ${newCredits}`);
 
-    // Add credits using the existing RPC function
-    const { data: creditResult, error: creditError } = await supabase
+    // Add credits using the existing RPC function (using admin client)
+    const { data: creditResult, error: creditError } = await supabaseAdmin
       .rpc('add_credits', {
         p_user_id: authenticatedUser.id,
         p_amount: magicLink.credits_to_grant,
@@ -140,8 +158,10 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Update user plan type and subscription type for BeCoolPro users
-    const { error: planError } = await supabase
+    // Update user plan type and subscription type for BeCoolPro users (using admin client)
+    console.log(`🔄 Updating profile for user ${authenticatedUser.id}: plan_type=${magicLink.plan_type}, subscription_type=one_time`);
+    
+    const { error: planError } = await supabaseAdmin
       .from('profiles')
       .update({ 
         plan_type: magicLink.plan_type,
@@ -157,6 +177,8 @@ export async function POST(req: NextRequest) {
     }
 
     // Mark magic link as used
+    console.log(`🏷️ Marking magic link ${magicLink.id} as used by user ${authenticatedUser.id}`);
+    
     const { error: markUsedError } = await supabaseAdmin
       .from('magic_links')
       .update({
@@ -169,6 +191,8 @@ export async function POST(req: NextRequest) {
     if (markUsedError) {
       console.error('❌ Failed to mark magic link as used:', markUsedError);
       // Don't fail the request for this, just log the error
+    } else {
+      console.log(`✅ Magic link marked as used successfully`);
     }
 
     console.log(`✅ Magic link claimed successfully!`);

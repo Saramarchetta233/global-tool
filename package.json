@@ -21,6 +21,7 @@
     "@paypal/react-paypal-js": "^8.9.2",
     "@shadcn/ui": "^0.0.4",
     "@stripe/stripe-js": "^8.5.3",
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.83.0",
     "@upstash/redis": "^1.35.6",
     "bcryptjs": "^3.0.3",
