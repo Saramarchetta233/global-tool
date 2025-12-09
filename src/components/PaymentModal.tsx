@@ -241,7 +241,9 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                       <PayPalScriptProvider options={{
                         clientId: paypalClientId || 'test',
                         currency: currency,
-                        locale: language === 'it' ? 'it_IT' : language === 'es' ? 'es_ES' : language === 'fr' ? 'fr_FR' : language === 'de' ? 'de_DE' : 'en_US'
+                        locale: language === 'it' ? 'it_IT' : language === 'es' ? 'es_ES' : language === 'fr' ? 'fr_FR' : language === 'de' ? 'de_DE' : 'en_US',
+                        vault: true,
+                        intent: 'subscription'
                       }}>
                         <PayPalButtons
                           style={{ layout: "horizontal", height: 40, label: "subscribe" }}
