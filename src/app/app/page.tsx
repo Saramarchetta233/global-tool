@@ -1321,6 +1321,7 @@ const StudiusAIV2: React.FC = () => {
     current: number;
     costDescription?: string;
   } | null>(null);
+  const [claimSuccess, setClaimSuccess] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -1384,13 +1385,18 @@ const StudiusAIV2: React.FC = () => {
 
   // Check for saved magic link token (from email confirmation flow)
   useEffect(() => {
+    console.log('🔍 Magic token check - user:', !!user, 'token:', !!token);
+    
     const claimSavedMagicToken = async () => {
-      if (!user || !token) return;
+      if (!user || claimSuccess) return;
 
       const savedToken = localStorage.getItem('magic_token');
-      if (!savedToken) return;
+      if (!savedToken) {
+        console.log('📭 No magic token found in localStorage');
+        return;
+      }
       
-      console.log('🔗 Found saved magic link token, attempting to claim...', savedToken.substring(0, 8) + '...');
+      console.log('🔗 Attempting to claim magic token from /app page...', savedToken.substring(0, 8) + '...');
 
       try {
         const response = await fetch('/api/magic/claim', {
@@ -1406,9 +1412,10 @@ const StudiusAIV2: React.FC = () => {
 
         if (response.ok) {
           localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
+          setClaimSuccess(true); // Imposta il successo
           
           // Success! Credits activated
-          console.log('✅ Magic link claimed successfully from app page');
+          console.log('✅ Magic link claimed successfully from /app page:', data);
           
           // Update credits context
           if (updateCredits) {
@@ -1438,7 +1445,7 @@ const StudiusAIV2: React.FC = () => {
     }, 1000); // 1 secondo di delay
     
     return () => clearTimeout(timer);
-  }, [user, token, updateCredits, showSuccess]);
+  }, [user, claimSuccess, updateCredits, showSuccess]);
 
   // Load user credits
   useEffect(() => {
