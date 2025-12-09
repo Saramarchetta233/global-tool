@@ -474,8 +474,9 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({ isOpen, onClose }
                       <PayPalScriptProvider 
                         options={{
                           "client-id": process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID || '',
-                          currency: currency || 'EUR'
-                          // Nessun intent specifico - PayPal gestisce automaticamente
+                          currency: currency || 'EUR',
+                          vault: true,
+                          intent: 'subscription'
                         }}
                       >
                         {selectedPlan === 'monthly' ? (
