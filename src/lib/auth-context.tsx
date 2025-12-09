@@ -23,7 +23,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
-  register: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, redirectTo?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateCredits: (newCredits: number) => void;
   refreshCredits: () => Promise<void>;
@@ -259,13 +259,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  const register = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, password: string, redirectTo?: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: 'https://studius.becoolpro.com/accedi'
+          emailRedirectTo: redirectTo || 'https://studius.becoolpro.com/accedi'
         }
       });
 
@@ -309,7 +309,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const logout = async () => {
     try {
       await supabase.auth.signOut();
-      // User will be cleared via the auth state change listener
+      // Redirect to /accedi after logout
+      window.location.href = '/accedi';
     } catch (error) {
       console.error('Logout error:', error);
     }

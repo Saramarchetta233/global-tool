@@ -1398,8 +1398,7 @@ const StudiusAIV2: React.FC = () => {
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
           },
           credentials: 'include',  // Include cookies for authentication
           body: JSON.stringify({ token: savedToken })

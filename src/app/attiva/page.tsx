@@ -181,7 +181,7 @@ function AttivaContent() {
 
       const result = isLogin 
         ? await login(email, password)
-        : await register(email, password);
+        : await register(email, password, 'https://studius.becoolpro.com/accedi');
 
       if (result.success) {
         // Clear any previous errors

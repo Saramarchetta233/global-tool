@@ -18,6 +18,7 @@ export default function AccediPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // If user is already logged in, redirect to app
   useEffect(() => {
@@ -41,8 +42,7 @@ export default function AccediPage() {
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Content-Type': 'application/json'
           },
           credentials: 'include',
           body: JSON.stringify({ token: savedToken })
@@ -53,6 +53,7 @@ export default function AccediPage() {
         if (response.ok) {
           // Success! Credits activated
           setClaimSuccess(true);
+          setShowSuccessModal(true); // Mostra il modal
           
           console.log('✅ Magic link claimed successfully from /accedi');
           
@@ -61,7 +62,7 @@ export default function AccediPage() {
             updateCredits(data.newBalance);
           }
 
-          // Show success and redirect after 3 seconds
+          // Redirect dopo 3 secondi
           setTimeout(() => {
             router.push('/app');
           }, 3000);
@@ -136,29 +137,63 @@ export default function AccediPage() {
     );
   }
 
-  // Show success if magic link was claimed
-  if (claimSuccess) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
-        <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-green-500/30 p-8 max-w-md w-full text-center">
-          <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-white mb-4">Perfetto! 🎉</h2>
-          <p className="text-gray-300 mb-6">
-            4000 crediti attivati sul tuo account!
-          </p>
-          <div className="animate-pulse">
-            <p className="text-purple-300 text-sm">Reindirizzamento all'app...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Glow effect */}
-        <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl" />
+    <>
+      {/* Style for progress animation */}
+      <style jsx>{`
+        @keyframes fillProgress {
+          from {
+            width: 0%;
+          }
+          to {
+            width: 100%;
+          }
+        }
+      `}</style>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-green-500/30 p-8 max-w-md w-full text-center animate-in fade-in zoom-in duration-300">
+            <div className="relative">
+              {/* Success icon with animation */}
+              <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6 animate-in zoom-in duration-500">
+                <CheckCircle className="w-12 h-12 text-green-400" />
+              </div>
+              
+              <h2 className="text-3xl font-bold text-white mb-4">Account attivato! 🎉</h2>
+              <p className="text-gray-300 text-lg mb-6">
+                I tuoi <span className="font-bold text-green-400">4000 crediti</span> sono stati attivati.
+              </p>
+              
+              <div className="space-y-4">
+                <p className="text-gray-400">Stai per essere reindirizzato...</p>
+                
+                {/* Progress bar */}
+                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-green-400 to-green-600 rounded-full transition-all duration-[3000ms] ease-out"
+                    style={{
+                      width: '0%',
+                      animation: 'fillProgress 3s ease-out forwards',
+                    }}
+                  />
+                </div>
+                
+                {/* Loading spinner */}
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-400 border-t-transparent" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl" />
         
         <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8">
           {/* Header */}
@@ -329,5 +364,6 @@ export default function AccediPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }
