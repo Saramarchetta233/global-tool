@@ -34,6 +34,8 @@ export default function AccediPage() {
       const savedToken = localStorage.getItem('magic_token');
       if (!savedToken) return;
 
+      // Rimuovi SUBITO il token PRIMA di fare la chiamata per evitare doppio claim
+      localStorage.removeItem('magic_token');
       console.log('🔗 Attempting to claim saved magic link token from /accedi page');
       try {
         const response = await fetch('/api/magic/claim', {
@@ -52,9 +54,7 @@ export default function AccediPage() {
           // Success! Credits activated
           setClaimSuccess(true);
           
-          // Clean up saved token
-          localStorage.removeItem('magic_token');
-          console.log('✅ Magic link claimed successfully from /accedi, token removed from storage');
+          console.log('✅ Magic link claimed successfully from /accedi');
           
           // Update credits context
           if (updateCredits) {

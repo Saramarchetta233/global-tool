@@ -1389,7 +1389,9 @@ const StudiusAIV2: React.FC = () => {
 
       const savedToken = localStorage.getItem('magic_token');
       if (!savedToken) return;
-
+      
+      // Rimuovi SUBITO il token PRIMA di fare la chiamata per evitare doppio claim
+      localStorage.removeItem('magic_token');
       console.log('🔗 Found saved magic link token, attempting to claim...', savedToken.substring(0, 8) + '...');
 
       try {
@@ -1407,8 +1409,7 @@ const StudiusAIV2: React.FC = () => {
 
         if (response.ok) {
           // Success! Credits activated
-          localStorage.removeItem('magic_token');
-          console.log('✅ Magic link claimed successfully from app page, token removed from storage');
+          console.log('✅ Magic link claimed successfully from app page');
           
           // Update credits context
           if (updateCredits) {
@@ -1420,14 +1421,11 @@ const StudiusAIV2: React.FC = () => {
           
           console.log(`💰 Credits added: ${data.creditsAdded}, New balance: ${data.newBalance}`);
         } else {
-          // Token might be invalid/expired/used - clean up quietly
-          localStorage.removeItem('magic_token');
-          console.log('⚠️ Magic link token from storage could not be claimed, cleaned up');
+          // Token might be invalid/expired/used
+          console.log('⚠️ Magic link token from storage could not be claimed');
         }
       } catch (error) {
         console.error('❌ Error claiming saved magic link token:', error);
-        // Clean up on error
-        localStorage.removeItem('magic_token');
       }
     };
 
