@@ -22,12 +22,16 @@ export default function AccediPage() {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [claimAttempted, setClaimAttempted] = useState(false);
 
-  // If user is already logged in, redirect to app
+  // If user is already logged in, redirect to app (unless processing magic token)
   useEffect(() => {
     if (!isLoading && user) {
-      router.replace('/app');
+      // Don't redirect if we have a magic token to process or we're showing success modal
+      const hasMagicToken = localStorage.getItem('magic_token');
+      if (!hasMagicToken && !showSuccessModal && !claimAttempted) {
+        router.replace('/app');
+      }
     }
-  }, [user, isLoading, router]);
+  }, [user, isLoading, router, showSuccessModal, claimAttempted]);
 
   // Try to claim magic link from localStorage after login
   useEffect(() => {
@@ -71,11 +75,18 @@ export default function AccediPage() {
           setShowSuccessModal(true); // Mostra il modal
           
           console.log('✅ Magic link claimed successfully from /accedi');
+          console.log('📊 Magic claim data:', data);
           
-          // Refresh entire profile to sync subscription_type and credits
-          if (refreshProfile) {
-            await refreshProfile();
-          }
+          // Wait a moment for database to commit changes, then refresh profile
+          setTimeout(async () => {
+            if (refreshProfile) {
+              console.log('🔄 Refreshing profile to sync subscription_type...');
+              await refreshProfile();
+              console.log('✅ Profile refreshed, new user data should now include subscription_type');
+            } else {
+              console.error('❌ refreshProfile function not available');
+            }
+          }, 1000); // Wait 1 second for DB commit
 
           // Redirect dopo 3 secondi
           setTimeout(() => {
@@ -173,7 +184,10 @@ export default function AccediPage() {
       `}</style>
 
       {/* Success Modal */}
-      {showSuccessModal && (
+      {showSuccessModal && (() => {
+        console.log('🎉 Success modal is being rendered');
+        return true;
+      })() && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-green-500/30 p-8 max-w-md w-full text-center animate-in fade-in zoom-in duration-300">
             <div className="relative">
