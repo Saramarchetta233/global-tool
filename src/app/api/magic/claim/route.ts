@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { supabase } from '@/lib/supabase';
 
 // Supabase Admin client (service role) - ONLY for magic_links table
 const supabaseAdmin = createClient(
@@ -32,22 +33,40 @@ function maskEmail(email: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    // Create Supabase client with server-side cookies
-    const cookieStore = cookies();
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-        },
-      }
-    );
+    // First try Authorization header (standard approach)
+    const authHeader = req.headers.get('authorization');
+    let authenticatedUser = null;
+    let authError = null;
     
-    // Get user from Supabase session cookies
-    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      const token = authHeader.substring(7);
+      console.log('🔑 Using Authorization header for authentication');
+      
+      // Use standard supabase client with token
+      const { data: { user }, error } = await supabase.auth.getUser(token);
+      authenticatedUser = user;
+      authError = error;
+    } else {
+      console.log('🍪 Falling back to cookie-based authentication');
+      
+      // Fallback to cookie-based authentication
+      const cookieStore = cookies();
+      const supabaseSSR = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          cookies: {
+            get(name: string) {
+              return cookieStore.get(name)?.value;
+            },
+          },
+        }
+      );
+      
+      const { data: { user }, error } = await supabaseSSR.auth.getUser();
+      authenticatedUser = user;
+      authError = error;
+    }
     
     if (!authenticatedUser || authError) {
       console.error('❌ User not authenticated for magic link claim:', authError);

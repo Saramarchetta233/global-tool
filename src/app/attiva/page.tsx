@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useState, Suspense } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 // Loading fallback component
 function LoadingFallback() {
@@ -102,11 +103,21 @@ function AttivaContent() {
 
       console.log('🔗 Attempting to claim magic link token:', tokenToUse.substring(0, 8) + '...');
       try {
+        // Get current session token for API authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        const authToken = session?.access_token;
+        
+        if (!authToken) {
+          console.error('❌ No auth token available for magic link claim');
+          localStorage.removeItem('magic_token');
+          return;
+        }
+        
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`
+            'Authorization': `Bearer ${authToken}`
           },
           credentials: 'include',  // Include cookies for authentication
           body: JSON.stringify({ token: tokenToUse })

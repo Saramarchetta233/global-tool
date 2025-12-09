@@ -5,6 +5,7 @@ import React, { useEffect,useRef, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
 import { convertResultsToHistory, getStudySession,saveStudySession } from '@/lib/study-history';
+import { supabase } from '@/lib/supabase';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/useToast';
 
@@ -1401,10 +1402,21 @@ const StudiusAIV2: React.FC = () => {
       console.log('🔗 Attempting to claim magic token (one time only)');
 
       try {
+        // Get current session token for API authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        const authToken = session?.access_token;
+        
+        if (!authToken) {
+          console.error('❌ No auth token available for magic link claim');
+          localStorage.removeItem('magic_token');
+          return;
+        }
+        
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
           },
           credentials: 'include',  // Include cookies for authentication
           body: JSON.stringify({ token: savedToken })

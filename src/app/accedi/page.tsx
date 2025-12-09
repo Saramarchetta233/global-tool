@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 export default function AccediPage() {
   const router = useRouter();
@@ -43,10 +44,21 @@ export default function AccediPage() {
     const claimSavedMagicToken = async () => {
       console.log('🔗 Attempting to claim magic token from /accedi (one time only)');
       try {
+        // Get current session token for API authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        const authToken = session?.access_token;
+        
+        if (!authToken) {
+          console.error('❌ No auth token available for magic link claim');
+          localStorage.removeItem('magic_token');
+          return;
+        }
+        
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
           },
           credentials: 'include',
           body: JSON.stringify({ token: savedToken })
