@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function AccediPage() {
   const router = useRouter();
-  const { user, login, register, isLoading, updateCredits } = useAuth();
+  const { user, login, register, isLoading, updateCredits, refreshProfile } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -72,9 +72,9 @@ export default function AccediPage() {
           
           console.log('✅ Magic link claimed successfully from /accedi');
           
-          // Update credits context
-          if (updateCredits) {
-            updateCredits(data.newBalance);
+          // Refresh entire profile to sync subscription_type and credits
+          if (refreshProfile) {
+            await refreshProfile();
           }
 
           // Redirect dopo 3 secondi

@@ -1323,7 +1323,6 @@ const StudiusAIV2: React.FC = () => {
     costDescription?: string;
   } | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
-  const [claimAttempted, setClaimAttempted] = useState(false);
   const [creditsLoaded, setCreditsLoaded] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
@@ -1386,70 +1385,7 @@ const StudiusAIV2: React.FC = () => {
     }
   }, [loading]);
 
-  // Check for saved magic link token (from email confirmation flow)
-  useEffect(() => {
-    // Se già tentato, esci subito
-    if (claimAttempted) return;
-    if (!user) return;
-    
-    const savedToken = localStorage.getItem('magic_token');
-    if (!savedToken) return;
-    
-    // Marca come tentato SUBITO per evitare loop
-    setClaimAttempted(true);
-    
-    const claimSavedMagicToken = async () => {
-      console.log('🔗 Attempting to claim magic token (one time only)');
-
-      try {
-        // Get current session token for API authentication
-        const { data: { session } } = await supabase.auth.getSession();
-        const authToken = session?.access_token;
-        
-        if (!authToken) {
-          console.error('❌ No auth token available for magic link claim');
-          localStorage.removeItem('magic_token');
-          return;
-        }
-        
-        const response = await fetch('/api/magic/claim', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          credentials: 'include',  // Include cookies for authentication
-          body: JSON.stringify({ token: savedToken })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.removeItem('magic_token');
-          console.log('✅ Claim success:', data);
-          
-          // Update credits context
-          if (updateCredits) {
-            updateCredits(data.newBalance);
-          }
-          
-          setUserCredits(data.newBalance); // Aggiorna anche i crediti locali
-          setCreditsLoaded(true); // Evita reload automatico
-
-          // Show success toast
-          showSuccess(`🎉 Perfetto! ${data.creditsAdded} crediti attivati sul tuo account!`);
-        } else {
-          console.log('❌ Claim failed with status:', response.status);
-          // Rimuovi token comunque per evitare loop
-          localStorage.removeItem('magic_token');
-        }
-      } catch (error) {
-        console.error('❌ Claim error:', error);
-        localStorage.removeItem('magic_token');
-      }
-    };
-
-    setTimeout(claimSavedMagicToken, 1500);
-  }, [user, claimAttempted]);
+  // Magic claim is now handled exclusively in /accedi page
 
   // Load user credits (only once)
   useEffect(() => {
