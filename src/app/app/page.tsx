@@ -1323,6 +1323,7 @@ const StudiusAIV2: React.FC = () => {
   } | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [claimAttempted, setClaimAttempted] = useState(false);
+  const [creditsLoaded, setCreditsLoaded] = useState(false);
   const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -1418,6 +1419,9 @@ const StudiusAIV2: React.FC = () => {
           if (updateCredits) {
             updateCredits(data.newBalance);
           }
+          
+          setUserCredits(data.newBalance); // Aggiorna anche i crediti locali
+          setCreditsLoaded(true); // Evita reload automatico
 
           // Show success toast
           showSuccess(`🎉 Perfetto! ${data.creditsAdded} crediti attivati sul tuo account!`);
@@ -1435,10 +1439,10 @@ const StudiusAIV2: React.FC = () => {
     setTimeout(claimSavedMagicToken, 1500);
   }, [user, claimAttempted]);
 
-  // Load user credits
+  // Load user credits (only once)
   useEffect(() => {
     const loadUserCredits = async () => {
-      if (!user?.id) return;
+      if (!user?.id || creditsLoaded) return;
 
       try {
         // Prima prova a prendere i crediti attuali
@@ -1450,6 +1454,7 @@ const StudiusAIV2: React.FC = () => {
           setUserCredits(credits);
           // Sincronizza anche l'auth context - FORZA l'aggiornamento
           updateCredits(credits);
+          setCreditsLoaded(true); // Marca come caricato
           console.log(`✅ Credits loaded and synchronized: ${credits}`);
         }
       } catch (error) {
@@ -1461,7 +1466,7 @@ const StudiusAIV2: React.FC = () => {
     };
 
     loadUserCredits();
-  }, [user, updateCredits, refreshCredits]);
+  }, [user, creditsLoaded]);
 
   // Gestione parametri URL per ricariche Stripe e subscription PayPal
   useEffect(() => {

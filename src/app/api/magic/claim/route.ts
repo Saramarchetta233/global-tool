@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { verifyAuth } from '@/lib/middleware';
 import { supabase } from '@/lib/supabase';
 
 // Supabase Admin client (service role) - ONLY for magic_links table
@@ -32,12 +31,11 @@ function maskEmail(email: string): string {
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify user authentication using existing verifyAuth function
-    let authenticatedUser;
-    try {
-      authenticatedUser = await verifyAuth(req);
-    } catch (error) {
-      console.error('❌ User not authenticated for magic link claim');
+    // Get user from Supabase session cookies
+    const { data: { user: authenticatedUser }, error: authError } = await supabase.auth.getUser();
+    
+    if (!authenticatedUser || authError) {
+      console.error('❌ User not authenticated for magic link claim:', authError);
       return NextResponse.json({ 
         error: 'not_authenticated' 
       }, { status: 401 });
