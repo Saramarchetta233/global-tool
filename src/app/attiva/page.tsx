@@ -2,11 +2,24 @@
 
 import { Eye, EyeOff, Loader2, Mail, Lock, Crown, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, Suspense } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
 
-export default function AttivaPage() {
+// Loading fallback component
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-400 border-t-transparent mx-auto mb-4"></div>
+        <p className="text-white">Caricamento...</p>
+      </div>
+    </div>
+  );
+}
+
+// Main content component that uses useSearchParams
+function AttivaContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, register, login, updateCredits } = useAuth();
@@ -375,5 +388,14 @@ export default function AttivaPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component wrapped in Suspense
+export default function AttivaPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AttivaContent />
+    </Suspense>
   );
 }
