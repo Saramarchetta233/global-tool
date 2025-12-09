@@ -9,7 +9,7 @@ import { supabase } from '@/lib/supabase';
 
 export default function AccediPage() {
   const router = useRouter();
-  const { user, login, register, isLoading, updateCredits, refreshProfile } = useAuth();
+  const { user, login, register, isLoading, updateCredits, refreshProfile, forceUpdateSubscriptionType } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -77,16 +77,19 @@ export default function AccediPage() {
           console.log('✅ Magic link claimed successfully from /accedi');
           console.log('📊 Magic claim data:', data);
           
-          // Wait a moment for database to commit changes, then refresh profile
+          // Force update subscription type in context based on magic claim data
+          console.log('🔄 Force updating subscription type to one_time based on magic claim...');
+          updateCredits(data.newBalance);
+          forceUpdateSubscriptionType('one_time');
+          
+          // Also try database refresh as backup
           setTimeout(async () => {
             if (refreshProfile) {
-              console.log('🔄 Refreshing profile to sync subscription_type...');
+              console.log('🔄 Refreshing profile to sync from database...');
               await refreshProfile();
-              console.log('✅ Profile refreshed, new user data should now include subscription_type');
-            } else {
-              console.error('❌ refreshProfile function not available');
+              console.log('✅ Profile refreshed from database');
             }
-          }, 1000); // Wait 1 second for DB commit
+          }, 1000);
 
           // Redirect dopo 3 secondi
           setTimeout(() => {
