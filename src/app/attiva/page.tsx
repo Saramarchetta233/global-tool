@@ -58,7 +58,9 @@ function AttivaContent() {
 
     const previewMagicLink = async () => {
       try {
-        const response = await fetch(`/api/magic/preview?token=${token}`);
+        const response = await fetch(`/api/magic/preview?token=${token}`, {
+          credentials: 'include'  // Include cookies for authentication
+        });
         const data = await response.json();
 
         if (!response.ok) {
@@ -105,6 +107,7 @@ function AttivaContent() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
+          credentials: 'include',  // Include cookies for authentication
           body: JSON.stringify({ token: tokenToUse })
         });
 

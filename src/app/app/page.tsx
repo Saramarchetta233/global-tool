@@ -1399,6 +1399,7 @@ const StudiusAIV2: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
+          credentials: 'include',  // Include cookies for authentication
           body: JSON.stringify({ token: savedToken })
         });
 
