@@ -457,6 +457,8 @@ function AttivaContent() {
           <div className="mt-6 text-center text-xs text-gray-400">
             🔒 I tuoi dati sono al sicuro con crittografia SSL
           </div>
+            </>
+          )}
         </div>
       </div>
     </div>
