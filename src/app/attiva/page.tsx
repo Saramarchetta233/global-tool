@@ -38,6 +38,7 @@ function AttivaContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [formLoading, setFormLoading] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [registrationSuccess, setRegistrationSuccess] = useState(false);
 
   // Get token from URL on mount
   useEffect(() => {
@@ -183,10 +184,28 @@ function AttivaContent() {
         : await register(email, password);
 
       if (result.success) {
-        // Authentication successful - the useEffect above will handle claiming
+        // Clear any previous errors
         setFormError(null);
+        
+        if (isLogin) {
+          // Login successful - the useEffect above will handle claiming
+          console.log('✅ Login successful, magic link claim will be handled automatically');
+        } else {
+          // Registration successful - show success message
+          setRegistrationSuccess(true);
+          console.log('✅ Registration successful, email confirmation required');
+        }
       } else {
-        setFormError(result.error || 'Errore durante l\'autenticazione');
+        // Handle specific error messages
+        let errorMessage = result.error || 'Errore durante l\'autenticazione';
+        
+        // Show user-friendly error messages
+        if (errorMessage.includes('confirm your email')) {
+          setRegistrationSuccess(true);
+          setFormError(null);
+        } else {
+          setFormError(errorMessage);
+        }
       }
     } catch (error) {
       setFormError('Errore di connessione. Riprova più tardi.');
@@ -261,8 +280,43 @@ function AttivaContent() {
         <div className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-blue-600/20 rounded-3xl blur-xl" />
         
         <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl border border-white/20 shadow-2xl p-8">
-          {/* Header */}
-          <div className="text-center mb-6">
+          {registrationSuccess ? (
+            // Registration Success View
+            <div className="text-center">
+              <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-6" />
+              <h2 className="text-2xl font-bold text-white mb-4">Registrazione completata!</h2>
+              <p className="text-gray-300 mb-6">
+                ✅ Controlla la tua email per confermare l'account.
+              </p>
+              <div className="bg-blue-500/20 border border-blue-500/30 rounded-lg p-4 mb-6">
+                <p className="text-blue-200 text-sm">
+                  📧 Dopo aver confermato l'email, torna su StudiusAI per attivare i tuoi 4000 crediti
+                </p>
+              </div>
+              <div className="space-y-3">
+                <button
+                  onClick={() => router.push('/accedi')}
+                  className="w-full bg-gradient-to-r from-purple-500 to-blue-500 text-white font-medium py-3 px-6 rounded-xl hover:from-purple-600 hover:to-blue-600 transition-all"
+                >
+                  Vai alla pagina di accesso
+                </button>
+                <button
+                  onClick={() => {
+                    setRegistrationSuccess(false);
+                    setFormError(null);
+                    setPassword('');
+                    setConfirmPassword('');
+                  }}
+                  className="w-full bg-transparent border border-white/20 text-gray-300 font-medium py-3 px-6 rounded-xl hover:bg-white/5 transition-all"
+                >
+                  Torna al modulo
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Header */}
+              <div className="text-center mb-6">
             <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <Crown className="w-8 h-8 text-white" />
             </div>
@@ -389,7 +443,7 @@ function AttivaContent() {
               {formLoading ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  {isLogin ? 'Accesso...' : 'Registrazione...'}
+                  {isLogin ? 'Accesso in corso...' : 'Registrazione in corso...'}
                 </>
               ) : (
                 <>

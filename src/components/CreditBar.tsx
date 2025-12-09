@@ -1,6 +1,7 @@
 'use client';
 
 import { Coins, Info,LogOut, Plus, User } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
@@ -11,6 +12,7 @@ interface CreditBarProps {
 }
 
 const CreditBar: React.FC<CreditBarProps> = ({ onPurchaseCredits, credits }) => {
+  const router = useRouter();
   const { user, logout } = useAuth();
   const [showUserMenu, setShowUserMenu] = useState(false);
   
@@ -105,6 +107,7 @@ const CreditBar: React.FC<CreditBarProps> = ({ onPurchaseCredits, credits }) => 
                         onClick={() => {
                           setShowUserMenu(false);
                           logout();
+                          router.push('/accedi');
                         }}
                         className="w-full flex items-center gap-3 px-3 py-2 text-gray-300 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all text-left"
                       >

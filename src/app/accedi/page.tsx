@@ -1,6 +1,6 @@
 'use client';
 
-import { Eye, EyeOff, Loader2, Mail, Lock, User, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, AlertCircle, CheckCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
@@ -8,7 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 
 export default function AccediPage() {
   const router = useRouter();
-  const { user, login, register, isLoading } = useAuth();
+  const { user, login, register, isLoading, updateCredits } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -17,6 +17,7 @@ export default function AccediPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [claimSuccess, setClaimSuccess] = useState(false);
 
   // If user is already logged in, redirect to app
   useEffect(() => {
@@ -24,6 +25,54 @@ export default function AccediPage() {
       router.replace('/app');
     }
   }, [user, isLoading, router]);
+
+  // Try to claim magic link from localStorage after login
+  useEffect(() => {
+    if (!user || claimSuccess) return;
+
+    const claimSavedMagicToken = async () => {
+      const savedToken = localStorage.getItem('magic_token');
+      if (!savedToken) return;
+
+      console.log('🔗 Attempting to claim saved magic link token from /accedi page');
+      try {
+        const response = await fetch('/api/magic/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({ token: savedToken })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Success! Credits activated
+          setClaimSuccess(true);
+          
+          // Clean up saved token
+          localStorage.removeItem('magic_token');
+          console.log('✅ Magic link claimed successfully from /accedi, token removed from storage');
+          
+          // Update credits context
+          if (updateCredits) {
+            updateCredits(data.newBalance);
+          }
+
+          // Show success and redirect after 3 seconds
+          setTimeout(() => {
+            router.push('/app');
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Error claiming saved magic link from /accedi:', error);
+      }
+    };
+
+    claimSavedMagicToken();
+  }, [user, claimSuccess, updateCredits, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,6 +131,24 @@ export default function AccediPage() {
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-2 border-purple-400 border-t-transparent mx-auto mb-4"></div>
           <p className="text-white">Caricamento...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show success if magic link was claimed
+  if (claimSuccess) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900 flex items-center justify-center p-4">
+        <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-green-500/30 p-8 max-w-md w-full text-center">
+          <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-4" />
+          <h2 className="text-2xl font-bold text-white mb-4">Perfetto! 🎉</h2>
+          <p className="text-gray-300 mb-6">
+            4000 crediti attivati sul tuo account!
+          </p>
+          <div className="animate-pulse">
+            <p className="text-purple-300 text-sm">Reindirizzamento all'app...</p>
+          </div>
         </div>
       </div>
     );

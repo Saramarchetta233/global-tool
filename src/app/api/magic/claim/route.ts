@@ -142,17 +142,20 @@ export async function POST(req: NextRequest) {
       }, { status: 500 });
     }
 
-    // Update user plan type to one_time (if not already set)
+    // Update user plan type and subscription type for BeCoolPro users
     const { error: planError } = await supabase
       .from('profiles')
       .update({ 
-        plan_type: magicLink.plan_type 
+        plan_type: magicLink.plan_type,
+        subscription_type: 'one_time'
       })
       .eq('user_id', authenticatedUser.id);
 
     if (planError) {
-      console.error('❌ Failed to update plan type:', planError);
+      console.error('❌ Failed to update plan and subscription type:', planError);
       // Don't fail the request for this, just log the error
+    } else {
+      console.log(`✅ Updated user plan_type: ${magicLink.plan_type}, subscription_type: one_time`);
     }
 
     // Mark magic link as used
