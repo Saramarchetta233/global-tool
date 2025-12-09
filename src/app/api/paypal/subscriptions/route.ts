@@ -26,14 +26,10 @@ export async function POST(req: NextRequest) {
   try {
     const { userId } = await req.json();
     
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Missing userId' }, 
-        { status: 400 }
-      );
-    }
+    // Generate temporary userId if not provided (for homepage purchases)
+    const finalUserId = userId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    console.log(`🔄 Creating PayPal subscription for user: ${userId}`);
+    console.log(`🔄 Creating PayPal subscription for user: ${finalUserId}`);
     console.log(`🔧 PayPal Config:`, {
       clientId: PAYPAL_CLIENT_ID ? `${PAYPAL_CLIENT_ID.substring(0, 10)}...` : 'MISSING',
       planId: PAYPAL_MONTHLY_PLAN_ID,
@@ -49,7 +45,7 @@ export async function POST(req: NextRequest) {
     // Create subscription
     const subscriptionData = {
       plan_id: PAYPAL_MONTHLY_PLAN_ID,
-      custom_id: userId, // Importante: usiamo questo per identificare l'utente nei webhook
+      custom_id: finalUserId, // Importante: usiamo questo per identificare l'utente nei webhook
       application_context: {
         brand_name: 'StudiusAI',
         locale: 'it-IT',
@@ -72,7 +68,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'PayPal-Request-Id': `sub-${userId}-${Date.now()}`,
+        'PayPal-Request-Id': `sub-${finalUserId}-${Date.now()}`,
         'Prefer': 'return=representation'
       },
       body: JSON.stringify(subscriptionData),
@@ -100,7 +96,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ 
-      subscriptionId: subscription.id
+      subscriptionId: subscription.id,
+      approvalUrl: approveLink.href
     });
 
   } catch (error) {

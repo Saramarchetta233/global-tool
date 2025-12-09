@@ -40,12 +40,15 @@ export async function POST(req: NextRequest) {
 
     const { planType, userId, countryCode, version = '1' } = await req.json();
     
-    if (!planType || !userId) {
+    if (!planType) {
       return NextResponse.json(
-        { error: 'Missing required fields' }, 
+        { error: 'Missing planType' }, 
         { status: 400 }
       );
     }
+    
+    // Generate temporary userId if not provided (for homepage purchases)
+    const finalUserId = userId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Get currency and price
     const currency = getCurrencyFromCountry(countryCode || 'DEFAULT');
@@ -66,7 +69,7 @@ export async function POST(req: NextRequest) {
             value: priceInfo.amount.toString(),
           },
           description: `StudiusAI ${planType === 'monthly' ? 'Monthly Plan' : planType === 'lifetime' ? 'Lifetime Access' : 'Credits Package'}`,
-          custom_id: `${userId}_${planType}_${version}`, // Store metadata
+          custom_id: `${finalUserId}_${planType}_${version}`, // Store metadata
         },
       ],
       payment_source: {
@@ -87,7 +90,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'PayPal-Request-Id': `${userId}-${Date.now()}`, // Idempotency
+        'PayPal-Request-Id': `${finalUserId}-${Date.now()}`, // Idempotency
       },
       body: JSON.stringify(orderData),
     });

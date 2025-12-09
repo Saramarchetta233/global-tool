@@ -11,12 +11,15 @@ export async function POST(req: NextRequest) {
   try {
     const { planType, userId, countryCode, version = '1' } = await req.json();
     
-    if (!planType || !userId) {
+    if (!planType) {
       return NextResponse.json(
-        { error: 'Missing required fields' }, 
+        { error: 'Missing planType' }, 
         { status: 400 }
       );
     }
+    
+    // Generate temporary userId if not provided (for homepage purchases)
+    const finalUserId = userId || `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Determine currency from country
     const currency = getCurrencyFromCountry(countryCode || 'DEFAULT');
@@ -51,9 +54,9 @@ export async function POST(req: NextRequest) {
       cancel_url: version === '2' 
         ? `${req.headers.get('origin')}/studius-onetime`
         : `${req.headers.get('origin')}/pricing`,
-      client_reference_id: userId,
+      client_reference_id: finalUserId,
       metadata: {
-        userId,
+        userId: finalUserId,
         planType,
         currency,
         version,

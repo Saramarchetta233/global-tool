@@ -67,6 +67,13 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
   const handleStripePayment = async (selectedPlanType: PlanType) => {
     setLoading(true);
     
+    console.log('handleStripePayment called with:', {
+      selectedPlanType,
+      userId,
+      currency,
+      version
+    });
+    
     try {
       const response = await fetch('/api/stripe/checkout', {
         method: 'POST',
@@ -81,10 +88,19 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
         }),
       });
 
-      const { url } = await response.json();
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Stripe API error:', errorData);
+        throw new Error(errorData.error || 'API request failed');
+      }
+
+      const data = await response.json();
+      console.log('Stripe API response:', data);
       
-      if (url) {
-        window.location.href = url;
+      if (data.url) {
+        window.location.href = data.url;
+      } else if (data.error) {
+        throw new Error(data.error);
       } else {
         throw new Error('No checkout URL received');
       }
@@ -438,7 +454,7 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                 <div className="mb-4">
                   {paymentMethod === 'stripe' ? (
                     <button
-                      onClick={() => handleStripePayment('onetime')}
+                      onClick={() => handleStripePayment(planType || 'onetime')}
                       disabled={loading}
                       className="w-full bg-gradient-to-r from-green-400 to-green-500 hover:from-green-500 hover:to-green-600 text-white font-bold py-4 px-6 rounded-xl text-base sm:text-lg transition-all transform hover:scale-105 shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
@@ -477,7 +493,7 @@ export function PaymentModal({ isOpen, onClose, userId, version = '1', planType 
                                   'Content-Type': 'application/json',
                                 },
                                 body: JSON.stringify({
-                                  planType: 'onetime',
+                                  planType: planType || 'onetime',
                                   userId,
                                   countryCode: currency === 'EUR' ? 'IT' : currency === 'USD' ? 'US' : currency === 'GBP' ? 'GB' : currency === 'CAD' ? 'CA' : 'AU',
                                   version
