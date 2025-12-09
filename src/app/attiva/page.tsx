@@ -88,11 +88,16 @@ function AttivaContent() {
     previewMagicLink();
   }, [token]);
 
-  // If user is logged in, try to claim the magic link automatically
+  // If user is logged in, try to claim the magic link automatically (from URL or localStorage)
   useEffect(() => {
-    if (!token || !user || !magicLinkData || claimSuccess) return;
+    if (!user || claimSuccess) return;
 
     const claimMagicLink = async () => {
+      // First try token from URL, then from localStorage
+      const tokenToUse = token || localStorage.getItem('magic_token');
+      if (!tokenToUse) return;
+
+      console.log('🔗 Attempting to claim magic link token:', tokenToUse.substring(0, 8) + '...');
       try {
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
@@ -100,7 +105,7 @@ function AttivaContent() {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           },
-          body: JSON.stringify({ token })
+          body: JSON.stringify({ token: tokenToUse })
         });
 
         const data = await response.json();
@@ -122,6 +127,10 @@ function AttivaContent() {
 
         // Success! Credits activated
         setClaimSuccess(true);
+        
+        // Clean up saved token
+        localStorage.removeItem('magic_token');
+        console.log('✅ Magic link claimed successfully, token removed from storage');
         
         // Update credits context
         if (updateCredits) {
@@ -146,7 +155,7 @@ function AttivaContent() {
     };
 
     claimMagicLink();
-  }, [token, user, magicLinkData, claimSuccess, updateCredits, router]);
+  }, [token, user, claimSuccess, updateCredits, router]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +169,12 @@ function AttivaContent() {
     }
 
     try {
+      // Save token to localStorage BEFORE authentication (in case of email confirmation)
+      if (token) {
+        localStorage.setItem('magic_token', token);
+        console.log('💾 Magic link token saved to localStorage for email confirmation flow');
+      }
+
       const result = isLogin 
         ? await login(email, password)
         : await register(email, password);

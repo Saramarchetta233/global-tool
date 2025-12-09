@@ -1382,6 +1382,57 @@ const StudiusAIV2: React.FC = () => {
     }
   }, [loading]);
 
+  // Check for saved magic link token (from email confirmation flow)
+  useEffect(() => {
+    const claimSavedMagicToken = async () => {
+      if (!user || !token) return;
+
+      const savedToken = localStorage.getItem('magic_token');
+      if (!savedToken) return;
+
+      console.log('🔗 Found saved magic link token, attempting to claim...', savedToken.substring(0, 8) + '...');
+
+      try {
+        const response = await fetch('/api/magic/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ token: savedToken })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Success! Credits activated
+          localStorage.removeItem('magic_token');
+          console.log('✅ Magic link claimed successfully from app page, token removed from storage');
+          
+          // Update credits context
+          if (updateCredits) {
+            updateCredits(data.newBalance);
+          }
+
+          // Show success toast
+          showSuccess(`🎉 Perfetto! ${data.creditsAdded} crediti attivati sul tuo account!`);
+          
+          console.log(`💰 Credits added: ${data.creditsAdded}, New balance: ${data.newBalance}`);
+        } else {
+          // Token might be invalid/expired/used - clean up quietly
+          localStorage.removeItem('magic_token');
+          console.log('⚠️ Magic link token from storage could not be claimed, cleaned up');
+        }
+      } catch (error) {
+        console.error('❌ Error claiming saved magic link token:', error);
+        // Clean up on error
+        localStorage.removeItem('magic_token');
+      }
+    };
+
+    claimSavedMagicToken();
+  }, [user, token, updateCredits, showSuccess]);
+
   // Load user credits
   useEffect(() => {
     const loadUserCredits = async () => {
