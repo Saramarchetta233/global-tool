@@ -19,6 +19,7 @@ export default function AccediPage() {
   const [error, setError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [claimAttempted, setClaimAttempted] = useState(false);
 
   // If user is already logged in, redirect to app
   useEffect(() => {
@@ -29,13 +30,18 @@ export default function AccediPage() {
 
   // Try to claim magic link from localStorage after login
   useEffect(() => {
-    if (!user || claimSuccess) return;
+    // Se già tentato, esci subito
+    if (claimAttempted) return;
+    if (!user) return;
+    
+    const savedToken = localStorage.getItem('magic_token');
+    if (!savedToken) return;
+    
+    // Marca come tentato SUBITO per evitare loop
+    setClaimAttempted(true);
 
     const claimSavedMagicToken = async () => {
-      const savedToken = localStorage.getItem('magic_token');
-      if (!savedToken) return;
-
-      console.log('🔗 Attempting to claim saved magic link token from /accedi page');
+      console.log('🔗 Attempting to claim magic token from /accedi (one time only)');
       try {
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
@@ -63,26 +69,19 @@ export default function AccediPage() {
           setTimeout(() => {
             router.push('/app');
           }, 3000);
-        } else if (response.status === 401) {
-          // Sessione non pronta, NON rimuovere il token, riproverà
-          console.log('⏳ Session not ready, will retry...');
         } else {
-          // Altri errori, rimuovi il token
-          localStorage.removeItem('magic_token');
           console.log('❌ Claim failed with status:', response.status);
+          // Rimuovi token comunque per evitare loop
+          localStorage.removeItem('magic_token');
         }
       } catch (error) {
         console.error('❌ Claim error:', error);
+        localStorage.removeItem('magic_token');
       }
     };
 
-    // Aspetta che la sessione sia stabile
-    const timer = setTimeout(() => {
-      claimSavedMagicToken();
-    }, 1000); // 1 secondo di delay
-    
-    return () => clearTimeout(timer);
-  }, [user, claimSuccess, updateCredits, router]);
+    setTimeout(claimSavedMagicToken, 1500);
+  }, [user, claimAttempted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
