@@ -13,7 +13,7 @@ interface RechargeModalProps {
 const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal'>('stripe');
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, token } = useAuth();
 
   const rechargeOptions = [
     {
@@ -45,7 +45,7 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('supabase.auth.token')}`
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           packageType: option.packageType,
@@ -82,6 +82,7 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
           packageType: option.packageType,
