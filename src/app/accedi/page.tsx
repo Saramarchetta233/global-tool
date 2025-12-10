@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
+import { supabase } from '@/lib/supabase';
 
 export default function AccediPage() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function AccediPage() {
   const [error, setError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [resetEmailSent, setResetEmailSent] = useState(false);
 
   // If user is already logged in, redirect to app (unless processing magic token)
   useEffect(() => {
@@ -75,6 +77,29 @@ export default function AccediPage() {
       setError('Errore di connessione. Riprova più tardi.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) {
+      setError('Inserisci la tua email per recuperare la password');
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/accedi?reset=true`
+      });
+
+      if (error) {
+        setError('Errore durante l\'invio della email di reset. Riprova più tardi.');
+      } else {
+        setResetEmailSent(true);
+        setError(null);
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      setError('Errore di connessione. Riprova più tardi.');
     }
   };
 
@@ -274,6 +299,24 @@ export default function AccediPage() {
               </div>
             )}
 
+            {/* Reset Email Success Message */}
+            {resetEmailSent && (
+              <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-4">
+                <div className="flex items-center gap-3">
+                  <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+                  <div>
+                    <p className="text-green-200 text-sm font-medium">Email di reset inviata!</p>
+                    <p className="text-green-300 text-xs mt-1">
+                      Controlla la tua email e clicca sul link per reimpostare la password.
+                    </p>
+                    <p className="text-green-300 text-xs mt-1">
+                      Per supporto: support@becoolpro.co
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
@@ -297,10 +340,7 @@ export default function AccediPage() {
           {isLogin && (
             <div className="mt-6 text-center">
               <button
-                onClick={() => {
-                  // TODO: Implement forgot password functionality if needed
-                  alert('Contatta supporto@studiusai.com per recuperare la password');
-                }}
+                onClick={handleForgotPassword}
                 className="text-sm text-purple-300 hover:text-purple-200 transition-colors"
               >
                 Password dimenticata?
