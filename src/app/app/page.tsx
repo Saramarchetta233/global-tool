@@ -2701,6 +2701,12 @@ const StudiusAIV2: React.FC = () => {
                         <div className="text-sm text-red-400 mb-3">
                           {error}
                         </div>
+                        <p className="text-xs text-gray-400 mb-3">
+                          💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a{' '}
+                          <a href="mailto:support@becoolpro.co" className="underline hover:text-gray-300">
+                            support@becoolpro.co
+                          </a>
+                        </p>
                         <button
                           type="button"
                           onClick={() => setError(null)}

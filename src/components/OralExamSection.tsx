@@ -242,7 +242,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       }
     } catch (error) {
       console.error('Error starting oral exam:', error);
-      addMessage('Mi dispiace, si è verificato un errore. Riprova più tardi.', 'professor');
+      addMessage('Mi dispiace, si è verificato un errore. Riprova più tardi.\n\n💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a support@becoolpro.co', 'professor');
     } finally {
       setIsLoading(false);
     }
@@ -288,7 +288,7 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       }
     } catch (error) {
       console.error('Error sending answer:', error);
-      addMessage('Mi dispiace, si è verificato un errore tecnico.', 'professor');
+      addMessage('Mi dispiace, si è verificato un errore tecnico.\n\n💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a support@becoolpro.co', 'professor');
     } finally {
       setIsLoading(false);
     }

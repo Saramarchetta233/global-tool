@@ -149,6 +149,18 @@ const CustomToast: React.FC<ToastProps> = ({
                   {details}
                 </p>
               )}
+              {type === 'error' && (
+                <p className="text-gray-400 text-xs mt-3">
+                  💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a{' '}
+                  <a 
+                    href="mailto:support@becoolpro.co" 
+                    className="underline hover:text-gray-300"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    support@becoolpro.co
+                  </a>
+                </p>
+              )}
             </div>
           </div>
 
