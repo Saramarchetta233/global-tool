@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { verifyAuth } from '@/lib/middleware';
 
 const PAYPAL_CLIENT_ID = process.env.NEXT_PUBLIC_PAYPAL_CLIENT_ID!;
 const PAYPAL_SECRET = process.env.PAYPAL_SECRET!;
@@ -30,6 +31,9 @@ async function getPayPalAccessToken() {
 
 export async function POST(req: NextRequest) {
   try {
+    // Verifica autenticazione
+    const user = await verifyAuth(req);
+    
     const { userId, packageType } = await req.json();
     
     if (!userId || !packageType) {
