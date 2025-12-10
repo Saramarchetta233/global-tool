@@ -12,7 +12,7 @@ interface RechargeModalProps {
 
 const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'stripe' | 'paypal'>('stripe');
+  const [paymentMethod, setPaymentMethod] = useState<'stripe'>('stripe');
   const { user, refreshProfile, token } = useAuth();
 
   const rechargeOptions = [
@@ -126,11 +126,7 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
       return;
     }
 
-    if (paymentMethod === 'stripe') {
-      handleStripeRecharge(option);
-    } else {
-      handlePayPalRecharge(option);
-    }
+    handleStripeRecharge(option);
   };
 
   if (!isOpen) return null;
@@ -163,31 +159,17 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
           )}
         </div>
 
-        {/* Payment Method Selector */}
+        {/* Payment Method Info */}
         {(user?.canPurchaseRecharge || user?.subscription?.type === 'lifetime' || user?.subscription?.type === 'becoolpro') && (
           <div className="mb-6">
-            <h3 className="text-white text-sm font-medium mb-3">Metodo di pagamento:</h3>
-            <div className="flex border border-white/20 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setPaymentMethod('stripe')}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  paymentMethod === 'stripe' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                }`}
-              >
-                💳 Stripe
-              </button>
-              <button
-                onClick={() => setPaymentMethod('paypal')}
-                className={`flex-1 py-3 px-4 text-sm font-medium transition-colors ${
-                  paymentMethod === 'paypal' 
-                    ? 'bg-blue-600 text-white' 
-                    : 'bg-white/10 text-gray-300 hover:bg-white/20'
-                }`}
-              >
-                🅿️ PayPal
-              </button>
+            <div className="bg-blue-600/20 border border-blue-500/30 rounded-lg p-3">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">💳</span>
+                <div>
+                  <h3 className="text-white text-sm font-medium">Pagamento con Stripe</h3>
+                  <p className="text-gray-300 text-xs">Carte di credito, debito e wallet digitali</p>
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -249,7 +231,7 @@ const RechargeModal: React.FC<RechargeModalProps> = ({ isOpen, onClose }) => {
               </p>
             </div>
           )}
-          <p>🔒 Pagamenti sicuri con {paymentMethod === 'stripe' ? 'Stripe' : 'PayPal'}</p>
+          <p>🔒 Pagamenti sicuri con Stripe</p>
           <p>💳 I crediti verranno aggiunti dopo il pagamento</p>
         </div>
 
