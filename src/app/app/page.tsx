@@ -1330,7 +1330,7 @@ const StudiusAIV2: React.FC = () => {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tutorChatRef = useRef<TutorChatRef>(null);
-  const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits } = useAuth();
+  const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits, refreshProfile } = useAuth();
   const { canPurchaseRecharge, subscription } = useSubscription();
   const { showSuccess, showError, showInfo } = useToast();
 
@@ -2241,8 +2241,12 @@ const StudiusAIV2: React.FC = () => {
                     </div>
                     {/* Abbonati button - ALWAYS VISIBLE */}
                     <button
-                      onClick={() => {
-                        if (canPurchaseRecharge) {
+                      onClick={async () => {
+                        // Forza refresh del profilo per aggiornare canPurchaseRecharge
+                        if (refreshProfile) {
+                          await refreshProfile();
+                        }
+                        if (canPurchaseRecharge || user?.subscription?.type === 'lifetime' || user?.subscription?.type === 'becoolpro') {
                           setShowRechargeModal(true);
                         } else {
                           setShowSubscriptionModal(true);
@@ -2322,8 +2326,12 @@ const StudiusAIV2: React.FC = () => {
 
                   {/* 4. Abbonati button */}
                   <button
-                    onClick={() => {
-                      if (canPurchaseRecharge) {
+                    onClick={async () => {
+                      // Forza refresh del profilo per aggiornare canPurchaseRecharge
+                      if (refreshProfile) {
+                        await refreshProfile();
+                      }
+                      if (canPurchaseRecharge || user?.subscription?.type === 'lifetime' || user?.subscription?.type === 'becoolpro') {
                         setShowRechargeModal(true);
                       } else {
                         setShowSubscriptionModal(true);
