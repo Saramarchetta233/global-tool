@@ -2214,6 +2214,9 @@ const StudiusAIV2: React.FC = () => {
           }}>
             <h2>✅ 4000 crediti attivati!</h2>
             <p>I tuoi crediti BeCoolPro sono stati aggiunti al tuo account.</p>
+            <p style={{marginTop: '10px', fontSize: '14px', color: '#888'}}>
+              Aggiorna la pagina per vedere i nuovi crediti
+            </p>
           </div>
         </div>
       )}

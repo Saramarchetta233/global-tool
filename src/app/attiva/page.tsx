@@ -244,10 +244,10 @@ function AttivaContent() {
           <h2 className="text-2xl font-bold text-white mb-4">Errore</h2>
           <p className="text-gray-300 mb-6">{error}</p>
           <button
-            onClick={() => router.push('/')}
+            onClick={() => router.push('/accedi')}
             className="px-6 py-3 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-blue-600 transition-all"
           >
-            Torna alla Homepage
+            Vai al Login
           </button>
         </div>
       </div>
