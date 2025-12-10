@@ -1799,10 +1799,8 @@ const StudiusAIV2: React.FC = () => {
     setShowHistory(false);
     setFile(null);
 
-    // Force UI refresh dopo logout
-    setTimeout(() => {
-      window.location.reload();
-    }, 100);
+    // Redirect to login page
+    window.location.href = '/accedi';
 
     console.log('✅ Logout completed');
   };
