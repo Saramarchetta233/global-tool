@@ -6,9 +6,9 @@ const PAYPAL_BASE_URL = 'https://api-m.paypal.com'; // Forza LIVE per credenzial
 
 // Prezzi ricariche crediti
 const RECHARGE_PRICES = {
-  '1000': { credits: 1000, price: '9.99' },
-  '3000': { credits: 3000, price: '14.99' },
-  '10000': { credits: 10000, price: '39.99' }
+  '1000': { credits: 1000, price: 9.99 },
+  '3000': { credits: 3000, price: 14.99 },
+  '10000': { credits: 10000, price: 39.99 }
 } as const;
 
 // Get PayPal access token
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
         {
           amount: {
             currency_code: 'EUR',
-            value: packageInfo.price,
+            value: packageInfo.price.toString(),
           },
           description: `StudiusAI - Ricarica ${packageInfo.credits} crediti`,
           custom_id: `${userId}_recharge_${packageInfo.credits}_v1`, // Store metadata
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
-        'PayPal-Request-Id': `recharge-${userId}-${Date.now()}`, // Idempotency
+        'PayPal-Request-Id': `${userId}-${Date.now()}`, // Idempotency
       },
       body: JSON.stringify(orderData),
     });
