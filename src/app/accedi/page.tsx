@@ -21,6 +21,8 @@ export default function AccediPage() {
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [resetEmail, setResetEmail] = useState('');
 
   // If user is already logged in, redirect to app (unless processing magic token)
   useEffect(() => {
@@ -80,22 +82,29 @@ export default function AccediPage() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    if (!email) {
+  const handleForgotPassword = () => {
+    setShowResetModal(true);
+    setError(null);
+  };
+
+  const handleResetPasswordSubmit = async () => {
+    if (!resetEmail) {
       setError('Inserisci la tua email per recuperare la password');
       return;
     }
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/accedi?reset=true`
+      const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
+        redirectTo: `${window.location.origin}/reset-password`
       });
 
       if (error) {
         setError('Errore durante l\'invio della email di reset. Riprova più tardi.');
       } else {
         setResetEmailSent(true);
+        setShowResetModal(false);
         setError(null);
+        setResetEmail('');
       }
     } catch (error) {
       console.error('Reset password error:', error);
@@ -165,6 +174,55 @@ export default function AccediPage() {
                 <div className="flex justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-2 border-green-400 border-t-transparent" />
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Modal */}
+      {showResetModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/10 backdrop-blur-xl rounded-3xl border border-purple-500/30 p-8 max-w-md w-full text-center animate-in fade-in zoom-in duration-300">
+            <div className="w-16 h-16 bg-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Mail className="w-8 h-8 text-purple-400" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-4">Password dimenticata?</h2>
+            <p className="text-gray-300 text-sm mb-6">
+              Inserisci la tua email e ti invieremo un link per reimpostare la password.
+            </p>
+            
+            <div className="space-y-4">
+              <div className="relative">
+                <Mail className="absolute left-3 top-3 w-5 h-5 text-gray-400" />
+                <input
+                  type="email"
+                  value={resetEmail}
+                  onChange={(e) => setResetEmail(e.target.value)}
+                  placeholder="email@esempio.com"
+                  className="w-full pl-10 pr-4 py-3 bg-white/5 border border-white/20 rounded-xl text-white placeholder-gray-400 focus:border-purple-400 focus:outline-none transition-colors"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowResetModal(false);
+                    setResetEmail('');
+                    setError(null);
+                  }}
+                  className="flex-1 py-3 px-4 bg-white/5 border border-white/20 text-gray-300 rounded-xl font-medium hover:bg-white/10 transition-all"
+                >
+                  Annulla
+                </button>
+                <button
+                  onClick={handleResetPasswordSubmit}
+                  className="flex-1 py-3 px-4 bg-gradient-to-r from-purple-500 to-blue-500 text-white rounded-xl font-medium hover:from-purple-600 hover:to-blue-600 transition-all"
+                >
+                  Invia Link
+                </button>
               </div>
             </div>
           </div>
@@ -356,6 +414,17 @@ export default function AccediPage() {
             <p className="text-xs text-gray-500">
               StudiusAI - Il tuo assistente AI per lo studio
             </p>
+            <div className="mt-3 pt-3 border-t border-white/5">
+              <p className="text-xs text-gray-400">
+                <strong>Contattaci:</strong>{' '}
+                <a 
+                  href="mailto:support@becoolpro.co" 
+                  className="text-purple-300 hover:text-purple-200 transition-colors"
+                >
+                  support@becoolpro.co
+                </a>
+              </p>
+            </div>
           </div>
         </div>
       </div>
