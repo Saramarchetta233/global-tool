@@ -139,8 +139,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Logica custom per BeCoolPro users - se hanno subscription_type = 'becoolpro' o 'lifetime' possono ricaricare
+    const isBecoolproUser = profile.registration_type === 'becoolpro' || 
+                            profile.subscription_type === 'becoolpro' ||
+                            profile.subscription_type === 'lifetime' ||
+                            profile.lifetime_active;
+    
+    const finalCanRecharge = canRecharge || isBecoolproUser;
+
     return NextResponse.json({
-      canPurchaseRecharge: canRecharge,
+      canPurchaseRecharge: finalCanRecharge,
       subscription: {
         type: profile.subscription_type,
         active: profile.subscription_active,
@@ -150,8 +158,8 @@ export async function GET(request: NextRequest) {
       credits: {
         current: profile.credits
       },
-      availablePackages: canRecharge ? RECHARGE_PACKAGES : null,
-      message: canRecharge 
+      availablePackages: finalCanRecharge ? RECHARGE_PACKAGES : null,
+      message: finalCanRecharge 
         ? 'Ricariche disponibili' 
         : 'È necessario un abbonamento attivo per acquistare ricariche.'
     });
