@@ -1,10 +1,10 @@
 'use client';
 
-import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, Clock, Download, Edit,FileText, HelpCircle, History, LogOut, MessageCircle, Mic, Play, Rocket, Sparkles, Star, Target, Upload, Volume2, Zap } from 'lucide-react';
-import React, { useEffect,useRef, useState } from 'react';
+import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, Clock, Download, Edit, FileText, HelpCircle, History, LogOut, MessageCircle, Mic, Play, Rocket, Sparkles, Star, Target, Upload, Volume2, Zap } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
-import { convertResultsToHistory, getStudySession,saveStudySession } from '@/lib/study-history';
+import { convertResultsToHistory, getStudySession, saveStudySession } from '@/lib/study-history';
 import { supabase } from '@/lib/supabase';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useToast } from '@/hooks/useToast';
@@ -248,12 +248,12 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
   );
 };
 
-const ExamSimulatorView: React.FC<{ 
-  questions: QuizQuestion[], 
-  docContext: string, 
-  authToken?: string, 
+const ExamSimulatorView: React.FC<{
+  questions: QuizQuestion[],
+  docContext: string,
+  authToken?: string,
   showSuccess?: (message: string) => void,
-  showError?: (message: string) => void 
+  showError?: (message: string) => void
 }> = ({ questions, docContext, authToken, showSuccess, showError }) => {
   const { examState, updateExamWrittenState, setActiveTab } = useStudySessionStore();
   const { updateCredits } = useAuth();
@@ -911,7 +911,7 @@ const ExamSimulatorView: React.FC<{
 // Function to format study plan text
 const formatStudyPlanText = (text: string | any) => {
   if (!text) return null;
-  
+
   // Se è un array, uniscilo in una stringa
   let textString = '';
   if (Array.isArray(text)) {
@@ -923,7 +923,7 @@ const formatStudyPlanText = (text: string | any) => {
   } else {
     return <p className="text-blue-200">{String(text)}</p>;
   }
-  
+
   // Prima sostituisci pattern comuni per aggiungere newline
   textString = textString
     // Aggiungi spazio prima dei pattern BLOCCO (se non sono già all'inizio)
@@ -938,16 +938,16 @@ const formatStudyPlanText = (text: string | any) => {
     .replace(/\.\s+([A-Z])/g, '.\n$1')
     // Gestisci trattini come punti elenco
     .replace(/-\s+/g, '\n- ');
-  
+
   const lines = textString.split('\n').filter(line => line.trim() !== '');
-  
+
   let lastWasTitle = false;
-  
+
   return (
     <div className="space-y-1">
       {lines.map((line, index) => {
         const trimmedLine = line.trim();
-        
+
         // Identifica titoli con pattern più ampio
         const isBloccoPattern = /^BLOCCO\s*\d+(\s*\(.*\))?:?/i.test(trimmedLine);
         const isGiornoPattern = /^Giorno\s*\d+:?/i.test(trimmedLine);
@@ -955,9 +955,9 @@ const formatStudyPlanText = (text: string | any) => {
         const isNumberedItem = /^\d+\.\s*[A-Z]/.test(trimmedLine);
         const isAllCapsTitle = trimmedLine === trimmedLine.toUpperCase() && trimmedLine.length > 3 && !trimmedLine.match(/^[0-9\s\-:]+$/);
         const endsWithColon = trimmedLine.endsWith(':');
-        
+
         const isTitle = isBloccoPattern || isGiornoPattern || isSettimanaPattern || isNumberedItem || isAllCapsTitle || endsWithColon;
-        
+
         const currentIsTitle = isTitle;
         const result = (
           <React.Fragment key={index}>
@@ -965,7 +965,7 @@ const formatStudyPlanText = (text: string | any) => {
             {(isBloccoPattern || isGiornoPattern || isSettimanaPattern) && index > 0 && (
               <div className="mb-6" />
             )}
-            
+
             {isTitle ? (
               <h6 className="font-bold text-blue-300 text-base sm:text-lg mb-2 sm:mb-3">
                 {trimmedLine}
@@ -977,7 +977,7 @@ const formatStudyPlanText = (text: string | any) => {
             )}
           </React.Fragment>
         );
-        
+
         lastWasTitle = currentIsTitle;
         return result;
       })}
@@ -1394,10 +1394,10 @@ const StudiusAIV2: React.FC = () => {
     // Se già tentato, esci subito
     if (claimAttempted) return;
     if (!user) return;
-    
+
     const savedToken = localStorage.getItem('magic_token');
     if (!savedToken) return;
-    
+
     // Marca come tentato SUBITO per evitare loop
     setClaimAttempted(true);
 
@@ -1407,13 +1407,13 @@ const StudiusAIV2: React.FC = () => {
         // Get current session token for API authentication
         const { data: { session } } = await supabase.auth.getSession();
         const authToken = session?.access_token;
-        
+
         if (!authToken) {
           console.error('❌ No auth token available for magic link claim');
           localStorage.removeItem('magic_token');
           return;
         }
-        
+
         const response = await fetch('/api/magic/claim', {
           method: 'POST',
           headers: {
@@ -1429,15 +1429,15 @@ const StudiusAIV2: React.FC = () => {
           localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
           setClaimSuccess(true);
           setShowSuccessModal(true); // Mostra il modal
-          
+
           console.log('✅ Magic link claimed successfully from /app');
           console.log('📊 Magic claim data:', data);
-          
+
           // Update credits context
           if (updateCredits) {
             updateCredits(data.newBalance);
           }
-          
+
           // Close modal after 3 seconds
           setTimeout(() => {
             setShowSuccessModal(false);
@@ -1492,18 +1492,18 @@ const StudiusAIV2: React.FC = () => {
     const rechargeMethod = urlParams.get('method');
     const packageType = urlParams.get('package');
     const subscriptionStatus = urlParams.get('subscription');
-    
+
     if (rechargeStatus === 'success') {
       // Gestione ricarica PayPal - richiede capture
       if (rechargeMethod === 'paypal') {
         console.log('💰 Processando ricarica PayPal...');
-        
+
         // Estrai orderId dall'URL fragment o sessionStorage
         const urlFragment = window.location.hash;
-        const paypalOrderId = urlFragment.includes('token=') 
-          ? urlFragment.split('token=')[1].split('&')[0] 
+        const paypalOrderId = urlFragment.includes('token=')
+          ? urlFragment.split('token=')[1].split('&')[0]
           : sessionStorage.getItem('paypal_order_id');
-        
+
         if (paypalOrderId) {
           // Cattura il pagamento PayPal
           fetch('/api/paypal/capture-recharge', {
@@ -1513,33 +1513,33 @@ const StudiusAIV2: React.FC = () => {
             },
             body: JSON.stringify({ orderId: paypalOrderId })
           })
-          .then(response => response.json())
-          .then(data => {
-            if (data.success) {
-              console.log(`✅ Ricarica PayPal completata: +${data.credits} crediti`);
+            .then(response => response.json())
+            .then(data => {
+              if (data.success) {
+                console.log(`✅ Ricarica PayPal completata: +${data.credits} crediti`);
+                setTimeout(() => {
+                  alert(`🎉 Ricarica PayPal completata con successo!\\n+${data.credits} crediti aggiunti al tuo account.`);
+                  // Refresh dei crediti
+                  window.location.reload();
+                }, 500);
+              } else {
+                console.error('❌ Errore cattura PayPal:', data.error);
+                setTimeout(() => {
+                  alert('❌ Errore durante il completamento della ricarica PayPal. Contatta il supporto.');
+                }, 500);
+              }
+
+              // Pulisci URL
+              window.history.replaceState({}, '', '/app');
+              sessionStorage.removeItem('paypal_order_id');
+            })
+            .catch(error => {
+              console.error('❌ Errore richiesta capture:', error);
               setTimeout(() => {
-                alert(`🎉 Ricarica PayPal completata con successo!\\n+${data.credits} crediti aggiunti al tuo account.`);
-                // Refresh dei crediti
-                window.location.reload();
+                alert('❌ Errore di rete durante il completamento. Ricarica la pagina.');
               }, 500);
-            } else {
-              console.error('❌ Errore cattura PayPal:', data.error);
-              setTimeout(() => {
-                alert('❌ Errore durante il completamento della ricarica PayPal. Contatta il supporto.');
-              }, 500);
-            }
-            
-            // Pulisci URL
-            window.history.replaceState({}, '', '/app');
-            sessionStorage.removeItem('paypal_order_id');
-          })
-          .catch(error => {
-            console.error('❌ Errore richiesta capture:', error);
-            setTimeout(() => {
-              alert('❌ Errore di rete durante il completamento. Ricarica la pagina.');
-            }, 500);
-            window.history.replaceState({}, '', '/app');
-          });
+              window.history.replaceState({}, '', '/app');
+            });
         } else {
           console.error('❌ Order ID PayPal non trovato');
           setTimeout(() => {
@@ -1550,44 +1550,44 @@ const StudiusAIV2: React.FC = () => {
       } else {
         // Ricarica Stripe (esistente)
         console.log('🔋 Ricarica Stripe completata con successo!');
-        
+
         setTimeout(() => {
           alert('🎉 Ricarica completata con successo!\\nI tuoi crediti sono stati aggiunti al tuo account.');
         }, 500);
-        
+
         window.history.replaceState({}, '', '/app');
       }
-      
+
     } else if (rechargeStatus === 'cancelled') {
       // Mostra notifica cancellazione
       const method = rechargeMethod === 'paypal' ? 'PayPal' : 'Stripe';
       console.log(`❌ Ricarica ${method} cancellata dall'utente`);
-      
+
       setTimeout(() => {
         alert(`❌ Ricarica ${method} cancellata.\\nNessun addebito è stato effettuato.`);
       }, 500);
-      
+
       // Rimuovi parametro URL
       window.history.replaceState({}, '', '/app');
     }
-    
+
     // Gestione subscription PayPal
     if (subscriptionStatus === 'success') {
       console.log('✅ Abbonamento PayPal attivato con successo!');
-      
+
       setTimeout(() => {
         alert('🎉 Abbonamento attivato con successo!\nOra hai accesso illimitato a StudiusAI con 2000 crediti al mese.');
       }, 500);
-      
+
       window.history.replaceState({}, '', '/app');
-      
+
     } else if (subscriptionStatus === 'cancelled') {
       console.log('❌ Abbonamento PayPal cancellato dall\'utente');
-      
+
       setTimeout(() => {
         alert('❌ Abbonamento cancellato.\nNessun addebito è stato effettuato.');
       }, 500);
-      
+
       window.history.replaceState({}, '', '/app');
     }
   }, []);
@@ -1659,7 +1659,7 @@ const StudiusAIV2: React.FC = () => {
 
     try {
       const studyResults = await processWithAI(file, language, token, targetLanguage, user);
-      
+
       // 🔥 DEBUG: Log what we received from the API
       console.log('🔥 FRONTEND DEBUG: Received study results:', JSON.stringify(studyResults, null, 2));
       console.log('🔥 FRONTEND DEBUG: Flashcard count in results:', studyResults?.flashcard?.length || 0);
@@ -1671,7 +1671,7 @@ const StudiusAIV2: React.FC = () => {
       setResults(studyResults);
       setSessionId(studyResults.sessionId || null);
       setDocumentId(studyResults.sessionId || null); // Fix: Also update documentId to match sessionId
-      
+
       // Reset flashcard state to start from first card with question showing
       resetFlashcardState();
 
@@ -1715,10 +1715,10 @@ const StudiusAIV2: React.FC = () => {
             sessionId: studyResults.sessionId,
             historyDataKeys: Object.keys(historyData)
           });
-          
+
           await saveStudySession(historyData, token);
           console.log('✅ [DEBUG_FRONTEND_SAVE] Study session saved to history successfully');
-          
+
         } catch (historyError) {
           console.error('❌ [DEBUG_FRONTEND_SAVE] Failed to save study session:', historyError);
         }
@@ -1726,7 +1726,7 @@ const StudiusAIV2: React.FC = () => {
 
       // Set active tab to riassunto_breve after successful processing
       setActiveTab('riassunto_breve');
-      
+
       // Refresh history to show the new document
       setHistoryRefreshTrigger(prev => prev + 1);
 
@@ -2115,33 +2115,33 @@ const StudiusAIV2: React.FC = () => {
     if (typeof content === 'string') {
       // Clean up content more carefully, preserving structure
       let cleaned = content.trim();
-      
+
       // Only remove malformed wrapping if it's clearly not part of the content
       // Remove only if the entire string is wrapped in extra parentheses/brackets
       if (cleaned.startsWith('((') && cleaned.endsWith('))')) {
         cleaned = cleaned.slice(2, -2).trim();
-      } else if (cleaned.startsWith('(') && cleaned.endsWith(')') && 
-                 !cleaned.includes(')\n') && !cleaned.includes(') ') &&
-                 cleaned.indexOf('(') === 0 && cleaned.lastIndexOf(')') === cleaned.length - 1) {
+      } else if (cleaned.startsWith('(') && cleaned.endsWith(')') &&
+        !cleaned.includes(')\n') && !cleaned.includes(') ') &&
+        cleaned.indexOf('(') === 0 && cleaned.lastIndexOf(')') === cleaned.length - 1) {
         // Only remove if it's a single wrapping parenthesis, not content parentheses
         cleaned = cleaned.slice(1, -1).trim();
       }
-      
+
       // Same logic for brackets
       if (cleaned.startsWith('[[') && cleaned.endsWith(']]')) {
         cleaned = cleaned.slice(2, -2).trim();
-      } else if (cleaned.startsWith('[') && cleaned.endsWith(']') && 
-                 !cleaned.includes(']\n') && !cleaned.includes('] ') &&
-                 cleaned.indexOf('[') === 0 && cleaned.lastIndexOf(']') === cleaned.length - 1) {
+      } else if (cleaned.startsWith('[') && cleaned.endsWith(']') &&
+        !cleaned.includes(']\n') && !cleaned.includes('] ') &&
+        cleaned.indexOf('[') === 0 && cleaned.lastIndexOf(']') === cleaned.length - 1) {
         cleaned = cleaned.slice(1, -1).trim();
       }
-      
+
       // Improve spacing between sections while preserving structure
       cleaned = cleaned
         .replace(/\n\s*\n\s*\n+/g, '\n\n') // Multiple newlines to double newline
         .replace(/([.!?])\s*([A-Z])/g, '$1\n\n$2') // Add spacing after sentences before new sections
         .trim();
-      
+
       return cleaned;
     } else if (typeof content === 'object' && content !== null) {
       // If it's an object, try to format it nicely
@@ -2258,7 +2258,7 @@ const StudiusAIV2: React.FC = () => {
                     </button>
                   </div>
                 </div>
-                
+
                 {/* Second row - Secondary actions */}
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex items-center gap-3">
@@ -2283,17 +2283,17 @@ const StudiusAIV2: React.FC = () => {
 
               {/* Desktop Header (768px and above) - unchanged */}
               <div className="hidden md:flex items-center justify-between">
-                {/* Left side: Logo + "Powered by AI" badge */}
+                {/* Left side: Logo + "Powered by BeCoolPro" badge */}
                 <div className="flex items-center gap-3">
                   <h1 className="text-xl sm:text-2xl md:text-3xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent">
                     Studius AI
                   </h1>
                   <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm border border-purple-500/30">
                     <Sparkles className="w-3 h-3" />
-                    Powered by AI
+                    Powered by BeCoolPro
                   </div>
                 </div>
-                
+
                 {/* Right side: Credits, Storico, Email+Logout, Abbonati */}
                 <div className="flex items-center gap-2 sm:gap-3">
                   {/* 1. Credits */}
@@ -2349,7 +2349,7 @@ const StudiusAIV2: React.FC = () => {
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-purple-500/20 text-purple-300 px-4 py-2 rounded-full text-sm font-medium mb-4 backdrop-blur-sm border border-purple-500/30">
                 <Sparkles className="w-4 h-4" />
-                Powered by AI
+                Powered by BeCoolPro
               </div>
               <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-white via-purple-300 to-blue-300 bg-clip-text text-transparent mb-4">
                 Studius AI
@@ -2385,7 +2385,7 @@ const StudiusAIV2: React.FC = () => {
                         <Sparkles className="w-8 h-8 text-white" />
                       </div>
                       <h3 className="text-2xl font-bold text-white mb-3">Accedi per iniziare</h3>
-                      
+
                       {/* Benefits list */}
                       <div className="text-left mb-6 space-y-2">
                         <div className="flex items-center gap-3 text-green-300">
@@ -2403,12 +2403,12 @@ const StudiusAIV2: React.FC = () => {
                       </div>
 
                       <p className="text-gray-300 mb-6 text-sm">
-                        {sessionStorage.getItem('registrationType') === 'onetime_payment' 
+                        {sessionStorage.getItem('registrationType') === 'onetime_payment'
                           ? 'Accedi con il tuo account Premium One-Time da 4000 crediti!'
                           : 'Crea un account gratuito e ricevi 120 crediti per iniziare subito!'}
                       </p>
                     </div>
-                    
+
                     {/* Primary CTA Button */}
                     <div className="space-y-3">
                       <button
@@ -2420,12 +2420,12 @@ const StudiusAIV2: React.FC = () => {
                       >
                         Registrati Gratis
                       </button>
-                      
+
                       {/* Credits bonus text */}
                       <p className="text-center text-green-300 text-sm font-medium">
                         ✨ Ottieni 120 crediti gratis
                       </p>
-                      
+
                       {/* Secondary button */}
                       <button
                         onClick={() => {
@@ -2436,7 +2436,7 @@ const StudiusAIV2: React.FC = () => {
                       >
                         Accedi
                       </button>
-                      
+
                       {/* Urgency text */}
                       <p className="text-center text-yellow-300 text-sm font-medium">
                         🎁 Promo: 120 crediti gratis solo per nuovi iscritti
@@ -2480,8 +2480,8 @@ const StudiusAIV2: React.FC = () => {
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-600/20 to-teal-600/20 rounded-3xl blur-xl"></div>
               <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-8 border border-white/20 shadow-2xl">
-                <HistoryView 
-                  onSelectDocument={handleSelectFromHistory} 
+                <HistoryView
+                  onSelectDocument={handleSelectFromHistory}
                   onBackToHome={() => {
                     setShowHistory(false);
                     resetSession();
@@ -2491,7 +2491,7 @@ const StudiusAIV2: React.FC = () => {
                       fileInputRef.current.value = '';
                     }
                   }}
-                  refreshTrigger={historyRefreshTrigger} 
+                  refreshTrigger={historyRefreshTrigger}
                 />
                 <div className="mt-8 text-center">
                   <button
@@ -2515,7 +2515,7 @@ const StudiusAIV2: React.FC = () => {
               <div className={`relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 border border-white/20 shadow-2xl ${!user ? 'overflow-hidden' : ''}`}>
                 {/* Lock Overlay for non-authenticated users */}
                 {!user && (
-                  <div 
+                  <div
                     className="absolute inset-0 bg-black/40 backdrop-blur-sm rounded-3xl z-10 flex items-center justify-center cursor-pointer"
                     onClick={() => {
                       setAuthMode('register');
@@ -2533,7 +2533,7 @@ const StudiusAIV2: React.FC = () => {
                     </div>
                   </div>
                 )}
-                
+
                 {/* Recent Documents Section - only show if user has documents and not viewing results/history */}
                 {user && !loading && !showHistory && !results && (
                   <RecentDocumentsSection
@@ -2555,14 +2555,13 @@ const StudiusAIV2: React.FC = () => {
                   <label className="block text-sm font-medium text-gray-300 mb-3">
                     📄 File PDF
                   </label>
-                  <div 
-                    className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 cursor-pointer ${
-                      file
+                  <div
+                    className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 cursor-pointer ${file
                         ? 'border-green-400 bg-green-400/10'
                         : isDragOver
-                        ? 'border-purple-400 bg-purple-400/10 scale-[1.02]'
-                        : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
-                    }`}
+                          ? 'border-purple-400 bg-purple-400/10 scale-[1.02]'
+                          : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
+                      }`}
                     onClick={!file ? handleClick : undefined}
                     onDragOver={!file ? handleDragOver : undefined}
                     onDragLeave={!file ? handleDragLeave : undefined}
@@ -2716,44 +2715,44 @@ const StudiusAIV2: React.FC = () => {
                   {/* Desktop: 2 rows of 4 icons, Mobile: 2 columns x 4 rows */}
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
                     {/* Row 1 - Existing features */}
-                    <div 
+                    <div
                       onClick={() => setActiveTab('riassunto_breve')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
                       <FileText className="w-6 h-6 text-blue-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Riassunti</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => setActiveTab('flashcard')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
                       <Brain className="w-6 h-6 text-purple-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Flashcard</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => setActiveTab('quiz')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
                       <Play className="w-6 h-6 text-green-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Quiz</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => setActiveTab('guida_esame')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
                       <Clock className="w-6 h-6 text-orange-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Studia 1h</p>
                     </div>
-                    
+
                     {/* Row 2 - New features */}
-                    <div 
+                    <div
                       onClick={() => setActiveTab('tutor_ai')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
                       <MessageCircle className="w-6 h-6 text-cyan-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Tutor AI</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => {
                         setActiveTab('quiz');
                         setExamSubTab('orale');
@@ -2763,7 +2762,7 @@ const StudiusAIV2: React.FC = () => {
                       <Mic className="w-6 h-6 text-pink-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Esame Orale</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => {
                         setActiveTab('quiz');
                         setExamSubTab('scritto');
@@ -2773,7 +2772,7 @@ const StudiusAIV2: React.FC = () => {
                       <Edit className="w-6 h-6 text-indigo-400 mx-auto mb-1" />
                       <p className="text-xs text-gray-300 font-medium">Esame Scritto</p>
                     </div>
-                    <div 
+                    <div
                       onClick={() => setActiveTab('guida_esame')}
                       className="text-center p-4 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-all cursor-pointer h-20 flex flex-col justify-center items-center"
                     >
@@ -3276,7 +3275,7 @@ const StudiusAIV2: React.FC = () => {
                         <span className="hidden sm:inline">← Torna ai Tabs</span>
                         <span className="sm:hidden">← Tabs</span>
                       </button>
-                      
+
                       <button
                         onClick={() => {
                           tutorChatRef.current?.scrollToInput();
