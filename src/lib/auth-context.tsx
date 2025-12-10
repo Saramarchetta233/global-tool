@@ -28,7 +28,6 @@ interface AuthContextType {
   updateCredits: (newCredits: number) => void;
   refreshCredits: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  forceUpdateSubscriptionType: (subscriptionType: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -371,26 +370,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
-  // Funzione per forzare l'aggiornamento del subscription type (per magic links)
-  const forceUpdateSubscriptionType = (subscriptionType: string) => {
-    if (!user) return;
-    
-    console.log(`🔧 Force updating subscription type to: ${subscriptionType}`);
-    
-    const updatedUser = {
-      ...user,
-      subscription: {
-        ...user.subscription,
-        type: subscriptionType
-      },
-      canPurchaseRecharge: subscriptionType === 'one_time' || user.subscription.active || user.subscription.lifetime
-    };
-    
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
-    
-    console.log(`✅ Subscription type force-updated to: ${subscriptionType}`);
-  };
 
   const value: AuthContextType = {
     user,
@@ -402,7 +381,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     updateCredits,
     refreshCredits,
     refreshProfile,
-    forceUpdateSubscriptionType,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -178,13 +178,13 @@ export async function POST(req: NextRequest) {
     }
 
     // Update user plan type and subscription type for BeCoolPro users (using admin client)
-    console.log(`🔄 Updating profile for user ${authenticatedUser.id}: plan_type=${magicLink.plan_type}, subscription_type=one_time`);
+    console.log(`🔄 Updating profile for user ${authenticatedUser.id}: plan_type=${magicLink.plan_type}, subscription_type=becoolpro`);
     
     const { error: planError } = await supabaseAdmin
       .from('profiles')
       .update({ 
         plan_type: magicLink.plan_type,
-        subscription_type: 'one_time'
+        subscription_type: 'becoolpro'
       })
       .eq('user_id', authenticatedUser.id);
 
@@ -192,7 +192,7 @@ export async function POST(req: NextRequest) {
       console.error('❌ Failed to update plan and subscription type:', planError);
       // Don't fail the request for this, just log the error
     } else {
-      console.log(`✅ Updated user plan_type: ${magicLink.plan_type}, subscription_type: one_time`);
+      console.log(`✅ Updated user plan_type: ${magicLink.plan_type}, subscription_type: becoolpro`);
     }
 
     // Mark magic link as used

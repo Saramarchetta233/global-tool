@@ -1385,7 +1385,76 @@ const StudiusAIV2: React.FC = () => {
     }
   }, [loading]);
 
-  // Magic claim is now handled exclusively in /accedi page
+  // Magic claim state
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [claimAttempted, setClaimAttempted] = useState(false);
+
+  // Try to claim magic link from localStorage after login
+  useEffect(() => {
+    // Se già tentato, esci subito
+    if (claimAttempted) return;
+    if (!user) return;
+    
+    const savedToken = localStorage.getItem('magic_token');
+    if (!savedToken) return;
+    
+    // Marca come tentato SUBITO per evitare loop
+    setClaimAttempted(true);
+
+    const claimSavedMagicToken = async () => {
+      console.log('🔗 Attempting to claim magic token from /app (one time only)');
+      try {
+        // Get current session token for API authentication
+        const { data: { session } } = await supabase.auth.getSession();
+        const authToken = session?.access_token;
+        
+        if (!authToken) {
+          console.error('❌ No auth token available for magic link claim');
+          localStorage.removeItem('magic_token');
+          return;
+        }
+        
+        const response = await fetch('/api/magic/claim', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`
+          },
+          credentials: 'include',
+          body: JSON.stringify({ token: savedToken })
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
+          setClaimSuccess(true);
+          setShowSuccessModal(true); // Mostra il modal
+          
+          console.log('✅ Magic link claimed successfully from /app');
+          console.log('📊 Magic claim data:', data);
+          
+          // Update credits context
+          if (updateCredits) {
+            updateCredits(data.newBalance);
+          }
+          
+          // Close modal after 3 seconds
+          setTimeout(() => {
+            setShowSuccessModal(false);
+          }, 3000);
+        } else {
+          console.log('❌ Claim failed with status:', response.status);
+          // Rimuovi token comunque per evitare loop
+          localStorage.removeItem('magic_token');
+        }
+      } catch (error) {
+        console.error('❌ Claim error:', error);
+        localStorage.removeItem('magic_token');
+      }
+    };
+
+    setTimeout(claimSavedMagicToken, 1500);
+  }, [user, claimAttempted, updateCredits]);
 
   // Load user credits (only once)
   useEffect(() => {
@@ -2124,6 +2193,32 @@ const StudiusAIV2: React.FC = () => {
 
       {/* Animated Background */}
       <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-purple-900/10 to-blue-900/10"></div>
+
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          zIndex: 9999,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '40px',
+            borderRadius: '10px',
+            textAlign: 'center'
+          }}>
+            <h2>✅ 4000 crediti attivati!</h2>
+            <p>I tuoi crediti BeCoolPro sono stati aggiunti al tuo account.</p>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <header className={`relative z-10 ${user && !loading ? 'pt-4 pb-2' : 'pt-8 pb-4'}`}>

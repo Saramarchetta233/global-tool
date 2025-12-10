@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
         token,
         email: normalizedEmail,
         credits_to_grant: 4000,
-        plan_type: 'one_time',
+        plan_type: 'becoolpro',
         expires_at: expiresAt.toISOString()
       })
       .select('token')

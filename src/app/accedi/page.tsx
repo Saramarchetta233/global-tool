@@ -5,11 +5,10 @@ import { useRouter } from 'next/navigation';
 import React, { useEffect, useState } from 'react';
 
 import { useAuth } from '@/lib/auth-context';
-import { supabase } from '@/lib/supabase';
 
 export default function AccediPage() {
   const router = useRouter();
-  const { user, login, register, isLoading, updateCredits, refreshProfile, forceUpdateSubscriptionType } = useAuth();
+  const { user, login, register, isLoading } = useAuth();
   
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -20,94 +19,14 @@ export default function AccediPage() {
   const [error, setError] = useState<string | null>(null);
   const [claimSuccess, setClaimSuccess] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [claimAttempted, setClaimAttempted] = useState(false);
 
   // If user is already logged in, redirect to app (unless processing magic token)
   useEffect(() => {
     if (!isLoading && user) {
-      // Don't redirect if we have a magic token to process or we're showing success modal
-      const hasMagicToken = localStorage.getItem('magic_token');
-      if (!hasMagicToken && !showSuccessModal && !claimAttempted) {
-        router.replace('/app');
-      }
+      router.replace('/app');
     }
-  }, [user, isLoading, router, showSuccessModal, claimAttempted]);
+  }, [user, isLoading, router]);
 
-  // Try to claim magic link from localStorage after login
-  useEffect(() => {
-    // Se già tentato, esci subito
-    if (claimAttempted) return;
-    if (!user) return;
-    
-    const savedToken = localStorage.getItem('magic_token');
-    if (!savedToken) return;
-    
-    // Marca come tentato SUBITO per evitare loop
-    setClaimAttempted(true);
-
-    const claimSavedMagicToken = async () => {
-      console.log('🔗 Attempting to claim magic token from /accedi (one time only)');
-      try {
-        // Get current session token for API authentication
-        const { data: { session } } = await supabase.auth.getSession();
-        const authToken = session?.access_token;
-        
-        if (!authToken) {
-          console.error('❌ No auth token available for magic link claim');
-          localStorage.removeItem('magic_token');
-          return;
-        }
-        
-        const response = await fetch('/api/magic/claim', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
-          },
-          credentials: 'include',
-          body: JSON.stringify({ token: savedToken })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          localStorage.removeItem('magic_token'); // Rimuovi SOLO se successo
-          setClaimSuccess(true);
-          setShowSuccessModal(true); // Mostra il modal
-          
-          console.log('✅ Magic link claimed successfully from /accedi');
-          console.log('📊 Magic claim data:', data);
-          
-          // Update credits context
-          if (updateCredits) {
-            updateCredits(data.newBalance);
-          }
-          
-          // Also try database refresh as backup
-          setTimeout(async () => {
-            if (refreshProfile) {
-              console.log('🔄 Refreshing profile to sync from database...');
-              await refreshProfile();
-              console.log('✅ Profile refreshed from database');
-            }
-          }, 1000);
-
-          // Redirect dopo 3 secondi
-          setTimeout(() => {
-            router.push('/app');
-          }, 3000);
-        } else {
-          console.log('❌ Claim failed with status:', response.status);
-          // Rimuovi token comunque per evitare loop
-          localStorage.removeItem('magic_token');
-        }
-      } catch (error) {
-        console.error('❌ Claim error:', error);
-        localStorage.removeItem('magic_token');
-      }
-    };
-
-    setTimeout(claimSavedMagicToken, 1500);
-  }, [user, claimAttempted]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

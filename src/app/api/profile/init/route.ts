@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       console.log('🔍 [PROFILE_INIT] Creating new profile for userId:', userId, 'with registrationType:', registrationType);
       
       // Determina i crediti iniziali in base al tipo di registrazione
-      const initialCredits = registrationType === 'onetime_payment' ? 4000 : 120;
+      const initialCredits = registrationType === 'onetime_payment' || registrationType === 'becoolpro' ? 4000 : 120;
       
       // Usa upsert per gestire le chiamate concorrenti
       const { data: upsertedProfile, error: upsertError } = await (supabaseAdmin || supabase)
@@ -100,7 +100,7 @@ export async function POST(req: Request) {
           lifetime: false,
           renewalDate: null
         },
-        canPurchaseRecharge: registrationType === 'onetime_payment',
+        canPurchaseRecharge: registrationType === 'onetime_payment' || registrationType === 'becoolpro',
         action: "created",
         signupBonus: registrationType === 'free_trial'
       });
@@ -130,7 +130,7 @@ export async function POST(req: Request) {
           lifetime: profile.lifetime_active || false,
           renewalDate: profile.subscription_renewal_date || null
         },
-        canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.subscription_active || profile.lifetime_active || false,
+        canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.registration_type === 'becoolpro' || profile.subscription_active || profile.lifetime_active || false,
         action: "updated" 
       });
     }
@@ -145,7 +145,7 @@ export async function POST(req: Request) {
         lifetime: profile.lifetime_active || false,
         renewalDate: profile.subscription_renewal_date || null
       },
-      canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.subscription_active || profile.lifetime_active || false,
+      canPurchaseRecharge: profile.registration_type === 'onetime_payment' || profile.registration_type === 'becoolpro' || profile.subscription_active || profile.lifetime_active || false,
       action: "existing" 
     });
 
