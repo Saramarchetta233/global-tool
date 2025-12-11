@@ -2726,7 +2726,7 @@ const StudiusAIV2: React.FC = () => {
                                 <span className="font-medium">1. Riprova</span> — Ricarica la pagina e carica di nuovo il file
                               </li>
                               <li>
-                                <span className="font-medium">2. Comprimi il PDF</span> — Vai su{' '}, carica il file, scarica la versione compressa e riprova
+                                <span className="font-medium">2. Comprimi il PDF. Se il file è troppo grande scarica la versione compressa da iLovePdf e riprova</span> — Vai su{' '}
                                 <a
                                   href="https://www.ilovepdf.com/compress_pdf"
                                   target="_blank"
