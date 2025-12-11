@@ -2214,7 +2214,7 @@ const StudiusAIV2: React.FC = () => {
           }}>
             <h2>✅ 4000 crediti attivati!</h2>
             <p>I tuoi crediti BeCoolPro sono stati aggiunti al tuo account.</p>
-            <p style={{marginTop: '10px', fontSize: '14px', color: '#888'}}>
+            <p style={{ marginTop: '10px', fontSize: '14px', color: '#888' }}>
               Aggiorna la pagina per vedere i nuovi crediti
             </p>
           </div>
@@ -2560,10 +2560,10 @@ const StudiusAIV2: React.FC = () => {
                   </label>
                   <div
                     className={`relative border-2 border-dashed rounded-2xl p-4 sm:p-6 md:p-8 text-center transition-all duration-300 cursor-pointer ${file
-                        ? 'border-green-400 bg-green-400/10'
-                        : isDragOver
-                          ? 'border-purple-400 bg-purple-400/10 scale-[1.02]'
-                          : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
+                      ? 'border-green-400 bg-green-400/10'
+                      : isDragOver
+                        ? 'border-purple-400 bg-purple-400/10 scale-[1.02]'
+                        : 'border-gray-500 hover:border-purple-400 hover:bg-purple-400/5'
                       }`}
                     onClick={!file ? handleClick : undefined}
                     onDragOver={!file ? handleDragOver : undefined}
@@ -2619,6 +2619,22 @@ const StudiusAIV2: React.FC = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* PDF Merge Suggestion */}
+                <div className="mt-3 text-center">
+                  <p className="text-sm text-gray-400">
+                    📄 Hai più PDF? Uniscili in uno solo su{' '}
+                    <a
+                      href="https://www.ilovepdf.com/merge_pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 underline transition-colors"
+                    >
+                      ilovepdf.com/merge_pdf
+                    </a>{' '}
+                    prima di caricarli
+                  </p><br></br>
                 </div>
 
                 {/* Language Selection */}
@@ -2701,12 +2717,57 @@ const StudiusAIV2: React.FC = () => {
                         <div className="text-sm text-red-400 mb-3">
                           {error}
                         </div>
-                        <p className="text-xs text-gray-400 mb-3">
-                          💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a{' '}
-                          <a href="mailto:support@becoolpro.co" className="underline hover:text-gray-300">
-                            support@becoolpro.co
-                          </a>
-                        </p>
+                        {/* Check if it's a PDF-related error */}
+                        {(error.toLowerCase().includes('pdf') ||
+                          error.toLowerCase().includes('documento') ||
+                          error.toLowerCase().includes('file') ||
+                          error.toLowerCase().includes('carica') ||
+                          error.toLowerCase().includes('process')) ? (
+                          <div className="text-xs text-gray-400 space-y-2 mb-3">
+                            <p className="font-medium">💡 Problemi con il caricamento? Prova così:</p>
+                            <ul className="space-y-1.5 ml-4">
+                              <li>
+                                <span className="font-medium">Riprova</span> — Ricarica la pagina e carica di nuovo il file
+                              </li>
+                              <li>
+                                <span className="font-medium">Comprimi il PDF</span> — Vai su{' '}
+                                <a
+                                  href="https://www.ilovepdf.com/compress_pdf"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-purple-400 hover:text-purple-300 underline"
+                                >
+                                  ilovepdf.com/compress_pdf
+                                </a>, carica il file, scarica la versione compressa e riprova
+                              </li>
+                              <li>
+                                <span className="font-medium">Troppe immagini?</span> — Se il PDF ha copertine o grafiche decorative, eliminale su{' '}
+                                <a
+                                  href="https://www.ilovepdf.com/remove_pages"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-purple-400 hover:text-purple-300 underline"
+                                >
+                                  ilovepdf.com/remove_pages
+                                </a>
+                              </li>
+                            </ul>
+                            <p className="mt-2">
+                              Ancora problemi? Scrivici a{' '}
+                              <a href="mailto:support@becoolpro.co" className="text-purple-400 hover:text-purple-300 underline">
+                                support@becoolpro.co
+                              </a>{' '}
+                              allegando il PDF!
+                            </p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400 mb-3">
+                            💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a{' '}
+                            <a href="mailto:support@becoolpro.co" className="underline hover:text-gray-300">
+                              support@becoolpro.co
+                            </a>
+                          </p>
+                        )}
                         <button
                           type="button"
                           onClick={() => setError(null)}
