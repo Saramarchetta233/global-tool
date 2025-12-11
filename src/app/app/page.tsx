@@ -2723,10 +2723,10 @@ const StudiusAIV2: React.FC = () => {
                             <p className="font-medium mb-1">📄 Hai problemi con il caricamento del PDF? Prova così:</p>
                             <ul className="space-y-1 ml-4 text-gray-400">
                               <li>
-                                <span className="font-medium">Riprova</span> — Ricarica la pagina e carica di nuovo il file
+                                <span className="font-medium">1. Riprova</span> — Ricarica la pagina e carica di nuovo il file
                               </li>
                               <li>
-                                <span className="font-medium">Comprimi il PDF</span> — Vai su{' '}
+                                <span className="font-medium">2. Comprimi il PDF</span> — Vai su{' '}, carica il file, scarica la versione compressa e riprova
                                 <a
                                   href="https://www.ilovepdf.com/compress_pdf"
                                   target="_blank"
@@ -2737,9 +2737,9 @@ const StudiusAIV2: React.FC = () => {
                                 </a>
                               </li>
                               <li>
-                                <span className="font-medium">Troppe immagini?</span> — Eliminale su{' '}
+                                <span className="font-medium">3. Troppe immagini?</span> — Se il PDF ha pagine con copertine o grafiche decorative, eliminale su{' '}
                                 <a
-                                  href="https://www.ilovepdf.com/remove_pages"
+                                  href="https://www.ilovepdf.com/remove-pages"
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-purple-400 hover:text-purple-300 underline"
