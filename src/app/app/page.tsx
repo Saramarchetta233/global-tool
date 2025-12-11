@@ -2717,15 +2717,11 @@ const StudiusAIV2: React.FC = () => {
                         <div className="text-sm text-red-400 mb-3">
                           {error}
                         </div>
-                        {/* Check if it's a PDF-related error */}
-                        {(error.toLowerCase().includes('pdf') ||
-                          error.toLowerCase().includes('documento') ||
-                          error.toLowerCase().includes('file') ||
-                          error.toLowerCase().includes('carica') ||
-                          error.toLowerCase().includes('process')) ? (
-                          <div className="text-xs text-gray-400 space-y-2 mb-3">
-                            <p className="font-medium">💡 Problemi con il caricamento? Prova così:</p>
-                            <ul className="space-y-1.5 ml-4">
+                        <div className="text-xs text-gray-400 space-y-3 mb-3">
+                          {/* PDF Problems Section */}
+                          <div>
+                            <p className="font-medium mb-1">📄 Hai problemi con il caricamento del PDF? Prova così:</p>
+                            <ul className="space-y-1 ml-4 text-gray-400">
                               <li>
                                 <span className="font-medium">Riprova</span> — Ricarica la pagina e carica di nuovo il file
                               </li>
@@ -2738,10 +2734,10 @@ const StudiusAIV2: React.FC = () => {
                                   className="text-purple-400 hover:text-purple-300 underline"
                                 >
                                   ilovepdf.com/compress_pdf
-                                </a>, carica il file, scarica la versione compressa e riprova
+                                </a>
                               </li>
                               <li>
-                                <span className="font-medium">Troppe immagini?</span> — Se il PDF ha copertine o grafiche decorative, eliminale su{' '}
+                                <span className="font-medium">Troppe immagini?</span> — Eliminale su{' '}
                                 <a
                                   href="https://www.ilovepdf.com/remove_pages"
                                   target="_blank"
@@ -2752,22 +2748,25 @@ const StudiusAIV2: React.FC = () => {
                                 </a>
                               </li>
                             </ul>
-                            <p className="mt-2">
-                              Ancora problemi? Scrivici a{' '}
+                          </div>
+
+                          {/* Other Problems Section */}
+                          <div>
+                            <p className="font-medium mb-1">🔄 Hai problemi con esami o altre funzioni?</p>
+                            <p className="ml-4">Aggiorna la pagina e riprova</p>
+                          </div>
+
+                          {/* Contact Section */}
+                          <div>
+                            <p>
+                              Per problemi persistenti o altro, contattaci a{' '}
                               <a href="mailto:support@becoolpro.co" className="text-purple-400 hover:text-purple-300 underline">
                                 support@becoolpro.co
-                              </a>{' '}
-                              allegando il PDF!
+                              </a>
+                              {' '}allegando il PDF se necessario!
                             </p>
                           </div>
-                        ) : (
-                          <p className="text-xs text-gray-400 mb-3">
-                            💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a{' '}
-                            <a href="mailto:support@becoolpro.co" className="underline hover:text-gray-300">
-                              support@becoolpro.co
-                            </a>
-                          </p>
-                        )}
+                        </div>
                         <button
                           type="button"
                           onClick={() => setError(null)}
