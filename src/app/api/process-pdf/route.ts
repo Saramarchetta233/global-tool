@@ -186,7 +186,7 @@ async function generateStudyMaterials(text: string, language: string) {
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompts.summary }],
       temperature: 0.3,
-      max_tokens: 1000,
+      max_tokens: 6000,
     });
     console.log('Summary response received');
 
@@ -195,7 +195,7 @@ async function generateStudyMaterials(text: string, language: string) {
       model: "gpt-4o-mini",
       messages: [{ role: "user", content: prompts.flashcards }],
       temperature: 0.4,
-      max_tokens: 800,
+      max_tokens: 1500,
     });
     console.log('Flashcards response received');
 

@@ -40,6 +40,12 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
   const [isFirstTime, setIsFirstTime] = useState<boolean | null>(null);
   const [isCheckingFirstTime, setIsCheckingFirstTime] = useState(true);
   
+  // Speech recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const recognitionRef = useRef<any>(null);
+  
   // IMPORTANTE: Non mostrare "GRATIS" mentre stiamo controllando
   const shouldShowAsFirstTime = isFirstTime === true && !isCheckingFirstTime;
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -81,6 +87,71 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       }
     };
   }, [timerActive]);
+
+  // Speech recognition setup
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      // Check for speech recognition support
+      const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+      
+      if (SpeechRecognition) {
+        setSpeechSupported(true);
+        
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = targetLanguage === 'Italiano' ? 'it-IT' : 
+                          targetLanguage === 'Inglese' ? 'en-US' :
+                          targetLanguage === 'Spagnolo' ? 'es-ES' :
+                          targetLanguage === 'Francese' ? 'fr-FR' : 'it-IT';
+        
+        recognition.onstart = () => {
+          setIsRecording(true);
+          setIsListening(true);
+        };
+        
+        recognition.onresult = (event: any) => {
+          let finalTranscript = '';
+          let interimTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interimTranscript += transcript;
+            }
+          }
+          
+          if (finalTranscript) {
+            setUserAnswer(prev => prev + finalTranscript);
+          }
+        };
+        
+        recognition.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+          setIsListening(false);
+        };
+        
+        recognition.onend = () => {
+          setIsRecording(false);
+          setIsListening(false);
+        };
+        
+        recognitionRef.current = recognition;
+      } else {
+        console.log('Speech recognition not supported');
+        setSpeechSupported(false);
+      }
+    }
+    
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, [targetLanguage]);
 
   // Auto scroll to latest message (only when new messages arrive)
   useEffect(() => {
@@ -245,6 +316,31 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
       addMessage('Mi dispiace, si è verificato un errore. Riprova più tardi.\n\n💡 In caso di errori, aggiorna la pagina e riprova. Se il problema persiste contattaci a support@becoolpro.co', 'professor');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Speech recognition functions
+  const startListening = () => {
+    if (recognitionRef.current && speechSupported && !isRecording) {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error('Error starting speech recognition:', error);
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (recognitionRef.current && isRecording) {
+      recognitionRef.current.stop();
+    }
+  };
+
+  const toggleListening = () => {
+    if (isRecording) {
+      stopListening();
+    } else {
+      startListening();
     }
   };
 
@@ -508,12 +604,14 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
               <div className="md:bg-white/5 md:rounded-xl p-4 md:border md:border-white/10 fixed md:relative bottom-0 left-0 right-0 md:bottom-auto md:left-auto md:right-auto bg-purple-900/90 md:bg-transparent border-t md:border-t-0 border-white/20 md:border-white/10 z-10">
                 {/* Input */}
                 <div className="flex items-end gap-4">
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <textarea
                       value={userAnswer}
                       onChange={(e) => setUserAnswer(e.target.value)}
-                      placeholder="Scrivi la tua risposta qui..."
-                      className="w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[50px] md:min-h-[80px] text-base md:text-sm"
+                      placeholder={speechSupported ? "Scrivi o parla la tua risposta..." : "Scrivi la tua risposta qui..."}
+                      className={`w-full bg-transparent text-white placeholder-gray-400 resize-none focus:outline-none min-h-[50px] md:min-h-[80px] text-base md:text-sm ${
+                        isRecording ? 'ring-2 ring-red-500/50' : ''
+                      }`}
                       disabled={isLoading}
                       onKeyPress={(e) => {
                         if (e.key === 'Enter' && e.ctrlKey) {
@@ -521,7 +619,30 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                         }
                       }}
                     />
+                    {isRecording && (
+                      <div className="absolute top-2 right-2 flex items-center gap-2 bg-red-500/20 text-red-300 px-2 py-1 rounded-lg text-xs">
+                        <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                        Ascolto...
+                      </div>
+                    )}
                   </div>
+                  
+                  {/* Microphone Button */}
+                  {speechSupported && (
+                    <button
+                      onClick={toggleListening}
+                      disabled={isLoading}
+                      className={`p-3 rounded-xl transition-all duration-300 disabled:cursor-not-allowed ${
+                        isRecording 
+                          ? 'bg-red-500 hover:bg-red-600 animate-pulse' 
+                          : 'bg-green-600 hover:bg-green-700'
+                      } text-white`}
+                      title={isRecording ? 'Stop recording' : 'Start voice input'}
+                    >
+                      <Mic className={`w-5 h-5 ${isRecording ? 'animate-pulse' : ''}`} />
+                    </button>
+                  )}
+                  
                   <button
                     onClick={sendAnswer}
                     disabled={!userAnswer.trim() || isLoading}
@@ -532,7 +653,11 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
                 </div>
                 
                 <div className="flex justify-center items-center mt-3 text-xs text-gray-400">
-                  <span>Ctrl+Invio per inviare • Risposte GRATIS</span>
+                  <span>
+                    Ctrl+Invio per inviare
+                    {speechSupported && ' • 🎤 Clicca per parlare'}
+                    {' • Risposte GRATIS'}
+                  </span>
                 </div>
 
                 {/* Exam Control Buttons - Inclusi nell'area fissa su mobile */}

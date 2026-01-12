@@ -282,6 +282,7 @@ export const useStudySessionStore = create<StudySessionState>()(
           results: {
             riassunto_breve: isNewFormat ? historyData.riassunto_breve : historyData.summaryShort,
             riassunto_esteso: isNewFormat ? historyData.riassunto_esteso : historyData.summaryExtended,
+            riassunto_ultra: isNewFormat ? historyData.riassunto_ultra : historyData.summaryUltra, // Added Ultra Summary mapping
             mappa_concettuale: isNewFormat ? historyData.mappa_concettuale : historyData.conceptMap,
             flashcard: isNewFormat ? historyData.flashcard : historyData.flashcards,
             quiz: isNewFormat ? historyData.quiz : historyData.quizData,

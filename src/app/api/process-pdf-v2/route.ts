@@ -79,7 +79,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
   const targetLang = targetLanguage ? languageMap[targetLanguage] || targetLanguage : baseLang;
 
   // Truncate text if too long (OpenAI has token limits)
-  const maxLength = 12000;
+  const maxLength = 12000; // Maximum input for ultra-detailed summaries
   const processedText = text.length > maxLength ?
     text.substring(0, maxLength) + "\n\n[Note: Text was truncated due to length limits]" :
     text;
@@ -139,7 +139,7 @@ async function generateStudyMaterials(text: string, language: string, userId: st
       quizResponse,
       examGuideResponse
     ] = await Promise.all([
-      retryOpenAICall(prompts.summary, 3000, 0.3, 2, 'summary'),
+      retryOpenAICall(prompts.summary, 6000, 0.3, 2, 'summary'), // Maximum tokens for ultra-detailed summaries
       retryOpenAICall(prompts.flashcards, 2000, 0.4, 2, 'flashcards'),
       retryOpenAICall(prompts.conceptMap, 1500, 0.3, 2, 'conceptMap'),
       retryOpenAICall(prompts.quiz, 1000, 0.4, 2, 'quiz'),
@@ -161,53 +161,8 @@ async function generateStudyMaterials(text: string, language: string, userId: st
         .replace(/\f/g, ' ')               // Replace form feeds
         .replace(/\v/g, ' ');              // Replace vertical tabs
 
-      // Replace problematic mathematical symbols and emojis with safe text equivalents
-      const symbolReplacements = {
-        // Mathematical symbols
-        '∈': ' appartiene a ',
-        '∉': ' non appartiene a ',
-        '∑': ' sommatoria di ',
-        '∏': ' produttoria di ',
-        '∞': ' infinito ',
-        '≠': ' diverso da ',
-        '≤': ' minore o uguale a ',
-        '≥': ' maggiore o uguale a ',
-        '±': ' più o meno ',
-        '√': ' radice quadrata di ',
-        '∝': ' proporzionale a ',
-        '∀': ' per ogni ',
-        '∃': ' esiste ',
-        '∇': ' nabla ',
-        '∂': ' derivata parziale ',
-        '∫': ' integrale ',
-        '∆': ' delta ',
-        '°': ' gradi ',
-        // Common emojis that might break JSON
-        '🔴': ' (punto rosso) ',
-        '🌟': ' (stella) ',
-        '🐾': ' (zampe) ',
-        '✅': ' (segno di spunta) ',
-        '❌': ' (croce) ',
-        '⭐': ' (stella) ',
-        '🎯': ' (bersaglio) ',
-        '🔥': ' (fuoco) ',
-        '💡': ' (lampadina) ',
-        '📚': ' (libri) ',
-        '📝': ' (appunti) ',
-        '✨': ' (scintille) ',
-        '🎨': ' (arte) ',
-        '🎵': ' (musica) ',
-        '🏆': ' (trofeo) ',
-        '💯': ' (cento per cento) '
-      };
-
-      // Replace symbols and emojis
-      for (const [symbol, replacement] of Object.entries(symbolReplacements)) {
-        cleaned = cleaned.replace(new RegExp(symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), replacement);
-      }
-      
-      // Remove any remaining emojis (regex for unicode emoji ranges)
-      cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, ' (emoji) ');
+      // Only remove control characters that actually break JSON parsing
+      // Keep mathematical symbols and emojis as they are since we're generating HTML now
 
       // Find the first { and last } to extract only the JSON part
       const firstBrace = cleaned.indexOf('{');

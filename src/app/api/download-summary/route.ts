@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { riassuntoBreve, riassuntoEsteso, format = 'html' } = await request.json();
+    const { riassuntoBreve, riassuntoEsteso, format = 'html', isUltraSummary = false } = await request.json();
 
     if (!riassuntoBreve && !riassuntoEsteso) {
       return NextResponse.json({ error: 'Nessun riassunto fornito' }, { status: 400 });
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
         <html>
         <head>
           <meta charset="utf-8">
-          <title>Riassunto - Studius AI</title>
+          <title>${isUltraSummary ? 'Riassunto Ultra' : 'Riassunto'} - Studius AI</title>
           <style>
             body { 
               font-family: 'Times New Roman', serif; 
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
           </style>
         </head>
         <body>
-          <h1>📚 Riassunto di Studio - Studius AI</h1>
+          <h1>${isUltraSummary ? '🚀 Riassunto Ultra' : '📚 Riassunto di Studio'} - Studius AI</h1>
           
           ${riassuntoBreve ? `
           <div class="summary-section">
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
           ${riassuntoEsteso && riassuntoEsteso !== riassuntoBreve ? `
           <div class="page-break"></div>
           <div class="summary-section">
-            <h2>📖 Riassunto Esteso</h2>
+            <h2>${isUltraSummary ? '🚀 Riassunto Ultra Dettagliato' : '📖 Riassunto Esteso'}</h2>
             <div>${riassuntoEsteso.replace(/\n\n/g, '</p><p>').replace(/\n/g, '<br>').replace(/\*\*(.*?)\*\*/g, '<strong class="highlight">$1</strong>')}</div>
           </div>
           ` : ''}
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       return new NextResponse(htmlContent, {
         headers: {
           'Content-Type': 'text/html; charset=utf-8',
-          'Content-Disposition': 'attachment; filename="riassunto-studius.html"',
+          'Content-Disposition': `attachment; filename="${isUltraSummary ? 'riassunto-ultra-studius.html' : 'riassunto-studius.html'}"`,
           'Cache-Control': 'no-cache'
         }
       });

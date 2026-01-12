@@ -53,6 +53,7 @@ export const POST = async (request: NextRequest) => {
         title: sessionData.docTitle,
         riassunto_breve: sessionData.summaryShort,
         riassunto_esteso: sessionData.summaryExtended,
+        riassunto_ultra: sessionData.summaryUltra || null, // AGGIUNTO: Riassunto Ultra
         mappa_concettuale: sessionData.conceptMap,
         flashcard: sessionData.flashcards,
         quiz: sessionData.quizData,
