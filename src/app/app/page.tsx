@@ -1823,16 +1823,15 @@ const StudiusAIV2: React.FC = () => {
       try {
         console.log('🔄 Polling for Ultra Summary progress...');
 
-        // Check the session metadata for progress
-        const response = await fetch(`/api/history`, {
+        // Use dedicated status endpoint for efficient polling
+        const response = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
-          const historyData = await response.json();
-          const currentSession = historyData.history?.find((h: any) => h.id === sessionId);
+          const statusData = await response.json();
 
-          if (currentSession?.riassunto_ultra) {
+          if (statusData.status === 'completed' && statusData.ultraSummary) {
             // Ultra Summary is completed!
             console.log('🎉 Ultra Summary completed via polling!');
             setUltraProcessing(false);
@@ -1842,7 +1841,7 @@ const StudiusAIV2: React.FC = () => {
             if (results) {
               const updatedResults = {
                 ...results,
-                riassunto_ultra: currentSession.riassunto_ultra
+                riassunto_ultra: statusData.ultraSummary
               };
               setResults(updatedResults);
 
@@ -1863,28 +1862,24 @@ const StudiusAIV2: React.FC = () => {
             }
             showSuccess('🎉 Riassunto Ultra completato! Puoi visualizzarlo nel tab "Riassunto Ultra".');
 
-          } else if (currentSession?.processing_metadata?.ultra_summary_status) {
+          } else if (statusData.status === 'in_progress') {
             // Update progress if available
-            const metadata = currentSession.processing_metadata;
+            const current = statusData.currentSection || 0;
+            const total = statusData.totalSections || 1;
+            const estimatedMinutes = Math.ceil((total - current) * 3); // 3 min per section
 
-            if (metadata.ultra_summary_status === 'in_progress') {
-              const current = metadata.current_section || 0;
-              const total = metadata.total_sections || 1;
-              const estimatedMinutes = Math.ceil((total - current) * 3); // 3 min per section
+            console.log(`📊 Progress update: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
 
-              console.log(`📊 Progress update: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
-
-              setUltraProgress({
-                current,
-                total,
-                estimatedMinutes
-              });
-            } else if (metadata.ultra_summary_status === 'failed') {
-              console.error('❌ Ultra Summary failed via polling');
-              setUltraProcessing(false);
-              clearInterval(pollInterval);
-              showError('❌ Riassunto Ultra fallito durante l\'elaborazione.');
-            }
+            setUltraProgress({
+              current,
+              total,
+              estimatedMinutes
+            });
+          } else if (statusData.status === 'failed') {
+            console.error('❌ Ultra Summary failed via polling:', statusData.error);
+            setUltraProcessing(false);
+            clearInterval(pollInterval);
+            showError(`❌ Riassunto Ultra fallito: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
           }
         }
 
@@ -1893,7 +1888,7 @@ const StudiusAIV2: React.FC = () => {
       }
     }, 10000); // Poll every 10 seconds
 
-    // Stop polling after 30 minutes (maximum expected time)
+    // Stop polling after 2 hours (maximum Trigger.dev duration)
     setTimeout(() => {
       clearInterval(pollInterval);
       if (ultraProcessing) {
@@ -1901,7 +1896,7 @@ const StudiusAIV2: React.FC = () => {
         setUltraProcessing(false);
         showError('⏰ Timeout: Riassunto Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
       }
-    }, 30 * 60 * 1000); // 30 minutes
+    }, 2 * 60 * 60 * 1000); // 2 hours
   };
 
   // Ultra Summary Generation Handler
