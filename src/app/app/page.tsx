@@ -3260,6 +3260,17 @@ const StudiusAIV2: React.FC = () => {
                       ilovepdf.com/merge_pdf
                     </a>{' '}
                     prima di caricarli
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    📑 PDF troppo grande (oltre 300 pagine)? Dividilo in parti su{' '}
+                    <a
+                      href="https://www.ilovepdf.com/split_pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-400 hover:text-purple-300 underline transition-colors"
+                    >
+                      ilovepdf.com/split_pdf
+                    </a>
                   </p><br></br>
                 </div>
 
@@ -3960,8 +3971,8 @@ const StudiusAIV2: React.FC = () => {
                         <button
                           onClick={() => setShowUltraMaps(false)}
                           className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${!showUltraMaps
-                              ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
-                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
                           Base ({results.mappa_concettuale?.length || 0} nodi)
@@ -4091,8 +4102,8 @@ const StudiusAIV2: React.FC = () => {
                         <button
                           onClick={() => setShowUltraFlashcards(false)}
                           className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${!showUltraFlashcards
-                              ? 'bg-pink-500/30 text-pink-200 border border-pink-400/50'
-                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            ? 'bg-pink-500/30 text-pink-200 border border-pink-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
                           Standard ({results.flashcard?.length || 0})
