@@ -237,8 +237,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, onBackToHom
                     </div>
                   </div>
                   
-                  <p className="text-gray-300 text-sm line-clamp-2 mb-3">
-                    {item.riassunto_breve?.substring(0, 150) || 'Nessuna anteprima disponibile'}...
+                  <p className="text-gray-300 text-sm line-clamp-2 mb-3 overflow-hidden break-words whitespace-normal max-w-full">
+                    {(item.riassunto_breve?.replace(/<[^>]*>/g, '').replace(/[#*_`~\[\]]/g, '').substring(0, 150)) || 'Nessuna anteprima disponibile'}...
                   </p>
 
                   {/* Content indicators */}

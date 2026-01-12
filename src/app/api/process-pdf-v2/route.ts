@@ -2,6 +2,10 @@ import crypto from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
+// Vercel configuration - max 300 seconds (5 min) for Pro plan
+export const maxDuration = 300;
+export const runtime = 'nodejs';
+
 import { getPdfCost, getPdfCostDescription } from '@/lib/credits/calcPdfCost';
 import { parsePdfWithLlamaParse, validateLlamaParseConfig } from '@/lib/llamaParse';
 import { 
