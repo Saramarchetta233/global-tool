@@ -207,18 +207,18 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, onBackToHom
           {filteredHistory.map((item) => (
             <div
               key={item.id}
-              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl p-4 sm:p-6 transition-all duration-300 cursor-pointer"
+              className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl p-4 sm:p-6 transition-all duration-300 cursor-pointer overflow-hidden"
               onClick={() => onSelectDocument(item)}
             >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
+              <div className="flex items-start justify-between overflow-hidden">
+                <div className="flex-1 min-w-0 overflow-hidden">
                   <div className="flex items-center gap-2 sm:gap-3 mb-2">
                     <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0">
                       <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h4 className="text-base sm:text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate max-w-[200px] sm:max-w-full">
-                        {item.title || item.fileName}
+                    <div className="min-w-0 flex-1 overflow-hidden">
+                      <h4 className="text-base sm:text-lg font-semibold text-white group-hover:text-purple-300 transition-colors truncate">
+                        {(item.title || item.fileName)?.substring(0, 50)}{(item.title || item.fileName)?.length > 50 ? '...' : ''}
                       </h4>
                       <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-400 flex-wrap">
                         <Calendar className="w-4 h-4" />
@@ -237,8 +237,8 @@ const HistoryView: React.FC<HistoryViewProps> = ({ onSelectDocument, onBackToHom
                     </div>
                   </div>
                   
-                  <p className="text-gray-300 text-sm line-clamp-2 mb-3">
-                    {item.riassunto_breve?.substring(0, 150) || 'Nessuna anteprima disponibile'}...
+                  <p className="text-gray-300 text-sm mb-3 break-all" style={{ maxHeight: '2.8em', overflow: 'hidden' }}>
+                    {(item.riassunto_breve?.replace(/<[^>]*>/g, '').replace(/[#*_`~\[\]]/g, '').replace(/\s+/g, ' ').trim().substring(0, 120)) || 'Nessuna anteprima disponibile'}...
                   </p>
 
                   {/* Content indicators */}
