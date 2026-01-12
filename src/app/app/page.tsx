@@ -3262,7 +3262,7 @@ const StudiusAIV2: React.FC = () => {
                     prima di caricarli
                   </p>
                   <p className="text-sm text-gray-400 mt-2">
-                    📑 PDF troppo grande (oltre 200 pagine o superiore a 4MB)? Dividilo in parti su{' '}
+                    📑 PDF troppo grande (oltre 300 pagine o superiore a 4MB)? Dividilo in parti su{' '}
                     <a
                       href="https://www.ilovepdf.com/split_pdf"
                       target="_blank"
