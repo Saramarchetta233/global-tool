@@ -1475,12 +1475,12 @@ const StudiusAIV2: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
-  
+
   // Ultra Summary Progress State
   const [ultraProcessing, setUltraProcessing] = useState(false);
   const [ultraProgress, setUltraProgress] = useState({ current: 0, total: 0, estimatedMinutes: 0 });
   const [ultraCurrentPage, setUltraCurrentPage] = useState(1);
-  
+
   // Ultra Flashcards & Maps States
   const [showUltraFlashcards, setShowUltraFlashcards] = useState(false);
   const [showUltraMaps, setShowUltraMaps] = useState(false);
@@ -1822,22 +1822,22 @@ const StudiusAIV2: React.FC = () => {
     const pollInterval = setInterval(async () => {
       try {
         console.log('🔄 Polling for Ultra Summary progress...');
-        
+
         // Check the session metadata for progress
         const response = await fetch(`/api/history`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
-        
+
         if (response.ok) {
           const historyData = await response.json();
           const currentSession = historyData.history?.find((h: any) => h.id === sessionId);
-          
+
           if (currentSession?.riassunto_ultra) {
             // Ultra Summary is completed!
             console.log('🎉 Ultra Summary completed via polling!');
             setUltraProcessing(false);
             clearInterval(pollInterval);
-            
+
             // Update results state
             if (results) {
               const updatedResults = {
@@ -1845,7 +1845,7 @@ const StudiusAIV2: React.FC = () => {
                 riassunto_ultra: currentSession.riassunto_ultra
               };
               setResults(updatedResults);
-              
+
               // IMPORTANTE: Salva anche nello studio history per persistenza
               saveStudySession(
                 convertResultsToHistory(updatedResults, user.id, results.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
@@ -1853,27 +1853,27 @@ const StudiusAIV2: React.FC = () => {
               ).catch(error => {
                 console.error('❌ Error saving Ultra Summary to history:', error);
               });
-              
+
               setActiveTab('riassunto_ultra');
             }
-            
+
             // Show completion popup with auto-redirect to Ultra tab
             if (window.confirm('🎉 Riassunto Ultra completato!\n\n✅ Il tuo riassunto ultra-dettagliato è pronto!\n\nVuoi andare al tab "Riassunto Ultra" per visualizzarlo subito?')) {
               setActiveTab('riassunto_ultra');
             }
             showSuccess('🎉 Riassunto Ultra completato! Puoi visualizzarlo nel tab "Riassunto Ultra".');
-            
+
           } else if (currentSession?.processing_metadata?.ultra_summary_status) {
             // Update progress if available
             const metadata = currentSession.processing_metadata;
-            
+
             if (metadata.ultra_summary_status === 'in_progress') {
               const current = metadata.current_section || 0;
               const total = metadata.total_sections || 1;
               const estimatedMinutes = Math.ceil((total - current) * 3); // 3 min per section
-              
+
               console.log(`📊 Progress update: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
-              
+
               setUltraProgress({
                 current,
                 total,
@@ -1887,7 +1887,7 @@ const StudiusAIV2: React.FC = () => {
             }
           }
         }
-        
+
       } catch (error) {
         console.error('❌ Error during Ultra Summary polling:', error);
       }
@@ -1924,7 +1924,7 @@ const StudiusAIV2: React.FC = () => {
     // 3. Check user credits
     const userCredits = user?.credits || 0;
     console.log('🚀 Ultra Summary DEBUG - User credits:', userCredits);
-    
+
     if (userCredits < 250) {
       // Show insufficient credits modal
       setCreditError({
@@ -1940,11 +1940,11 @@ const StudiusAIV2: React.FC = () => {
     const confirmed = window.confirm(
       `Conferma Riassunto Ultra?\n\n` +
       `• Verranno scalati 250 crediti\n` +
-      `• L'elaborazione richiederà 2-5 minuti\n` +
+      `• L'elaborazione richiederà 20-40 minuti\n` +
       `• Vedrai il risultato immediatamente al termine\n\n` +
       `Vuoi procedere?`
     );
-    
+
     if (!confirmed) return;
 
     // 5. Show processing state and info message
@@ -1989,7 +1989,7 @@ const StudiusAIV2: React.FC = () => {
         hasUltraSummary: !!data.ultraSummary,
         ultraSummaryLength: data.ultraSummary?.length || 0
       });
-      
+
       // 7. Update user credits
       if (data.newCreditBalance !== undefined) {
         updateCredits(data.newCreditBalance);
@@ -2000,7 +2000,7 @@ const StudiusAIV2: React.FC = () => {
       if (data.ultraSummary && data.ultraSummary.length > 0) {
         console.log('🎉 Ultra Summary completed immediately!');
         setUltraProcessing(false);
-        
+
         // Update the results state directly with the new riassunto_ultra
         if (results) {
           const updatedResults = {
@@ -2008,7 +2008,7 @@ const StudiusAIV2: React.FC = () => {
             riassunto_ultra: data.ultraSummary
           };
           setResults(updatedResults);
-          
+
           // IMPORTANTE: Salva anche nello studio history per persistenza
           saveStudySession(
             convertResultsToHistory(updatedResults, user.id, results.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
@@ -2016,18 +2016,18 @@ const StudiusAIV2: React.FC = () => {
           ).catch(error => {
             console.error('❌ Error saving Ultra Summary to history:', error);
           });
-          
+
           // Switch to the Ultra Summary tab to show the result
           setActiveTab('riassunto_ultra');
         }
-        
+
         showSuccess(`🎉 Riassunto Ultra completato! ${data.sectionsProcessed} sezioni elaborate (${data.totalCharacters} caratteri). Visualizza il risultato nel tab "Riassunto Ultra".`);
       } else {
         console.log('⏳ Ultra Summary processing started, beginning progress monitoring...');
-        
+
         // Start polling for progress updates
         startUltraSummaryPolling();
-        
+
         showSuccess('✅ Riassunto Ultra avviato! Elaborazione in corso con progresso in tempo reale...');
       }
 
@@ -2080,18 +2080,18 @@ const StudiusAIV2: React.FC = () => {
       '• Otterrai 50-100+ flashcard categorizzate\n\n' +
       'Vuoi procedere?'
     );
-    
+
     if (!confirmed) return;
 
     // Save sessionId locally to avoid race condition
     const currentSessionId = results.sessionId;
     const currentResults = results;
-    
+
     setUltraFlashcardsProcessing(true);
     showInfo('🃏 Flashcard Ultra in elaborazione...');
 
     try {
-      
+
       const response = await fetch('/api/generate-ultra-flashcards', {
         method: 'POST',
         headers: {
@@ -2110,7 +2110,7 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       // Update results
       setResults(prev => prev ? {
         ...prev,
@@ -2174,9 +2174,9 @@ const StudiusAIV2: React.FC = () => {
       '• Otterrai una mappa dettagliata e stratificata\n\n' +
       'Vuoi procedere?'
     );
-    
+
     if (!confirmed) return;
-    
+
     setUltraMapsProcessing(true);
     showInfo('🗺️ Mappa Ultra in elaborazione...');
 
@@ -2199,7 +2199,7 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
-      
+
       // Update results
       setResults(prev => prev ? {
         ...prev,
@@ -2227,20 +2227,20 @@ const StudiusAIV2: React.FC = () => {
   // Ultra Summary Pagination
   const paginateUltraSummary = (content: string) => {
     if (!content) return { pages: [], totalPages: 0, currentPageContent: '' };
-    
+
     // Split by sections (---) or by a reasonable character count
     const sections = content.split(/\n\s*---\s*\n/).filter(section => section.trim().length > 0);
     const itemsPerPage = 2; // 2 sezioni per pagina per evitare scroll eccessivo
-    
+
     const pages = [];
     for (let i = 0; i < sections.length; i += itemsPerPage) {
       const pageContent = sections.slice(i, i + itemsPerPage).join('\n\n---\n\n');
       pages.push(pageContent);
     }
-    
+
     const totalPages = pages.length;
     const currentPageContent = pages[ultraCurrentPage - 1] || '';
-    
+
     return { pages, totalPages, currentPageContent };
   };
 
@@ -2718,7 +2718,7 @@ const StudiusAIV2: React.FC = () => {
   // Function to sanitize and render math formulas
   const sanitizeAndRenderMath = (html: string): string => {
     if (!html) return '';
-    
+
     // Renderizza formule LaTeX inline $...$
     let processed = html.replace(/\$([^$]+)\$/g, (match, formula) => {
       try {
@@ -2727,7 +2727,7 @@ const StudiusAIV2: React.FC = () => {
         return match;
       }
     });
-    
+
     // Renderizza formule block $$...$$
     processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
       try {
@@ -2736,7 +2736,7 @@ const StudiusAIV2: React.FC = () => {
         return match;
       }
     });
-    
+
     return processed;
   };
 
@@ -3627,11 +3627,11 @@ const StudiusAIV2: React.FC = () => {
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
                       <div className="riassunto-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg">
-                        <div 
+                        <div
                           className="riassunto-html-content prose prose-invert max-w-none text-gray-200 leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMath(results.riassunto_breve) }}
                         />
-                      
+
                         {/* Scroll to Top Button - Riassunto Breve */}
                         <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
                           <button
@@ -3682,11 +3682,11 @@ const StudiusAIV2: React.FC = () => {
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
                       <div className="riassunto-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg">
-                        <div 
+                        <div
                           className="riassunto-html-content prose prose-invert max-w-none text-gray-200 leading-relaxed"
                           dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMath(results.riassunto_esteso) }}
                         />
-                      
+
                         {/* Scroll to Top Button - Riassunto Esteso */}
                         <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
                           <button
@@ -3719,7 +3719,7 @@ const StudiusAIV2: React.FC = () => {
                         <li>📖 Paginato per una lettura facile</li>
                       </ul>
                       <p className="ultra-note">💡 Puoi continuare a usare le altre funzioni mentre lo generiamo!</p>
-                      <button 
+                      <button
                         className={`btn-ultra ${ultraProcessing ? 'btn-ultra-loading' : ''}`}
                         onClick={results?.riassunto_ultra ? () => setActiveTab('riassunto_ultra') : handleGenerateUltra}
                         disabled={ultraProcessing}
@@ -3771,13 +3771,13 @@ const StudiusAIV2: React.FC = () => {
                                         targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
                               }
                             />
-                            
+
                             {/* Download Button */}
                             <button
                               onClick={async () => {
                                 try {
                                   console.log('📥 Download Ultra Summary PDF requested');
-                                  
+
                                   const response = await fetch('/api/download-summary', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -3788,11 +3788,11 @@ const StudiusAIV2: React.FC = () => {
                                       isUltraSummary: true
                                     })
                                   });
-                                  
+
                                   if (!response.ok) {
                                     throw new Error(`HTTP error! status: ${response.status}`);
                                   }
-                                  
+
                                   const blob = await response.blob();
                                   const url = window.URL.createObjectURL(blob);
                                   const a = document.createElement('a');
@@ -3803,7 +3803,7 @@ const StudiusAIV2: React.FC = () => {
                                   a.click();
                                   window.URL.revokeObjectURL(url);
                                   document.body.removeChild(a);
-                                  
+
                                   showSuccess('📥 Riassunto Ultra scaricato come file HTML! Apri il file con il browser per visualizzarlo.');
                                 } catch (error) {
                                   console.error('❌ Download error:', error);
@@ -3816,7 +3816,7 @@ const StudiusAIV2: React.FC = () => {
                               Scarica Riassunto Ultra
                             </button>
                           </div>
-                          
+
                           {/* Pagination Controls */}
                           {(() => {
                             const { totalPages } = paginateUltraSummary(results.riassunto_ultra);
@@ -3829,11 +3829,11 @@ const StudiusAIV2: React.FC = () => {
                                 >
                                   <ChevronLeft className="w-4 h-4" />
                                 </button>
-                                
+
                                 <span className="text-amber-300 font-medium px-3 text-sm">
                                   {ultraCurrentPage} di {totalPages}
                                 </span>
-                                
+
                                 <button
                                   onClick={() => setUltraCurrentPage(Math.min(totalPages, ultraCurrentPage + 1))}
                                   disabled={ultraCurrentPage === totalPages}
@@ -3846,13 +3846,13 @@ const StudiusAIV2: React.FC = () => {
                           })()}
                         </div>
                         <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
-                          <div 
+                          <div
                             className="riassunto-html-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg"
                             dangerouslySetInnerHTML={{
                               __html: sanitizeAndRenderMath(renderContent(paginateUltraSummary(results.riassunto_ultra).currentPageContent))
                             }}
                           />
-                          
+
                           {/* Bottom Pagination Controls */}
                           {(() => {
                             const { totalPages } = paginateUltraSummary(results.riassunto_ultra);
@@ -3866,11 +3866,11 @@ const StudiusAIV2: React.FC = () => {
                                   >
                                     <ChevronLeft className="w-4 h-4" />
                                   </button>
-                                  
+
                                   <div className="px-3 py-1 bg-amber-500/20 text-amber-300 text-sm rounded">
                                     Pagina {ultraCurrentPage} di {totalPages}
                                   </div>
-                                  
+
                                   <button
                                     onClick={() => setUltraCurrentPage(Math.min(totalPages, ultraCurrentPage + 1))}
                                     disabled={ultraCurrentPage === totalPages}
@@ -3882,7 +3882,7 @@ const StudiusAIV2: React.FC = () => {
                               </div>
                             ) : null;
                           })()}
-                          
+
                           {/* Scroll to Top Button - Riassunto Ultra */}
                           <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
                             <button
@@ -3922,7 +3922,7 @@ const StudiusAIV2: React.FC = () => {
                               <li>📖 Paginato per una lettura facile</li>
                             </ul>
                           </div>
-                          <button 
+                          <button
                             className={`btn-ultra ${ultraProcessing ? 'btn-ultra-loading' : ''}`}
                             onClick={handleGenerateUltra}
                             disabled={ultraProcessing}
@@ -3959,16 +3959,15 @@ const StudiusAIV2: React.FC = () => {
                           <p className="text-gray-400">Struttura visuale delle connessioni tra i concetti</p>
                         </div>
                       </div>
-                      
+
                       {/* Ultra Toggle */}
                       <div className="bg-white/5 rounded-lg p-1 border border-white/10 flex gap-1">
                         <button
                           onClick={() => setShowUltraMaps(false)}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                            !showUltraMaps
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${!showUltraMaps
                               ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
                               : 'text-gray-400 hover:text-white hover:bg-white/5'
-                          }`}
+                            }`}
                         >
                           Base ({results.mappa_concettuale?.length || 0} nodi)
                         </button>
@@ -4015,7 +4014,7 @@ const StudiusAIV2: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Ultra CTA Box - Only if Ultra not available */}
                         {!results.mappa_ultra && (
                           <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
@@ -4031,7 +4030,7 @@ const StudiusAIV2: React.FC = () => {
                               <li>🪙 Costo: 100 crediti</li>
                               <li>💾 Salvata per sempre nel tuo account</li>
                             </ul>
-                            <button 
+                            <button
                               className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
                               disabled={true}
                             >
@@ -4066,7 +4065,7 @@ const StudiusAIV2: React.FC = () => {
                             <p className="text-gray-300 mb-6">
                               Genera una mappa Ultra per ottenere una visualizzazione completa e stratificata.
                             </p>
-                            <button 
+                            <button
                               className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
                               disabled={true}
                             >
@@ -4091,16 +4090,15 @@ const StudiusAIV2: React.FC = () => {
                           <p className="text-sm sm:text-base text-gray-400">Carte per memorizzazione attiva</p>
                         </div>
                       </div>
-                      
+
                       {/* Ultra Toggle */}
                       <div className="bg-white/5 rounded-lg p-1 border border-white/10 flex gap-1">
                         <button
                           onClick={() => setShowUltraFlashcards(false)}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
-                            !showUltraFlashcards
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${!showUltraFlashcards
                               ? 'bg-pink-500/30 text-pink-200 border border-pink-400/50'
                               : 'text-gray-400 hover:text-white hover:bg-white/5'
-                          }`}
+                            }`}
                         >
                           Standard ({results.flashcard?.length || 0})
                         </button>
@@ -4147,7 +4145,7 @@ const StudiusAIV2: React.FC = () => {
                             </div>
                           )}
                         </div>
-                        
+
                         {/* Ultra CTA Box - Only if Ultra not available */}
                         {!results.flashcard_ultra && (
                           <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
@@ -4162,7 +4160,7 @@ const StudiusAIV2: React.FC = () => {
                               <li>🪙 Costo: 100 crediti</li>
                               <li>💾 Salvate per sempre nel tuo account</li>
                             </ul>
-                            <button 
+                            <button
                               className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
                               disabled={true}
                             >
@@ -4191,7 +4189,7 @@ const StudiusAIV2: React.FC = () => {
                             <p className="text-gray-300 mb-6">
                               Genera flashcard Ultra per ottenere uno studio più approfondito e categorizzato.
                             </p>
-                            <button 
+                            <button
                               className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
                               disabled={true}
                             >
@@ -4541,10 +4539,10 @@ const StudiusAIV2: React.FC = () => {
             {ultraProgress.total > 0 ? (
               <>
                 <p>Sezione {ultraProgress.current} di {ultraProgress.total} completata</p>
-                <div style={{ 
-                  background: '#374151', 
-                  borderRadius: '8px', 
-                  padding: '4px', 
+                <div style={{
+                  background: '#374151',
+                  borderRadius: '8px',
+                  padding: '4px',
                   margin: '8px 0',
                   width: '200px'
                 }}>
