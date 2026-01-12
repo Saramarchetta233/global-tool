@@ -609,6 +609,8 @@ export async function POST(request: NextRequest) {
 
     // Consuma crediti prima di generare
     const baseUrl = request.url.split('/api')[0];
+    console.log(`💳 Calling credits API: ${baseUrl}/api/credits/consume`);
+
     const creditResponse = await fetch(`${baseUrl}/api/credits/consume`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -620,21 +622,32 @@ export async function POST(request: NextRequest) {
       })
     });
 
+    // Leggi la risposta come testo prima per evitare crash su HTML
+    const creditResponseText = await creditResponse.text();
+    console.log(`💳 Credits API response status: ${creditResponse.status}`);
+
+    // Verifica che sia JSON valido prima di parsare
+    if (!creditResponseText.trim().startsWith('{') && !creditResponseText.trim().startsWith('[')) {
+      console.error('❌ Credits API returned non-JSON response:', creditResponseText.substring(0, 200));
+      throw new Error(`Errore interno nel sistema crediti. Riprova tra qualche secondo.`);
+    }
+
+    const creditData = JSON.parse(creditResponseText);
+
     if (!creditResponse.ok) {
-      const creditError = await creditResponse.json();
-      if (creditError.error === 'insufficient_credits') {
+      if (creditData.error === 'insufficient_credits') {
         return NextResponse.json({
           error: 'insufficient_credits',
           message: 'Crediti insufficienti per elaborare questo PDF',
           required: creditCost,
-          current: creditError.currentCredits || 0,
+          current: creditData.currentCredits || 0,
           costDescription: costDescription
         }, { status: 403 });
       }
       throw new Error('Errore nel consumo crediti');
     }
 
-    const creditResult = await creditResponse.json();
+    const creditResult = creditData;
     console.log(`Credits consumed: ${creditCost}, new balance: ${creditResult.newBalance}`);
 
     // Generate study materials with OpenAI
