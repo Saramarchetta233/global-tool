@@ -7,6 +7,7 @@ export interface StudyHistory {
   targetLanguage: string;
   summaryShort: string;
   summaryExtended: string;
+  summaryUltra?: string; // Riassunto Ultra dettagliato
   conceptMap: any[];
   flashcards: any[];
   quizData: any[];
@@ -308,6 +309,7 @@ export function convertResultsToHistory(
     targetLanguage,
     summaryShort: results.riassunto_breve || '',
     summaryExtended: results.riassunto_esteso || '',
+    summaryUltra: results.riassunto_ultra || undefined, // Riassunto Ultra
     conceptMap: results.mappa_concettuale || [],
     flashcards: results.flashcard || [],
     quizData: results.quiz || [],

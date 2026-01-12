@@ -1,7 +1,162 @@
 'use client';
 
-import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, Clock, Download, Edit, FileText, HelpCircle, History, LogOut, MessageCircle, Mic, Play, Rocket, Sparkles, Star, Target, Upload, Volume2, Zap } from 'lucide-react';
-import React, { useEffect, useRef, useState } from 'react';
+import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, ChevronUp, Clock, Download, Edit, FileText, HelpCircle, History, LogOut, MessageCircle, Mic, Play, Rocket, Sparkles, Star, Target, Upload, Volume2, Zap } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import katex from 'katex';
+import 'katex/dist/katex.min.css';
+
+// Ultra Summary CTA Styles
+const ultraCTAStyles = `
+.ultra-cta-box {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 15px;
+  padding: 25px 30px;
+  margin: 40px 0;
+  text-align: center;
+}
+
+.ultra-cta-box h3 {
+  color: #fbbf24;
+  font-size: 22px;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.ultra-cta-box p {
+  color: #e5e7eb;
+  font-size: 16px;
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+.ultra-cta-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 20px 0;
+  text-align: left;
+  display: inline-block;
+}
+
+.ultra-cta-box li {
+  margin: 10px 0;
+  font-size: 15px;
+  color: #e5e7eb;
+}
+
+.ultra-note {
+  font-size: 14px !important;
+  color: #a5b4fc !important;
+  font-style: italic;
+  margin: 15px 0 !important;
+}
+
+.btn-ultra {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: #1a1a2e;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 15px 35px;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.btn-ultra:hover {
+  transform: scale(1.05);
+  box-shadow: 0 5px 25px rgba(251, 191, 36, 0.4);
+}
+
+.btn-ultra:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.ultra-processing-banner {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border: 2px solid #fbbf24;
+  border-radius: 12px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 1000;
+  max-width: 320px;
+}
+
+@media (max-width: 768px) {
+  .ultra-processing-banner {
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    max-width: none;
+    padding: 12px 16px;
+    gap: 10px;
+    font-size: 14px;
+  }
+}
+
+.ultra-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(251, 191, 36, 0.3);
+  border-top-color: #fbbf24;
+  border-radius: 50%;
+  animation: ultra-spin 1.5s linear infinite;
+}
+
+@keyframes ultra-spin {
+  to { transform: rotate(360deg); }
+}
+
+.ultra-banner-content h4 {
+  color: #fbbf24;
+  font-size: 18px;
+  margin: 0 0 8px 0;
+  font-weight: bold;
+}
+
+.ultra-banner-content p {
+  color: #e5e7eb;
+  font-size: 14px;
+  margin: 4px 0;
+  line-height: 1.4;
+}
+
+.ultra-banner-hint {
+  font-size: 12px !important;
+  color: #a5b4fc !important;
+  font-style: italic;
+  margin-top: 8px !important;
+}
+
+.btn-ultra-loading {
+  cursor: not-allowed;
+  opacity: 0.8;
+}
+
+.ultra-btn-spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 2px solid #ffffff;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+`;
 
 import { useAuth } from '@/lib/auth-context';
 import { convertResultsToHistory, getStudySession, saveStudySession } from '@/lib/study-history';
@@ -43,8 +198,11 @@ interface ConceptNode {
 interface StudyResults {
   riassunto_breve: string;
   riassunto_esteso: string;
+  riassunto_ultra?: string; // Optional Ultra Summary
   mappa_concettuale: ConceptNode[];
   flashcard: FlashCard[];
+  flashcard_ultra?: FlashCard[]; // Optional Ultra Flashcards
+  mappa_ultra?: any; // Optional Ultra Maps
   quiz: QuizQuestion[];
   guida_esame: string | {
     tempo_totale?: string;
@@ -1317,6 +1475,17 @@ const StudiusAIV2: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [userCredits, setUserCredits] = useState<number>(0);
   const [showInsufficientCreditsModal, setShowInsufficientCreditsModal] = useState(false);
+  
+  // Ultra Summary Progress State
+  const [ultraProcessing, setUltraProcessing] = useState(false);
+  const [ultraProgress, setUltraProgress] = useState({ current: 0, total: 0, estimatedMinutes: 0 });
+  const [ultraCurrentPage, setUltraCurrentPage] = useState(1);
+  
+  // Ultra Flashcards & Maps States
+  const [showUltraFlashcards, setShowUltraFlashcards] = useState(false);
+  const [showUltraMaps, setShowUltraMaps] = useState(false);
+  const [ultraFlashcardsProcessing, setUltraFlashcardsProcessing] = useState(false);
+  const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
   const [creditError, setCreditError] = useState<{
     required: number;
     current: number;
@@ -1643,6 +1812,437 @@ const StudiusAIV2: React.FC = () => {
     handleFileUpload(fakeEvent);
   };
 
+  // Ultra Summary Progress Polling
+  const startUltraSummaryPolling = () => {
+    const sessionId = results?.sessionId;
+    if (!sessionId || !user || !token) return;
+
+    console.log('🔄 Starting Ultra Summary progress polling...');
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log('🔄 Polling for Ultra Summary progress...');
+        
+        // Check the session metadata for progress
+        const response = await fetch(`/api/history`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const historyData = await response.json();
+          const currentSession = historyData.history?.find((h: any) => h.id === sessionId);
+          
+          if (currentSession?.riassunto_ultra) {
+            // Ultra Summary is completed!
+            console.log('🎉 Ultra Summary completed via polling!');
+            setUltraProcessing(false);
+            clearInterval(pollInterval);
+            
+            // Update results state
+            if (results) {
+              const updatedResults = {
+                ...results,
+                riassunto_ultra: currentSession.riassunto_ultra
+              };
+              setResults(updatedResults);
+              
+              // IMPORTANTE: Salva anche nello studio history per persistenza
+              saveStudySession(
+                convertResultsToHistory(updatedResults, user.id, results.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
+                token || undefined
+              ).catch(error => {
+                console.error('❌ Error saving Ultra Summary to history:', error);
+              });
+              
+              setActiveTab('riassunto_ultra');
+            }
+            
+            // Show completion popup with auto-redirect to Ultra tab
+            if (window.confirm('🎉 Riassunto Ultra completato!\n\n✅ Il tuo riassunto ultra-dettagliato è pronto!\n\nVuoi andare al tab "Riassunto Ultra" per visualizzarlo subito?')) {
+              setActiveTab('riassunto_ultra');
+            }
+            showSuccess('🎉 Riassunto Ultra completato! Puoi visualizzarlo nel tab "Riassunto Ultra".');
+            
+          } else if (currentSession?.processing_metadata?.ultra_summary_status) {
+            // Update progress if available
+            const metadata = currentSession.processing_metadata;
+            
+            if (metadata.ultra_summary_status === 'in_progress') {
+              const current = metadata.current_section || 0;
+              const total = metadata.total_sections || 1;
+              const estimatedMinutes = Math.ceil((total - current) * 3); // 3 min per section
+              
+              console.log(`📊 Progress update: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+              
+              setUltraProgress({
+                current,
+                total,
+                estimatedMinutes
+              });
+            } else if (metadata.ultra_summary_status === 'failed') {
+              console.error('❌ Ultra Summary failed via polling');
+              setUltraProcessing(false);
+              clearInterval(pollInterval);
+              showError('❌ Riassunto Ultra fallito durante l\'elaborazione.');
+            }
+          }
+        }
+        
+      } catch (error) {
+        console.error('❌ Error during Ultra Summary polling:', error);
+      }
+    }, 10000); // Poll every 10 seconds
+
+    // Stop polling after 30 minutes (maximum expected time)
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      if (ultraProcessing) {
+        console.log('⏰ Ultra Summary polling timeout');
+        setUltraProcessing(false);
+        showError('⏰ Timeout: Riassunto Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
+      }
+    }, 30 * 60 * 1000); // 30 minutes
+  };
+
+  // Ultra Summary Generation Handler
+  const handleGenerateUltra = async () => {
+    console.log('🚀 Ultra Summary requested');
+    console.log('🚀 Ultra Summary DEBUG - User:', user?.id, 'Session:', results?.sessionId);
+
+    // 1. Check if user is authenticated
+    if (!user || !token) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    // 2. Check if we have results with valid session
+    if (!results || !results.sessionId) {
+      showError('Errore: nessun documento elaborato. Elabora prima un documento.');
+      return;
+    }
+
+    // 3. Check user credits
+    const userCredits = user?.credits || 0;
+    console.log('🚀 Ultra Summary DEBUG - User credits:', userCredits);
+    
+    if (userCredits < 250) {
+      // Show insufficient credits modal
+      setCreditError({
+        required: 250,
+        current: userCredits,
+        costDescription: 'Riassunto Ultra (250 crediti)'
+      });
+      setShowInsufficientCreditsModal(true);
+      return;
+    }
+
+    // 4. Show confirmation modal
+    const confirmed = window.confirm(
+      `Conferma Riassunto Ultra?\n\n` +
+      `• Verranno scalati 250 crediti\n` +
+      `• L'elaborazione richiederà 2-5 minuti\n` +
+      `• Vedrai il risultato immediatamente al termine\n\n` +
+      `Vuoi procedere?`
+    );
+    
+    if (!confirmed) return;
+
+    // 5. Show processing state and info message
+    setUltraProcessing(true);
+    setUltraProgress({ current: 0, total: 0, estimatedMinutes: 25 }); // Stima realistica 20-40 min
+    showInfo('🚀 Riassunto Ultra avviato! Elaborazione in corso... Attendere...');
+    console.log('🚀 Ultra Summary DEBUG - Starting API call...');
+
+    try {
+      // 6. Call Ultra Summary API with extended timeout
+      console.log('🚀 Ultra Summary DEBUG - Calling API with:', {
+        sessionId: results.sessionId,
+        userId: user.id
+      });
+
+      const response = await fetch('/api/generate-ultra-summary', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionId: results.sessionId,
+          userId: user.id
+        })
+      });
+
+      console.log('🚀 Ultra Summary DEBUG - API Response status:', response.status);
+      console.log('🚀 Ultra Summary DEBUG - API Response ok:', response.ok);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('❌ Ultra Summary API Error Response:', errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('🚀 Ultra Summary DEBUG - API Response data:', {
+        success: data.success,
+        sectionsProcessed: data.sectionsProcessed,
+        totalCharacters: data.totalCharacters,
+        hasUltraSummary: !!data.ultraSummary,
+        ultraSummaryLength: data.ultraSummary?.length || 0
+      });
+      
+      // 7. Update user credits
+      if (data.newCreditBalance !== undefined) {
+        updateCredits(data.newCreditBalance);
+        console.log(`💳 Ultra Summary: 250 credits used, new balance: ${data.newCreditBalance}`);
+      }
+
+      // 8. Check if the summary was completed immediately or start polling for progress
+      if (data.ultraSummary && data.ultraSummary.length > 0) {
+        console.log('🎉 Ultra Summary completed immediately!');
+        setUltraProcessing(false);
+        
+        // Update the results state directly with the new riassunto_ultra
+        if (results) {
+          const updatedResults = {
+            ...results,
+            riassunto_ultra: data.ultraSummary
+          };
+          setResults(updatedResults);
+          
+          // IMPORTANTE: Salva anche nello studio history per persistenza
+          saveStudySession(
+            convertResultsToHistory(updatedResults, user.id, results.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
+            token || undefined
+          ).catch(error => {
+            console.error('❌ Error saving Ultra Summary to history:', error);
+          });
+          
+          // Switch to the Ultra Summary tab to show the result
+          setActiveTab('riassunto_ultra');
+        }
+        
+        showSuccess(`🎉 Riassunto Ultra completato! ${data.sectionsProcessed} sezioni elaborate (${data.totalCharacters} caratteri). Visualizza il risultato nel tab "Riassunto Ultra".`);
+      } else {
+        console.log('⏳ Ultra Summary processing started, beginning progress monitoring...');
+        
+        // Start polling for progress updates
+        startUltraSummaryPolling();
+        
+        showSuccess('✅ Riassunto Ultra avviato! Elaborazione in corso con progresso in tempo reale...');
+      }
+
+    } catch (error) {
+      console.error('❌ Ultra Summary Error:', error);
+      setUltraProcessing(false);
+      showError(`Errore durante l'avvio del Riassunto Ultra: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+    }
+  };
+
+  // Ultra Flashcards Generation Handler
+  const handleGenerateUltraFlashcards = async () => {
+
+    if (ultraFlashcardsProcessing) {
+      return;
+    }
+
+    if (!user || !token) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (!results || !results.sessionId) {
+      console.error('❌ [ULTRA_FLASHCARDS] Results state corrupted:', { results, sessionId: results?.sessionId });
+      showError('Errore: nessun documento elaborato. Elabora prima un documento.');
+      return;
+    }
+
+    // Check if already exists
+    if (results.flashcard_ultra) {
+      setShowUltraFlashcards(true);
+      return;
+    }
+
+    const userCredits = user?.credits || 0;
+    if (userCredits < 100) {
+      setCreditError({
+        required: 100,
+        current: userCredits,
+        costDescription: 'Flashcard Ultra (100 crediti)'
+      });
+      setShowInsufficientCreditsModal(true);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Conferma Flashcard Ultra?\n\n' +
+      '• Verranno scalati 100 crediti\n' +
+      '• L\'elaborazione richiederà 2-3 minuti\n' +
+      '• Otterrai 50-100+ flashcard categorizzate\n\n' +
+      'Vuoi procedere?'
+    );
+    
+    if (!confirmed) return;
+
+    // Save sessionId locally to avoid race condition
+    const currentSessionId = results.sessionId;
+    const currentResults = results;
+    
+    setUltraFlashcardsProcessing(true);
+    showInfo('🃏 Flashcard Ultra in elaborazione...');
+
+    try {
+      
+      const response = await fetch('/api/generate-ultra-flashcards', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionId: currentSessionId,
+          targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore durante la generazione');
+      }
+
+      const data = await response.json();
+      
+      // Update results
+      setResults(prev => prev ? {
+        ...prev,
+        flashcard_ultra: data.flashcard_ultra
+      } : null);
+
+      // Deduct credits only if it's a new generation
+      if (!data.fromCache && !data.fromDatabase) {
+        await updateCredits(userCredits - 100);
+        showSuccess(`✅ Flashcard Ultra generate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
+      } else {
+        showSuccess(`✅ Flashcard Ultra trovate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
+      }
+
+      setShowUltraFlashcards(true);
+
+    } catch (error) {
+      console.error('❌ Ultra Flashcards Error:', error);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+    } finally {
+      setUltraFlashcardsProcessing(false);
+    }
+  };
+
+  // Ultra Maps Generation Handler
+  const handleGenerateUltraMaps = async () => {
+    console.log('🗺️ Ultra Maps requested');
+
+    if (!user || !token) {
+      setShowAuthModal(true);
+      return;
+    }
+
+    if (!results || !results.sessionId) {
+      console.error('❌ [ULTRA_MAPS] Results state corrupted:', { results, sessionId: results?.sessionId });
+      showError('Errore: nessun documento elaborato. Elabora prima un documento.');
+      return;
+    }
+
+    // Check if already exists
+    if (results.mappa_ultra) {
+      setShowUltraMaps(true);
+      return;
+    }
+
+    const userCredits = user?.credits || 0;
+    if (userCredits < 100) {
+      setCreditError({
+        required: 100,
+        current: userCredits,
+        costDescription: 'Mappa Ultra (100 crediti)'
+      });
+      setShowInsufficientCreditsModal(true);
+      return;
+    }
+
+    const confirmed = window.confirm(
+      'Conferma Mappa Ultra?\n\n' +
+      '• Verranno scalati 100 crediti\n' +
+      '• L\'elaborazione richiederà 2-3 minuti\n' +
+      '• Otterrai una mappa dettagliata e stratificata\n\n' +
+      'Vuoi procedere?'
+    );
+    
+    if (!confirmed) return;
+    
+    setUltraMapsProcessing(true);
+    showInfo('🗺️ Mappa Ultra in elaborazione...');
+
+    try {
+      const response = await fetch('/api/generate-ultra-maps', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          sessionId: results.sessionId,
+          targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Errore durante la generazione');
+      }
+
+      const data = await response.json();
+      
+      // Update results
+      setResults(prev => prev ? {
+        ...prev,
+        mappa_ultra: data.mappa_ultra
+      } : null);
+
+      // Deduct credits only if it's a new generation
+      if (!data.fromCache && !data.fromDatabase) {
+        await updateCredits(userCredits - 100);
+        showSuccess(`✅ Mappa Ultra generata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+      } else {
+        showSuccess(`✅ Mappa Ultra trovata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+      }
+
+      setShowUltraMaps(true);
+
+    } catch (error) {
+      console.error('❌ Ultra Maps Error:', error);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
+    } finally {
+      setUltraMapsProcessing(false);
+    }
+  };
+
+  // Ultra Summary Pagination
+  const paginateUltraSummary = (content: string) => {
+    if (!content) return { pages: [], totalPages: 0, currentPageContent: '' };
+    
+    // Split by sections (---) or by a reasonable character count
+    const sections = content.split(/\n\s*---\s*\n/).filter(section => section.trim().length > 0);
+    const itemsPerPage = 2; // 2 sezioni per pagina per evitare scroll eccessivo
+    
+    const pages = [];
+    for (let i = 0; i < sections.length; i += itemsPerPage) {
+      const pageContent = sections.slice(i, i + itemsPerPage).join('\n\n---\n\n');
+      pages.push(pageContent);
+    }
+    
+    const totalPages = pages.length;
+    const currentPageContent = pages[ultraCurrentPage - 1] || '';
+    
+    return { pages, totalPages, currentPageContent };
+  };
 
   const processDocument = async () => {
     console.log('🚀 UPLOAD DEBUG: Starting processDocument with debug logging v3');
@@ -1668,7 +2268,10 @@ const StudiusAIV2: React.FC = () => {
       }
 
       // Update store with results and session data
-      setResults(studyResults);
+      setResults({
+        ...studyResults,
+        fileName: file.name // Salva il nome originale del file
+      });
       setSessionId(studyResults.sessionId || null);
       setDocumentId(studyResults.sessionId || null); // Fix: Also update documentId to match sessionId
 
@@ -2110,7 +2713,33 @@ const StudiusAIV2: React.FC = () => {
 
 
 
+
   // Helper function to safely render content with improved formatting
+  // Function to sanitize and render math formulas
+  const sanitizeAndRenderMath = (html: string): string => {
+    if (!html) return '';
+    
+    // Renderizza formule LaTeX inline $...$
+    let processed = html.replace(/\$([^$]+)\$/g, (match, formula) => {
+      try {
+        return katex.renderToString(formula, { throwOnError: false });
+      } catch {
+        return match;
+      }
+    });
+    
+    // Renderizza formule block $$...$$
+    processed = processed.replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
+      try {
+        return `<div class="formula-block">${katex.renderToString(formula, { throwOnError: false, displayMode: true })}</div>`;
+      } catch {
+        return match;
+      }
+    });
+    
+    return processed;
+  };
+
   const renderContent = (content: any): string => {
     if (typeof content === 'string') {
       // Clean up content more carefully, preserving structure
@@ -2166,6 +2795,7 @@ const StudiusAIV2: React.FC = () => {
   const tabs = [
     { id: 'riassunto_breve', label: 'Riassunto Breve', icon: FileText },
     { id: 'riassunto_esteso', label: 'Riassunto Esteso', icon: FileText },
+    { id: 'riassunto_ultra', label: 'Riassunto Ultra', icon: Rocket, badge: null }, // TODO: Add dynamic badge
     { id: 'mappa_concettuale', label: 'Mappa Concettuale', icon: Brain },
     { id: 'flashcard', label: 'Flashcard', icon: Upload },
     { id: 'quiz', label: 'Simula Esame', icon: Play },
@@ -2187,7 +2817,8 @@ const StudiusAIV2: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
-
+      {/* Ultra Summary CTA Styles */}
+      <style>{ultraCTAStyles}</style>
 
       {/* Animated Background */}
       <div className="absolute inset-0 opacity-20 bg-gradient-to-br from-purple-900/10 to-blue-900/10"></div>
@@ -2995,7 +3626,31 @@ const StudiusAIV2: React.FC = () => {
                       />
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
-                      <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_breve)}</p>
+                      <div className="riassunto-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg">
+                        <div 
+                          className="riassunto-html-content prose prose-invert max-w-none text-gray-200 leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMath(results.riassunto_breve) }}
+                        />
+                      
+                        {/* Scroll to Top Button - Riassunto Breve */}
+                        <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
+                          <button
+                            onClick={() => {
+                              const tabsSection = document.querySelector('[data-tabs-section]') as HTMLElement;
+                              if (tabsSection) {
+                                tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              } else {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-amber-300 hover:text-amber-200 rounded-lg transition-colors text-sm font-medium border border-white/20"
+                            title="Torna all'inizio"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                            Torna su
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -3026,42 +3681,526 @@ const StudiusAIV2: React.FC = () => {
                       />
                     </div>
                     <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
-                      <p className="text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg whitespace-pre-wrap">{renderContent(results.riassunto_esteso)}</p>
+                      <div className="riassunto-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg">
+                        <div 
+                          className="riassunto-html-content prose prose-invert max-w-none text-gray-200 leading-relaxed"
+                          dangerouslySetInnerHTML={{ __html: sanitizeAndRenderMath(results.riassunto_esteso) }}
+                        />
+                      
+                        {/* Scroll to Top Button - Riassunto Esteso */}
+                        <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
+                          <button
+                            onClick={() => {
+                              const tabsSection = document.querySelector('[data-tabs-section]') as HTMLElement;
+                              if (tabsSection) {
+                                tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                              } else {
+                                window.scrollTo({ top: 0, behavior: 'smooth' });
+                              }
+                            }}
+                            className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-amber-300 hover:text-amber-200 rounded-lg transition-colors text-sm font-medium border border-white/20"
+                            title="Torna all'inizio"
+                          >
+                            <ChevronUp className="w-4 h-4" />
+                            Torna su
+                          </button>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Ultra Summary CTA Box */}
+                    <div className="ultra-cta-box">
+                      <h3>🚀 Vuoi un riassunto ULTRA dettagliato?</h3>
+                      <p>Un riassunto completo capitolo per capitolo, con ogni singolo dettaglio del documento. Perfetto per sostituire completamente il libro.</p>
+                      <ul>
+                        <li>⏱️ Tempo di elaborazione: 20-40 minuti</li>
+                        <li>🪙 Costo: 250 crediti</li>
+                        <li>📄 Scaricabile come PDF</li>
+                        <li>📖 Paginato per una lettura facile</li>
+                      </ul>
+                      <p className="ultra-note">💡 Puoi continuare a usare le altre funzioni mentre lo generiamo!</p>
+                      <button 
+                        className={`btn-ultra ${ultraProcessing ? 'btn-ultra-loading' : ''}`}
+                        onClick={results?.riassunto_ultra ? () => setActiveTab('riassunto_ultra') : handleGenerateUltra}
+                        disabled={ultraProcessing}
+                      >
+                        {ultraProcessing ? (
+                          <>
+                            <div className="ultra-btn-spinner"></div>
+                            {ultraProgress.total > 0 ? (
+                              `⚡ Elaborazione... ${Math.round((ultraProgress.current / ultraProgress.total) * 100)}%`
+                            ) : (
+                              '⚡ Avvio elaborazione...'
+                            )}
+                          </>
+                        ) : results?.riassunto_ultra ? (
+                          '✨ Visualizza Riassunto Ultra'
+                        ) : (
+                          '🚀 Genera Riassunto Ultra (250 crediti)'
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'riassunto_ultra' && (
+                  <div>
+                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                        <Rocket className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-lg sm:text-xl md:text-2xl font-bold text-white">Riassunto Ultra</h3>
+                        <p className="text-xs sm:text-sm text-gray-400">Analisi capitolo per capitolo ultra-dettagliata</p>
+                      </div>
+                    </div>
+
+                    {results?.riassunto_ultra ? (
+                      <div>
+                        {/* Header with Audio Player, Download, and Pagination */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                          <div className="flex items-center gap-3">
+                            {/* Audio Player */}
+                            <AudioPlayer
+                              text={renderContent(paginateUltraSummary(results.riassunto_ultra).currentPageContent)}
+                              language={targetLanguage === 'Auto' ? 'it-IT' :
+                                targetLanguage === 'Italiano' ? 'it-IT' :
+                                  targetLanguage === 'Inglese' ? 'en-US' :
+                                    targetLanguage === 'Spagnolo' ? 'es-ES' :
+                                      targetLanguage === 'Francese' ? 'fr-FR' :
+                                        targetLanguage === 'Tedesco' ? 'de-DE' : 'it-IT'
+                              }
+                            />
+                            
+                            {/* Download Button */}
+                            <button
+                              onClick={async () => {
+                                try {
+                                  console.log('📥 Download Ultra Summary PDF requested');
+                                  
+                                  const response = await fetch('/api/download-summary', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      riassuntoBreve: '',
+                                      riassuntoEsteso: results.riassunto_ultra || '',
+                                      format: 'html',
+                                      isUltraSummary: true
+                                    })
+                                  });
+                                  
+                                  if (!response.ok) {
+                                    throw new Error(`HTTP error! status: ${response.status}`);
+                                  }
+                                  
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.style.display = 'none';
+                                  a.href = url;
+                                  a.download = `riassunto-ultra.html`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                  
+                                  showSuccess('📥 Riassunto Ultra scaricato come file HTML! Apri il file con il browser per visualizzarlo.');
+                                } catch (error) {
+                                  console.error('❌ Download error:', error);
+                                  showError('❌ Errore durante il download del PDF');
+                                }
+                              }}
+                              className="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg transition-colors text-sm font-medium"
+                            >
+                              <Download className="w-4 h-4" />
+                              Scarica Riassunto Ultra
+                            </button>
+                          </div>
+                          
+                          {/* Pagination Controls */}
+                          {(() => {
+                            const { totalPages } = paginateUltraSummary(results.riassunto_ultra);
+                            return totalPages > 1 ? (
+                              <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2">
+                                <button
+                                  onClick={() => setUltraCurrentPage(Math.max(1, ultraCurrentPage - 1))}
+                                  disabled={ultraCurrentPage === 1}
+                                  className="p-2 text-amber-400 hover:text-amber-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <ChevronLeft className="w-4 h-4" />
+                                </button>
+                                
+                                <span className="text-amber-300 font-medium px-3 text-sm">
+                                  {ultraCurrentPage} di {totalPages}
+                                </span>
+                                
+                                <button
+                                  onClick={() => setUltraCurrentPage(Math.min(totalPages, ultraCurrentPage + 1))}
+                                  disabled={ultraCurrentPage === totalPages}
+                                  className="p-2 text-amber-400 hover:text-amber-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                >
+                                  <ChevronRight className="w-4 h-4" />
+                                </button>
+                              </div>
+                            ) : null;
+                          })()}
+                        </div>
+                        <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
+                          <div 
+                            className="riassunto-html-content text-gray-200 leading-relaxed text-sm sm:text-base md:text-lg"
+                            dangerouslySetInnerHTML={{
+                              __html: sanitizeAndRenderMath(renderContent(paginateUltraSummary(results.riassunto_ultra).currentPageContent))
+                            }}
+                          />
+                          
+                          {/* Bottom Pagination Controls */}
+                          {(() => {
+                            const { totalPages } = paginateUltraSummary(results.riassunto_ultra);
+                            return totalPages > 1 ? (
+                              <div className="flex justify-center mt-6 pt-4 border-t border-white/10">
+                                <div className="flex items-center gap-2 bg-white/5 rounded-lg p-2">
+                                  <button
+                                    onClick={() => setUltraCurrentPage(Math.max(1, ultraCurrentPage - 1))}
+                                    disabled={ultraCurrentPage === 1}
+                                    className="p-2 text-amber-400 hover:text-amber-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ChevronLeft className="w-4 h-4" />
+                                  </button>
+                                  
+                                  <div className="px-3 py-1 bg-amber-500/20 text-amber-300 text-sm rounded">
+                                    Pagina {ultraCurrentPage} di {totalPages}
+                                  </div>
+                                  
+                                  <button
+                                    onClick={() => setUltraCurrentPage(Math.min(totalPages, ultraCurrentPage + 1))}
+                                    disabled={ultraCurrentPage === totalPages}
+                                    className="p-2 text-amber-400 hover:text-amber-300 disabled:text-gray-600 disabled:cursor-not-allowed transition-colors"
+                                  >
+                                    <ChevronRight className="w-4 h-4" />
+                                  </button>
+                                </div>
+                              </div>
+                            ) : null;
+                          })()}
+                          
+                          {/* Scroll to Top Button - Riassunto Ultra */}
+                          <div className="mt-6 pt-4 border-t border-white/10 flex justify-center">
+                            <button
+                              onClick={() => {
+                                const tabsSection = document.querySelector('[data-tabs-section]') as HTMLElement;
+                                if (tabsSection) {
+                                  tabsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                } else {
+                                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                                }
+                              }}
+                              className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-amber-300 hover:text-amber-200 rounded-lg transition-colors text-sm font-medium border border-white/20"
+                              title="Torna all'inizio"
+                            >
+                              <ChevronUp className="w-4 h-4" />
+                              Torna su
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="bg-white/10 rounded-2xl p-4 sm:p-6 border border-white/20">
+                        {/* Direct Ultra Generation - when Ultra Summary not available */}
+                        <div className="text-center py-12">
+                          <Rocket className="w-16 h-16 text-amber-400 mx-auto mb-4" />
+                          <h4 className="text-xl font-bold text-white mb-3">Genera il tuo Riassunto Ultra</h4>
+                          <p className="text-gray-300 mb-6">
+                            Crea un riassunto completo, capitolo per capitolo, con ogni singolo dettaglio del documento.
+                          </p>
+                          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 text-left max-w-md mx-auto mb-6">
+                            <h5 className="text-amber-300 font-semibold mb-2">🚀 Caratteristiche del Riassunto Ultra:</h5>
+                            <ul className="text-sm text-gray-300 space-y-1">
+                              <li>⏱️ Tempo di elaborazione: 20-40 minuti</li>
+                              <li>📚 Analisi approfondita capitolo per capitolo</li>
+                              <li>🪙 Costo: 250 crediti</li>
+                              <li>📄 Scaricabile come PDF</li>
+                              <li>📖 Paginato per una lettura facile</li>
+                            </ul>
+                          </div>
+                          <button 
+                            className={`btn-ultra ${ultraProcessing ? 'btn-ultra-loading' : ''}`}
+                            onClick={handleGenerateUltra}
+                            disabled={ultraProcessing}
+                          >
+                            {ultraProcessing ? (
+                              <>
+                                <div className="ultra-btn-spinner"></div>
+                                {ultraProgress.total > 0 ? (
+                                  `⚡ Elaborazione... ${Math.round((ultraProgress.current / ultraProgress.total) * 100)}%`
+                                ) : (
+                                  '⚡ Avvio elaborazione...'
+                                )}
+                              </>
+                            ) : (
+                              '🚀 Genera Riassunto Ultra (250 crediti)'
+                            )}
+                          </button>
+                          <p className="text-xs text-gray-400 mt-4">💡 Puoi continuare a usare le altre funzioni mentre lo generiamo!</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'mappa_concettuale' && (
                   <div>
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
-                        <Brain className="w-6 h-6 text-white" />
+                    <div className="flex items-center justify-between gap-3 mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center">
+                          <Brain className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-2xl font-bold text-white">Mappa Concettuale</h3>
+                          <p className="text-gray-400">Struttura visuale delle connessioni tra i concetti</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-2xl font-bold text-white">Mappa Concettuale</h3>
-                        <p className="text-gray-400">Struttura visuale delle connessioni tra i concetti</p>
+                      
+                      {/* Ultra Toggle */}
+                      <div className="bg-white/5 rounded-lg p-1 border border-white/10 flex gap-1">
+                        <button
+                          onClick={() => setShowUltraMaps(false)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            !showUltraMaps
+                              ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          Base ({results.mappa_concettuale?.length || 0} nodi)
+                        </button>
+                        <button
+                          disabled={true}
+                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                        >
+                          Ultra (in arrivo)
+                        </button>
                       </div>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                      <ConceptMap concepts={results.mappa_concettuale} />
-                    </div>
+
+                    {/* Processing State */}
+                    {ultraMapsProcessing && (
+                      <div className="bg-gradient-to-br from-purple-500/20 to-blue-600/20 rounded-2xl p-8 border border-purple-400/30 text-center">
+                        <div className="flex items-center justify-center space-x-3 mb-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-400"></div>
+                          <div className="text-lg font-semibold text-purple-200">
+                            Generazione Mappa Ultra in corso...
+                          </div>
+                        </div>
+                        <p className="text-gray-300 text-sm">
+                          🗺️ Creando mappa stratificata con 40-60+ nodi • Tempo stimato: 2-3 minuti
+                        </p>
+                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
+                          <div className="bg-gradient-to-r from-purple-400 to-blue-400 h-full animate-pulse w-3/4"></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Content Area */}
+                    {!showUltraMaps ? (
+                      // Standard Maps
+                      <div className="space-y-4">
+                        <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                          {results?.mappa_concettuale ? (
+                            <ConceptMap concepts={results.mappa_concettuale} />
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="bg-red-500/20 p-6 rounded-xl border border-red-500/30">
+                                <p className="text-red-300">⚠️ Dati corrotti</p>
+                                <p className="text-red-200 text-sm mt-2">Ricarica la pagina e riprova</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Ultra CTA Box - Only if Ultra not available */}
+                        {!results.mappa_ultra && (
+                          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-emerald-300 mb-3">🗺️ Vuoi una mappa ULTRA dettagliata?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni una mappa concettuale stratificata con collegamenti profondi e dettagli completi.
+                            </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>🌳 Struttura a 4-5 livelli (vs {results.mappa_concettuale?.length || 0} nodi base)</li>
+                              <li>🔗 Collegamenti trasversali tra concetti</li>
+                              <li>📊 40-60 nodi dettagliati con relazioni</li>
+                              <li>🎨 Metadata per priorità e tipologia</li>
+                              <li>🪙 Costo: 100 crediti</li>
+                              <li>💾 Salvata per sempre nel tuo account</li>
+                            </ul>
+                            <button 
+                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
+                              disabled={true}
+                            >
+                              🚧 In arrivo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Ultra Maps
+                      <div className="space-y-4">
+                        {results.mappa_ultra ? (
+                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                            <div className="mb-4">
+                              <h4 className="text-lg font-bold text-emerald-300 mb-2">
+                                🗺️ Mappa Ultra - {results.mappa_ultra.stats?.total_nodes || 0} nodi
+                                {results.mappa_ultra.stats?.max_depth && ` • Profondità: ${results.mappa_ultra.stats.max_depth} livelli`}
+                              </h4>
+                              {/* Display connections info if available */}
+                              {results.mappa_ultra.connections?.length > 0 && (
+                                <p className="text-sm text-emerald-400">
+                                  🔗 {results.mappa_ultra.connections.length} collegamenti trasversali
+                                </p>
+                              )}
+                            </div>
+                            <ConceptMap concepts={results.mappa_ultra.nodes || results.mappa_ultra} />
+                          </div>
+                        ) : (
+                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
+                            <Brain className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
+                            <h4 className="text-xl font-bold text-white mb-3">Mappa Ultra non disponibile</h4>
+                            <p className="text-gray-300 mb-6">
+                              Genera una mappa Ultra per ottenere una visualizzazione completa e stratificata.
+                            </p>
+                            <button 
+                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
+                              disabled={true}
+                            >
+                              🚧 In arrivo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {activeTab === 'flashcard' && (
                   <div>
-                    <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                    <div className="flex items-center justify-between gap-2 sm:gap-3 mb-4 sm:mb-6">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-r from-pink-500 to-rose-500 rounded-2xl flex items-center justify-center">
+                          <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                        </div>
+                        <div>
+                          <h3 className="text-xl sm:text-2xl font-bold text-white">Flashcard</h3>
+                          <p className="text-sm sm:text-base text-gray-400">Carte per memorizzazione attiva</p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="text-xl sm:text-2xl font-bold text-white">Flashcard</h3>
-                        <p className="text-sm sm:text-base text-gray-400">Carte per memorizzazione attiva</p>
+                      
+                      {/* Ultra Toggle */}
+                      <div className="bg-white/5 rounded-lg p-1 border border-white/10 flex gap-1">
+                        <button
+                          onClick={() => setShowUltraFlashcards(false)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                            !showUltraFlashcards
+                              ? 'bg-pink-500/30 text-pink-200 border border-pink-400/50'
+                              : 'text-gray-400 hover:text-white hover:bg-white/5'
+                          }`}
+                        >
+                          Standard ({results.flashcard?.length || 0})
+                        </button>
+                        <button
+                          disabled={true}
+                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                        >
+                          Ultra (in arrivo)
+                        </button>
                       </div>
                     </div>
-                    <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
-                      <FlashCardView flashcards={results.flashcard} />
-                    </div>
+
+                    {/* Processing State */}
+                    {ultraFlashcardsProcessing && (
+                      <div className="bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-2xl p-8 border border-pink-400/30 text-center">
+                        <div className="flex items-center justify-center space-x-3 mb-4">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-400"></div>
+                          <div className="text-lg font-semibold text-pink-200">
+                            Generazione Flashcard Ultra in corso...
+                          </div>
+                        </div>
+                        <p className="text-gray-300 text-sm">
+                          🃏 Creando 50-100+ flashcard categorizzate • Tempo stimato: 2-3 minuti
+                        </p>
+                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
+                          <div className="bg-gradient-to-r from-pink-400 to-purple-400 h-full animate-pulse w-3/4"></div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Content Area */}
+                    {!showUltraFlashcards ? (
+                      // Standard Flashcards
+                      <div className="space-y-4">
+                        <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
+                          {results?.flashcard ? (
+                            <FlashCardView flashcards={results.flashcard} />
+                          ) : (
+                            <div className="text-center py-8">
+                              <div className="bg-red-500/20 p-6 rounded-xl border border-red-500/30">
+                                <p className="text-red-300">⚠️ Dati corrotti</p>
+                                <p className="text-red-200 text-sm mt-2">Ricarica la pagina e riprova</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Ultra CTA Box - Only if Ultra not available */}
+                        {!results.flashcard_ultra && (
+                          <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni 50-100+ flashcard categorizzate per uno studio approfondito e completo.
+                            </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>📚 50-100+ flashcard (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>🏷️ Categorizzate: Definizioni, Formule, Esempi, Date</li>
+                              <li>📈 Difficoltà progressive: Basic → Advanced</li>
+                              <li>🪙 Costo: 100 crediti</li>
+                              <li>💾 Salvate per sempre nel tuo account</li>
+                            </ul>
+                            <button 
+                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
+                              disabled={true}
+                            >
+                              🚧 In arrivo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      // Ultra Flashcards
+                      <div className="space-y-4">
+                        {results.flashcard_ultra ? (
+                          <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
+                            <div className="mb-4">
+                              <h4 className="text-lg font-bold text-pink-300 mb-2">
+                                📚 Flashcard Ultra - {results.flashcard_ultra.length} carte
+                              </h4>
+                              {/* TODO: Add category filters here */}
+                            </div>
+                            <FlashCardView flashcards={results.flashcard_ultra} />
+                          </div>
+                        ) : (
+                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
+                            <BookOpen className="w-16 h-16 text-pink-400 mx-auto mb-4" />
+                            <h4 className="text-xl font-bold text-white mb-3">Flashcard Ultra non disponibili</h4>
+                            <p className="text-gray-300 mb-6">
+                              Genera flashcard Ultra per ottenere uno studio più approfondito e categorizzato.
+                            </p>
+                            <button 
+                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
+                              disabled={true}
+                            >
+                              🚧 In arrivo
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -3392,6 +4531,44 @@ const StudiusAIV2: React.FC = () => {
         }}
         defaultMode={authMode}
       />
+
+      {/* Ultra Summary Processing Banner */}
+      {ultraProcessing && (
+        <div className="ultra-processing-banner">
+          <div className="ultra-spinner"></div>
+          <div className="ultra-banner-content">
+            <h4>🚀 Riassunto Ultra in elaborazione...</h4>
+            {ultraProgress.total > 0 ? (
+              <>
+                <p>Sezione {ultraProgress.current} di {ultraProgress.total} completata</p>
+                <div style={{ 
+                  background: '#374151', 
+                  borderRadius: '8px', 
+                  padding: '4px', 
+                  margin: '8px 0',
+                  width: '200px'
+                }}>
+                  <div style={{
+                    background: '#10b981',
+                    height: '8px',
+                    borderRadius: '4px',
+                    width: `${Math.round((ultraProgress.current / ultraProgress.total) * 100)}%`,
+                    transition: 'width 0.3s ease'
+                  }}></div>
+                </div>
+                <p>Progresso: {Math.round((ultraProgress.current / ultraProgress.total) * 100)}%</p>
+                <p>Tempo stimato: ~{ultraProgress.estimatedMinutes} minuti</p>
+              </>
+            ) : (
+              <>
+                <p>Elaborazione in corso delle sezioni del documento</p>
+                <p>Preparazione delle sezioni in corso...</p>
+              </>
+            )}
+            <p className="ultra-banner-hint">💡 Puoi usare le altre funzioni nel frattempo!</p>
+          </div>
+        </div>
+      )}
 
       {/* Insufficient Credits Modal */}
       <InsufficientCreditsModal

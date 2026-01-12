@@ -5,28 +5,76 @@ export interface PromptConfig {
 }
 
 export const createSummaryPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
-Analizza il seguente testo e crea due riassunti in ${targetLanguage || language}.
+Sei un professore universitario che prepara materiale di studio. Devi creare DUE riassunti HTML che SOSTITUISCANO completamente il libro per lo studente.
 
-IMPORTANTE:
-- NON usare simboli matematici o emoji nei riassunti
-- Sostituisci simboli con testo normale
-- Usa solo caratteri ASCII standard
+OBIETTIVO CRITICO: Lo studente deve poter studiare SOLO da questi riassunti e passare l'esame.
 
-1. Un riassunto breve (massimo 600 parole) che evidenzi i concetti chiave in paragrafi chiari e strutturati
+GENERA HTML STRUTTURATO CON QUESTA STRUTTURA ESATTA:
 
-2. Un riassunto esteso UNIVERSITARIO COMPLETO che deve essere un materiale di studio professionale con:
+<h1>📚 [Titolo Documento]</h1>
+<div class="section-intro">
+  <h2>💎 Introduzione</h2>
+  <p>[Paragrafo introduttivo completo]</p>
+</div>
+<div class="section-concepts">
+  <h3>💡 Concetti Chiave</h3>
+  <ul class="concept-list">
+    <li><span class="term">[Termine]</span>: [Spiegazione dettagliata]</li>
+    <li><span class="term">[Termine]</span>: [Spiegazione dettagliata]</li>
+  </ul>
+</div>
+<div class="section-definitions">
+  <h3>📖 Definizioni</h3>
+  <div class="definition-box">
+    <div class="definition-title">📌 DEFINIZIONE - [Nome]</div>
+    <p class="definition-text">[Testo definizione esatta]</p>
+    <p><span class="label">Contesto</span>: [Contesto applicazione]</p>
+    <p><span class="label">Esempio</span>: [Esempio pratico]</p>
+  </div>
+</div>
+<div class="section-formulas">
+  <h3>🔢 Formule e Calcoli</h3>
+  <div class="formula-box">
+    <div class="formula-title">Formula principale:</div>
+    <div class="formula">$[formula LaTeX]$</div>
+    <p><span class="label">Dove</span>:</p>
+    <ul>
+      <li><code>[variabile]</code> = [significato]</li>
+    </ul>
+    <p><span class="label">Esempio numerico</span>: [Esempio con numeri]</p>
+  </div>
+</div>
+<div class="section-examples">
+  <h3>📝 Esempi Svolti</h3>
+  <div class="example-box">
+    <h4>Esempio 1: [Titolo]</h4>
+    <p>[Problema completo]</p>
+    <div class="solution">
+      <h5>Soluzione:</h5>
+      <ol>
+        <li>[Passo 1]</li>
+        <li>[Passo 2]</li>
+      </ol>
+    </div>
+  </div>
+</div>
 
-STRUTTURA OBBLIGATORIA DEL RIASSUNTO ESTESO:
-- **PANORAMICA INTRODUTTIVA**: Contesto generale e importanza dell'argomento (150-200 parole)
-- **CONCETTI CHIAVE**: Lista numerata dei punti fondamentali con spiegazioni dettagliate
-- **TEORIE E MODELLI**: Descrizione approfondita di teorie, autori, modelli teorici con date e contesti
-- **ESEMPI APPLICATIVI**: Casi pratici, applicazioni reali, esempi concreti
-- **COLLEGAMENTI LOGICI**: Come i concetti si collegano tra loro, cause-effetti, relazioni
-- **SINTESI FINALE DA ESAME**: Punti cruciali che uno studente deve assolutamente sapere per l'esame
+CREA ESATTAMENTE DUE RIASSUNTI:
+
+1. **RIASSUNTO BREVE** (600-800 parole): Versione concentrata sui punti essenziali
+2. **RIASSUNTO ESTESO** (MINIMO 4000-6000 parole): Versione completa e universitaria ULTRA-DETTAGLIATISSIMA
 
 REQUISITI TECNICI:
-- Minimo 1200-1800 parole per il riassunto esteso
+- MINIMO 4000-6000 parole per il riassunto esteso (MASSIMO DETTAGLIO POSSIBILE)
 - Linguaggio accademico ma chiaro
+- OGNI concetto deve essere spiegato completamente con MINIMO 3 esempi diversi
+- TUTTE le formule devono essere incluse e spiegate variabile per variabile
+- TUTTI i teoremi con dimostrazioni complete step-by-step
+- OGNI definizione deve essere riportata esattamente + contesto + applicazioni
+- ESPANDI ogni sezione al MASSIMO possibile
+- NON essere conciso, sii ESTREMAMENTE dettagliato
+- Aggiungi esempi pratici, casi d'uso, applicazioni reali
+- Spiega PERCHÉ ogni concetto è importante
 - **Parole chiave** evidenziate con asterischi
 - Nessuna frase vuota o generica
 - Riferimenti specifici al testo originale
@@ -38,11 +86,11 @@ Il riassunto breve deve rimanere conciso e focalizzato sui punti essenziali.
 Testo da analizzare:
 ${text}
 
-IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto. Non aggiungere testo prima o dopo il JSON. Non usare markdown o backticks. Non mescolare i contenuti tra i due campi:
+IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto. Non aggiungere testo prima o dopo il JSON. Non usare markdown o backticks.
 
 {
-  "riassunto_breve": "riassunto breve qui con paragrafi ben strutturati",
-  "riassunto_esteso": "RIASSUNTO ESTESO UNIVERSITARIO COMPLETO seguendo la struttura obbligatoria sopra descritta"
+  "riassunto_breve": "<h1>📚 [Titolo]</h1><div class=\"section-intro\"><h2>💎 Introduzione</h2><p>[Riassunto breve HTML strutturato]</p></div>",
+  "riassunto_esteso": "<h1>📚 [Titolo]</h1><div class=\"section-intro\"><h2>💎 Introduzione</h2><p>[Riassunto esteso HTML strutturato completo]</p></div><div class=\"section-concepts\"><h3>💡 Concetti Chiave</h3>...</div>"
 }
 
 ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. Non includere il riassunto esteso nel campo breve e viceversa.`;

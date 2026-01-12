@@ -130,4 +130,286 @@
   .animated-underline:focus-visible {
     background-size: 0 2px, 100% 2px;
   }
+
+  /* HTML Riassunto Styling - Complete CSS for structured summaries */
+  .riassunto-html-content {
+    font-size: 16px;
+    line-height: 1.7;
+    color: #f0f0f0;
+  }
+
+  .riassunto-html-content h1 {
+    font-size: 26px;
+    color: #fff;
+    border-bottom: 3px solid #667eea;
+    padding-bottom: 12px;
+    margin: 0 0 25px 0;
+  }
+
+  .riassunto-html-content h2 {
+    font-size: 20px;
+    color: #a5b4fc;
+    margin: 30px 0 15px 0;
+    padding: 12px 18px;
+    background: rgba(102, 126, 234, 0.25);
+    border-radius: 10px;
+    border-left: 4px solid #667eea;
+  }
+
+  .riassunto-html-content h3 {
+    font-size: 17px;
+    color: #c4b5fd;
+    margin: 25px 0 12px 0;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .riassunto-html-content h4 {
+    font-size: 15px;
+    color: #fbbf24;
+    margin: 15px 0 10px 0;
+  }
+
+  .riassunto-html-content p {
+    margin: 12px 0;
+  }
+
+  .riassunto-html-content .term {
+    background: #fbbf24;
+    color: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .riassunto-html-content .label {
+    background: rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  .riassunto-html-content .step {
+    background: rgba(34, 197, 94, 0.3);
+    color: #86efac;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* Definition Box */
+  .riassunto-html-content .definition-box {
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+    border-left: 4px solid #667eea;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin: 18px 0;
+  }
+
+  .riassunto-html-content .definition-title {
+    background: linear-gradient(135deg, #f43f5e 0%, #ec4899 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .riassunto-html-content .definition-text {
+    font-style: italic;
+    font-size: 17px;
+    color: #e0e0e0;
+  }
+
+  /* Theorem Box */
+  .riassunto-html-content .theorem-box {
+    background: linear-gradient(135deg, rgba(240, 147, 251, 0.15) 0%, rgba(245, 87, 108, 0.15) 100%);
+    border-left: 4px solid #f472b6;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin: 18px 0;
+  }
+
+  .riassunto-html-content .theorem-title {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  .riassunto-html-content .proof {
+    background: rgba(0,0,0,0.2);
+    padding: 12px 15px;
+    border-radius: 8px;
+    margin-top: 12px;
+  }
+
+  /* Formula Box */
+  .riassunto-html-content .formula-box {
+    background: rgba(59, 130, 246, 0.15);
+    border-left: 4px solid #3b82f6;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin: 18px 0;
+  }
+
+  .riassunto-html-content .formula-title {
+    background: #3b82f6;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+
+  .riassunto-html-content .formula {
+    background: rgba(0,0,0,0.3);
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    font-size: 18px;
+    margin: 10px 0;
+  }
+
+  /* Example Box */
+  .riassunto-html-content .example-box {
+    background: rgba(34, 197, 94, 0.12);
+    border-left: 4px solid #22c55e;
+    padding: 18px 22px;
+    border-radius: 10px;
+    margin: 18px 0;
+  }
+
+  .riassunto-html-content .example-title {
+    background: #22c55e;
+    color: white;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: 700;
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+
+  /* Tables */
+  .riassunto-html-content .styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+
+  .riassunto-html-content .styled-table th {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 14px 16px;
+    text-align: left;
+    font-weight: 600;
+  }
+
+  .riassunto-html-content .styled-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.05);
+  }
+
+  .riassunto-html-content .styled-table tr:hover td {
+    background: rgba(255,255,255,0.1);
+  }
+
+  /* Case Box */
+  .riassunto-html-content .case-box {
+    background: rgba(168, 85, 247, 0.1);
+    border-left: 4px solid #a855f7;
+    padding: 15px 20px;
+    border-radius: 8px;
+    margin: 15px 0;
+  }
+
+  /* Exam Section */
+  .riassunto-html-content .section-exam {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+    border: 2px solid rgba(251, 191, 36, 0.3);
+    border-radius: 15px;
+    padding: 20px 25px;
+    margin: 30px 0;
+  }
+
+  .riassunto-html-content .exam-remember,
+  .riassunto-html-content .exam-questions,
+  .riassunto-html-content .exam-errors {
+    margin: 15px 0;
+    padding: 12px 15px;
+    background: rgba(0,0,0,0.15);
+    border-radius: 8px;
+  }
+
+  /* Lists */
+  .riassunto-html-content ul,
+  .riassunto-html-content ol {
+    margin: 12px 0;
+    padding-left: 25px;
+  }
+
+  .riassunto-html-content li {
+    margin: 8px 0;
+  }
+
+  .riassunto-html-content code {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+  }
+
+  /* Formula blocks for KaTeX */
+  .riassunto-html-content .formula-block {
+    text-align: center;
+    margin: 20px 0;
+    padding: 15px;
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+  }
+
+  /* Legacy support for existing summaries */
+  .riassunto-content p {
+    @apply mb-4 leading-relaxed;
+  }
+  
+  .riassunto-content h1,
+  .riassunto-content h2,
+  .riassunto-content h3,
+  .riassunto-content h4 {
+    @apply mt-6 mb-4;
+  }
+  
+  .riassunto-content h1:first-child,
+  .riassunto-content h2:first-child,
+  .riassunto-content h3:first-child {
+    @apply mt-0;
+  }
+  
+  .riassunto-content blockquote {
+    @apply my-6;
+  }
+  
+  .riassunto-content ul,
+  .riassunto-content ol {
+    @apply my-4 space-y-2;
+  }
+  
+  .riassunto-content table {
+    @apply my-6;
+  }
+  
+  .riassunto-content .termine-chiave {
+    @apply mx-1;
+  }
 }

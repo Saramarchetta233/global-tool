@@ -2,6 +2,11 @@
 
 import { Award,BookOpen, Brain, ChevronLeft, ChevronRight, Clock, Download, FileText, Play, Rocket, Sparkles, Target, Upload, Zap } from 'lucide-react';
 import React, { useRef,useState } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import rehypeKatex from 'rehype-katex';
+import 'katex/dist/katex.min.css';
 
 // Types
 interface FlashCard {

@@ -267,10 +267,10 @@ async function pollForJobCompletion(jobId: string, apiKey: string, maxAttempts =
         
         // Try multiple result endpoints in order for parse_without_llm mode
         const resultEndpoints = [
-          `/api/v1/parsing/job/${jobId}/result/markdown`,
-          `/api/v1/parsing/job/${jobId}/result/raw`, 
-          `/api/v1/parsing/job/${jobId}/result/text`,
           `/api/v1/parsing/job/${jobId}/result`,
+          `/api/v1/parsing/job/${jobId}/result/text`,
+          `/api/v1/parsing/job/${jobId}/result/raw`,
+          `/api/v1/parsing/job/${jobId}/result/markdown`,
           `/api/v1/parsing/job/${jobId}`
         ];
         

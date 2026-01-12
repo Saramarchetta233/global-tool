@@ -27,6 +27,7 @@ export const GET = async (request: NextRequest) => {
           processedAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
           riassunto_breve: 'La psicologia cognitiva è un ramo della psicologia che studia i processi mentali coinvolti nella conoscenza.',
           riassunto_esteso: 'La psicologia cognitiva è un ramo della psicologia che studia i processi mentali coinvolti nella conoscenza, nell\'elaborazione delle informazioni e nella comprensione...',
+          riassunto_ultra: null, // Demo doesn't include Ultra Summary
           mappa_concettuale: [
             { title: 'Psicologia Cognitiva', children: [
               { title: 'Percezione' },
@@ -192,13 +193,14 @@ export const GET = async (request: NextRequest) => {
     const history = sessions?.map(session => ({
       id: session.id,
       fileName: session.file_name || session.title || 'Document',
-      title: session.title || (session.file_name ? session.file_name.replace('.pdf', '') : 'Document'),
+      title: session.file_name ? session.file_name.replace('.pdf', '') : (session.title || 'Document'),
       processedAt: session.created_at,
       lastUsedAt: session.last_used_at || session.created_at,
       pageCount: session.page_count,
       fileSize: session.file_size,
       riassunto_breve: session.riassunto_breve,
       riassunto_esteso: session.riassunto_esteso,
+      riassunto_ultra: session.riassunto_ultra, // Added Ultra Summary field
       mappa_concettuale: session.mappa_concettuale || [],
       flashcard: session.flashcard || [],
       quiz: session.quiz || [],
