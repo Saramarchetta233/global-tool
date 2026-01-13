@@ -1761,6 +1761,115 @@ const StudiusAIV2: React.FC = () => {
     }
   }, []);
 
+  // Ripristina stato Ultra Summary dopo reload della pagina
+  useEffect(() => {
+    const checkUltraProcessing = async () => {
+      const savedSession = localStorage.getItem('ultra_processing_session');
+      if (!savedSession || !user || !token) return;
+
+      try {
+        const { sessionId, startedAt } = JSON.parse(savedSession);
+
+        // Se è passato più di 2 ore, pulisci localStorage
+        const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+        if (startedAt < twoHoursAgo) {
+          localStorage.removeItem('ultra_processing_session');
+          return;
+        }
+
+        console.log('🔄 Verificando stato Ultra Summary in corso...', { sessionId });
+
+        // Verifica lo stato attuale con l'API
+        const response = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 Stato Ultra Summary:', statusData);
+
+          if (statusData.status === 'in_progress') {
+            // Elaborazione ancora in corso - ripristina lo stato e riprendi polling
+            console.log('🔄 Ripristino polling Ultra Summary...');
+            setUltraProcessing(true);
+            setUltraProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 3)
+            });
+
+            // Avvia polling (startUltraSummaryPolling usa results.sessionId, quindi dobbiamo usare quello salvato)
+            // Creiamo un polling inline qui
+            const pollInterval = setInterval(async () => {
+              try {
+                const pollResponse = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (pollResponse.ok) {
+                  const pollData = await pollResponse.json();
+
+                  if (pollData.status === 'completed' && pollData.ultraSummary) {
+                    console.log('🎉 Ultra Summary completato (ripristino)!');
+                    setUltraProcessing(false);
+                    localStorage.removeItem('ultra_processing_session');
+                    clearInterval(pollInterval);
+
+                    // Aggiorna results se disponibile
+                    if (results) {
+                      setResults({ ...results, riassunto_ultra: pollData.ultraSummary });
+                    }
+
+                    showSuccess('🎉 Riassunto Ultra completato! Visualizzalo nel tab "Riassunto Ultra".');
+                    setActiveTab('riassunto_ultra');
+                  } else if (pollData.status === 'in_progress') {
+                    setUltraProgress({
+                      current: pollData.currentSection || 0,
+                      total: pollData.totalSections || 1,
+                      estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 3)
+                    });
+                  } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+                    setUltraProcessing(false);
+                    localStorage.removeItem('ultra_processing_session');
+                    clearInterval(pollInterval);
+                    if (pollData.status === 'failed') {
+                      showError('❌ Riassunto Ultra fallito.');
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('Errore polling Ultra Summary:', error);
+              }
+            }, 10000);
+
+            // Cleanup dopo 2 ore
+            setTimeout(() => {
+              clearInterval(pollInterval);
+              setUltraProcessing(false);
+              localStorage.removeItem('ultra_processing_session');
+            }, 2 * 60 * 60 * 1000);
+
+          } else if (statusData.status === 'completed') {
+            // Già completato - pulisci localStorage
+            localStorage.removeItem('ultra_processing_session');
+            if (statusData.ultraSummary && results) {
+              setResults({ ...results, riassunto_ultra: statusData.ultraSummary });
+              showSuccess('🎉 Riassunto Ultra già completato! Visualizzalo nel tab "Riassunto Ultra".');
+            }
+          } else {
+            // Non in corso - pulisci localStorage
+            localStorage.removeItem('ultra_processing_session');
+          }
+        }
+      } catch (error) {
+        console.error('Errore verifica Ultra Summary:', error);
+        localStorage.removeItem('ultra_processing_session');
+      }
+    };
+
+    checkUltraProcessing();
+  }, [user, token]);
+
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const uploadedFile = event.target.files?.[0];
     if (uploadedFile && uploadedFile.type === 'application/pdf') {
@@ -1835,6 +1944,7 @@ const StudiusAIV2: React.FC = () => {
             // Ultra Summary is completed!
             console.log('🎉 Ultra Summary completed via polling!');
             setUltraProcessing(false);
+            localStorage.removeItem('ultra_processing_session');
             clearInterval(pollInterval);
 
             // Update results state
@@ -1878,6 +1988,7 @@ const StudiusAIV2: React.FC = () => {
           } else if (statusData.status === 'failed') {
             console.error('❌ Ultra Summary failed via polling:', statusData.error);
             setUltraProcessing(false);
+            localStorage.removeItem('ultra_processing_session');
             clearInterval(pollInterval);
             showError(`❌ Riassunto Ultra fallito: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
           }
@@ -1894,6 +2005,7 @@ const StudiusAIV2: React.FC = () => {
       if (ultraProcessing) {
         console.log('⏰ Ultra Summary polling timeout');
         setUltraProcessing(false);
+        localStorage.removeItem('ultra_processing_session');
         showError('⏰ Timeout: Riassunto Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
       }
     }, 2 * 60 * 60 * 1000); // 2 hours
@@ -1945,6 +2057,13 @@ const StudiusAIV2: React.FC = () => {
     // 5. Show processing state and info message
     setUltraProcessing(true);
     setUltraProgress({ current: 0, total: 0, estimatedMinutes: 25 }); // Stima realistica 20-40 min
+
+    // Salva in localStorage per ripristinare dopo reload
+    localStorage.setItem('ultra_processing_session', JSON.stringify({
+      sessionId: results.sessionId,
+      startedAt: Date.now()
+    }));
+
     showInfo('🚀 Riassunto Ultra avviato! Elaborazione in corso... Attendere...');
     console.log('🚀 Ultra Summary DEBUG - Starting API call...');
 
@@ -1995,6 +2114,7 @@ const StudiusAIV2: React.FC = () => {
       if (data.ultraSummary && data.ultraSummary.length > 0) {
         console.log('🎉 Ultra Summary completed immediately!');
         setUltraProcessing(false);
+        localStorage.removeItem('ultra_processing_session');
 
         // Update the results state directly with the new riassunto_ultra
         if (results) {
@@ -2029,6 +2149,7 @@ const StudiusAIV2: React.FC = () => {
     } catch (error) {
       console.error('❌ Ultra Summary Error:', error);
       setUltraProcessing(false);
+      localStorage.removeItem('ultra_processing_session');
       showError(`Errore durante l'avvio del Riassunto Ultra: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   };
