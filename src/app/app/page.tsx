@@ -336,7 +336,7 @@ const processWithAI = async (file: File, language: string, authToken: string, ta
       fetch(`/api/upload-pdf?filePath=${encodeURIComponent(filePath)}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${authToken}` }
-      }).catch(() => {});
+      }).catch(() => { });
     }
     throw error;
   }
@@ -1880,16 +1880,25 @@ const StudiusAIV2: React.FC = () => {
 
             if (pollData.status === 'completed' && pollData.ultraSummary) {
               console.log('🎉 Ultra Summary completato per:', fileName);
-              setUltraProcessing(false);
-              localStorage.removeItem('ultra_processing_session');
+              console.log('🎉 Ultra Summary length:', pollData.ultraSummary.length, 'chars');
+
+              // IMPORTANTE: Prima ferma il polling
               clearInterval(pollInterval);
               ultraPollingRef.current = null;
+              setUltraProcessing(false);
+              localStorage.removeItem('ultra_processing_session');
+
+              // Salva l'ultra summary in una variabile locale
+              const completedUltraSummary = pollData.ultraSummary;
 
               // Aggiorna usando forma funzionale per evitare closure stale
               setResults(prevResults => {
+                console.log('🔄 Updating results (resumed session), prevSessionId:', prevResults?.sessionId, 'targetSessionId:', sessionId);
                 if (prevResults && prevResults.sessionId === sessionId) {
-                  return { ...prevResults, riassunto_ultra: pollData.ultraSummary };
+                  console.log('✅ Results updated with ultra summary (resumed session)');
+                  return { ...prevResults, riassunto_ultra: completedUltraSummary };
                 }
+                console.log('⚠️ SessionId mismatch (resumed session), results not updated');
                 return prevResults;
               });
 
@@ -1902,12 +1911,13 @@ const StudiusAIV2: React.FC = () => {
                 },
                 body: JSON.stringify({
                   sessionId,
-                  riassuntoUltra: pollData.ultraSummary
+                  riassuntoUltra: completedUltraSummary
                 })
               }).catch(err => console.error('Errore aggiornamento cache:', err));
 
-              // Mostra sempre notifica - l'utente può aprire dallo storico
-              showSuccess(`🎉 Riassunto Ultra completato per "${fileName}"! Aprilo dallo storico per visualizzarlo.`);
+              // Mostra sempre notifica - NON auto-close così l'utente lo vede sicuramente!
+              console.log('🔔 Showing success popup (resumed session)...');
+              showSuccess(`🎉 Riassunto Ultra completato per "${fileName}"!\nAprilo dallo storico per visualizzarlo.`, { autoClose: false });
             } else if (pollData.status === 'in_progress') {
               setUltraProgress({
                 current: pollData.currentSection || 0,
@@ -2002,7 +2012,8 @@ const StudiusAIV2: React.FC = () => {
                     })
                   }).catch(err => console.error('Errore aggiornamento cache:', err));
 
-                  showSuccess(`🎉 Riassunto Ultra completato per "${savedFileName || 'Documento'}"! Aprilo dallo storico.`);
+                  console.log('🔔 Showing success popup (from localStorage check)...');
+                  showSuccess(`🎉 Riassunto Ultra completato per "${savedFileName || 'Documento'}"!\nAprilo dallo storico.`, { autoClose: false });
                 }
                 return;
               } else {
@@ -2032,14 +2043,15 @@ const StudiusAIV2: React.FC = () => {
             console.log('📱 Trovata elaborazione da altro dispositivo:', session);
 
             // Salva in localStorage per questo dispositivo
+            const sessionFileName = session.fileName || 'Documento';
             localStorage.setItem('ultra_processing_session', JSON.stringify({
               sessionId: session.sessionId,
-              fileName: session.fileName,
+              fileName: sessionFileName,
               startedAt: new Date(session.startedAt).getTime()
             }));
 
             // Avvia il polling
-            startPollingForSession(session.sessionId, session.fileName, {
+            startPollingForSession(session.sessionId, sessionFileName, {
               current: session.currentSection,
               total: session.totalSections
             });
@@ -2143,18 +2155,26 @@ const StudiusAIV2: React.FC = () => {
           if (statusData.status === 'completed' && statusData.ultraSummary) {
             // Ultra Summary is completed!
             console.log('🎉 Ultra Summary completed via polling!');
-            setUltraProcessing(false);
-            localStorage.removeItem('ultra_processing_session');
+            console.log('🎉 Ultra Summary length:', statusData.ultraSummary.length, 'chars');
+
+            // IMPORTANTE: Prima ferma il polling
             clearInterval(pollInterval);
             ultraPollingRef.current = null;
+            setUltraProcessing(false);
+            localStorage.removeItem('ultra_processing_session');
+
+            // Salva l'ultra summary in una variabile locale per uso immediato
+            const completedUltraSummary = statusData.ultraSummary;
 
             // Update results state usando forma funzionale per evitare closure stale
             setResults(prevResults => {
+              console.log('🔄 Updating results state, prevSessionId:', prevResults?.sessionId, 'targetSessionId:', sessionId);
               if (prevResults && prevResults.sessionId === sessionId) {
                 const updatedResults = {
                   ...prevResults,
-                  riassunto_ultra: statusData.ultraSummary
+                  riassunto_ultra: completedUltraSummary
                 };
+                console.log('✅ Results updated with ultra summary');
 
                 // Salva nello studio history per persistenza
                 saveStudySession(
@@ -2166,6 +2186,7 @@ const StudiusAIV2: React.FC = () => {
 
                 return updatedResults;
               }
+              console.log('⚠️ SessionId mismatch, results not updated');
               return prevResults;
             });
 
@@ -2178,14 +2199,16 @@ const StudiusAIV2: React.FC = () => {
               },
               body: JSON.stringify({
                 sessionId,
-                riassuntoUltra: statusData.ultraSummary
+                riassuntoUltra: completedUltraSummary
               })
             }).catch(err => console.error('Errore aggiornamento cache:', err));
 
+            // Switch to the Ultra Summary tab
             setActiveTab('riassunto_ultra');
 
-            // Show completion popup
-            showSuccess('🎉 Riassunto Ultra completato! Visualizzalo nel tab "Riassunto Ultra".');
+            // Show completion popup - NON auto-close così l'utente lo vede sicuramente!
+            console.log('🔔 Showing success popup...');
+            showSuccess('🎉 Riassunto Ultra completato!\nPuoi visualizzarlo nel tab "Riassunto Ultra".', { autoClose: false });
 
           } else if (statusData.status === 'in_progress') {
             // Update progress if available
@@ -2359,7 +2382,8 @@ const StudiusAIV2: React.FC = () => {
           setActiveTab('riassunto_ultra');
         }
 
-        showSuccess(`🎉 Riassunto Ultra completato! ${data.sectionsProcessed} sezioni elaborate (${data.totalCharacters} caratteri). Visualizza il risultato nel tab "Riassunto Ultra".`);
+        console.log('🔔 Showing success popup (immediate completion)...');
+        showSuccess(`🎉 Riassunto Ultra completato!\n${data.sectionsProcessed} sezioni elaborate (${data.totalCharacters} caratteri).\nVisualizza il risultato nel tab "Riassunto Ultra".`, { autoClose: false });
       } else {
         console.log('⏳ Ultra Summary processing started, beginning progress monitoring...');
 
@@ -3605,17 +3629,7 @@ const StudiusAIV2: React.FC = () => {
                     </a>{' '}
                     prima di caricarli
                   </p>
-                  <p className="text-sm text-gray-400 mt-2">
-                    📑 PDF troppo grande (oltre 300 pagine o superiore a 4MB)? Dividilo in parti su{' '}
-                    <a
-                      href="https://www.ilovepdf.com/split_pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-purple-400 hover:text-purple-300 underline transition-colors"
-                    >
-                      ilovepdf.com/split_pdf
-                    </a>
-                  </p><br></br>
+                  <br></br>
                 </div>
 
                 {/* Language Selection */}
