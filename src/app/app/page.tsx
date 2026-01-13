@@ -217,45 +217,97 @@ interface StudyResults {
 }
 
 // Enhanced AI Processing Function with authentication
+// Usa Supabase Storage per bypassare il limite di 4.5MB di Vercel
 const processWithAI = async (file: File, language: string, authToken: string, targetLanguage?: string, user?: any): Promise<StudyResults> => {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('language', language);
-  formData.append('userId', user?.id || '');
-  if (targetLanguage && targetLanguage !== 'Auto') {
-    formData.append('targetLanguage', targetLanguage);
-  }
+  const fileSizeMB = file.size / (1024 * 1024);
+  console.log(`📤 Upload PDF: ${file.name}, Size: ${fileSizeMB.toFixed(2)}MB`);
 
-  // Use the production endpoint
-  const endpoint = '/api/process-pdf-v2';
+  let fileUrl: string | null = null;
+  let filePath: string | null = null;
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${authToken}`,
-      'X-User-Data': JSON.stringify({
-        id: user?.id,
-        email: user?.email,
-        credits: user?.credits || 100
-      })
-    },
-    body: formData,
-  });
+  try {
+    // STEP 1: Upload file su Supabase Storage
+    console.log('☁️ Caricamento su Supabase Storage...');
+    const uploadFormData = new FormData();
+    uploadFormData.append('file', file);
+    uploadFormData.append('userId', user?.id || 'anonymous');
 
-  if (!response.ok) {
-    const error = await response.json();
-    if (response.status === 402 || response.status === 403) {
-      throw new Error(JSON.stringify({
-        type: 'insufficient_credits',
-        required: error.required,
-        current: error.current || error.available,
-        costDescription: error.costDescription
-      }));
+    const uploadResponse = await fetch('/api/upload-pdf', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      },
+      body: uploadFormData
+    });
+
+    if (!uploadResponse.ok) {
+      const uploadError = await uploadResponse.json();
+      throw new Error(uploadError.error || 'Errore upload file');
     }
-    throw new Error(error.error || 'Failed to process PDF');
-  }
 
-  return await response.json();
+    const uploadData = await uploadResponse.json();
+    fileUrl = uploadData.signedUrl;
+    filePath = uploadData.filePath;
+    console.log('✅ File caricato su Supabase Storage:', uploadData.fileId);
+
+    // STEP 2: Chiama process-pdf-v2 con l'URL del file
+    console.log('🔄 Elaborazione PDF...');
+    const processResponse = await fetch('/api/process-pdf-v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json',
+        'X-User-Data': JSON.stringify({
+          id: user?.id,
+          email: user?.email,
+          credits: user?.credits || 100
+        })
+      },
+      body: JSON.stringify({
+        fileUrl,
+        fileName: file.name,
+        language,
+        userId: user?.id || '',
+        targetLanguage: targetLanguage && targetLanguage !== 'Auto' ? targetLanguage : undefined
+      })
+    });
+
+    if (!processResponse.ok) {
+      const error = await processResponse.json();
+      if (processResponse.status === 402 || processResponse.status === 403) {
+        throw new Error(JSON.stringify({
+          type: 'insufficient_credits',
+          required: error.required,
+          current: error.current || error.available,
+          costDescription: error.costDescription
+        }));
+      }
+      throw new Error(error.error || 'Failed to process PDF');
+    }
+
+    const result = await processResponse.json();
+
+    // STEP 3: Cleanup - elimina il file da Supabase Storage
+    if (filePath) {
+      console.log('🧹 Pulizia file temporaneo...');
+      fetch(`/api/upload-pdf?filePath=${encodeURIComponent(filePath)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(err => console.warn('Errore cleanup file:', err));
+    }
+
+    return result;
+
+  } catch (error) {
+    // Cleanup in caso di errore
+    if (filePath) {
+      fetch(`/api/upload-pdf?filePath=${encodeURIComponent(filePath)}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      }).catch(() => {});
+    }
+    throw error;
+  }
 };
 
 // Components (keeping the same FlashCardView, QuizView, ConceptMap components but with improved styling)
@@ -1499,6 +1551,7 @@ const StudiusAIV2: React.FC = () => {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const tutorChatRef = useRef<TutorChatRef>(null);
+  const ultraPollingRef = useRef<NodeJS.Timeout | null>(null); // Ref per evitare polling multipli
   const { user, token, isLoading: authLoading, updateCredits, logout, refreshCredits, refreshProfile } = useAuth();
   const { canPurchaseRecharge, subscription } = useSubscription();
   const { showSuccess, showError, showInfo } = useToast();
@@ -1761,113 +1814,221 @@ const StudiusAIV2: React.FC = () => {
     }
   }, []);
 
-  // Ripristina stato Ultra Summary dopo reload della pagina
+  // Ripristina stato Ultra Summary dopo reload della pagina (cross-device)
   useEffect(() => {
-    const checkUltraProcessing = async () => {
-      const savedSession = localStorage.getItem('ultra_processing_session');
-      if (!savedSession || !user || !token) return;
+    if (!user || !token) return;
 
-      try {
-        const { sessionId, startedAt } = JSON.parse(savedSession);
+    // Funzione per avviare il polling per una sessione
+    const startPollingForSession = (sessionId: string, fileName: string, initialProgress?: { current: number; total: number }) => {
+      // Evita polling multipli
+      if (ultraPollingRef.current) {
+        console.log('⚠️ Polling già attivo, skip');
+        return;
+      }
 
-        // Se è passato più di 2 ore, pulisci localStorage
-        const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
-        if (startedAt < twoHoursAgo) {
-          localStorage.removeItem('ultra_processing_session');
-          return;
+      console.log('🔄 Avvio polling per sessione:', sessionId);
+      setUltraProcessing(true);
+
+      if (initialProgress) {
+        setUltraProgress({
+          current: initialProgress.current,
+          total: initialProgress.total,
+          estimatedMinutes: Math.ceil((initialProgress.total - initialProgress.current) * 3)
+        });
+      }
+
+      const pollInterval = setInterval(async () => {
+        try {
+          const pollResponse = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (pollResponse.ok) {
+            const pollData = await pollResponse.json();
+
+            if (pollData.status === 'completed' && pollData.ultraSummary) {
+              console.log('🎉 Ultra Summary completato per:', fileName);
+              setUltraProcessing(false);
+              localStorage.removeItem('ultra_processing_session');
+              clearInterval(pollInterval);
+              ultraPollingRef.current = null;
+
+              // Aggiorna usando forma funzionale per evitare closure stale
+              setResults(prevResults => {
+                if (prevResults && prevResults.sessionId === sessionId) {
+                  return { ...prevResults, riassunto_ultra: pollData.ultraSummary };
+                }
+                return prevResults;
+              });
+
+              // Aggiorna anche la cache Redis dello storico
+              fetch('/api/history/update-ultra', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                  sessionId,
+                  riassuntoUltra: pollData.ultraSummary
+                })
+              }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+              // Mostra sempre notifica - l'utente può aprire dallo storico
+              showSuccess(`🎉 Riassunto Ultra completato per "${fileName}"! Aprilo dallo storico per visualizzarlo.`);
+            } else if (pollData.status === 'in_progress') {
+              setUltraProgress({
+                current: pollData.currentSection || 0,
+                total: pollData.totalSections || 1,
+                estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 3)
+              });
+            } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+              setUltraProcessing(false);
+              localStorage.removeItem('ultra_processing_session');
+              clearInterval(pollInterval);
+              ultraPollingRef.current = null;
+              if (pollData.status === 'failed') {
+                showError('❌ Riassunto Ultra fallito.');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Errore polling Ultra Summary:', error);
         }
+      }, 10000);
 
-        console.log('🔄 Verificando stato Ultra Summary in corso...', { sessionId });
+      // Salva ref per cleanup
+      ultraPollingRef.current = pollInterval;
 
-        // Verifica lo stato attuale con l'API
-        const response = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
+      // Cleanup dopo 2 ore
+      setTimeout(() => {
+        if (ultraPollingRef.current === pollInterval) {
+          clearInterval(pollInterval);
+          ultraPollingRef.current = null;
+          setUltraProcessing(false);
+          localStorage.removeItem('ultra_processing_session');
+        }
+      }, 2 * 60 * 60 * 1000);
+    };
+
+    const checkUltraProcessing = async () => {
+      // Se polling già attivo, skip
+      if (ultraPollingRef.current) {
+        console.log('⚠️ Polling già attivo, skip check');
+        return;
+      }
+
+      // 1. Prima controlla localStorage (stesso dispositivo - più veloce)
+      const savedSession = localStorage.getItem('ultra_processing_session');
+
+      if (savedSession) {
+        try {
+          const { sessionId, startedAt, fileName: savedFileName } = JSON.parse(savedSession);
+
+          // Se è passato più di 2 ore, pulisci localStorage
+          const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+          if (startedAt < twoHoursAgo) {
+            localStorage.removeItem('ultra_processing_session');
+          } else {
+            console.log('🔄 Trovata sessione in localStorage:', sessionId);
+
+            // Verifica lo stato attuale con l'API
+            const response = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (response.ok) {
+              const statusData = await response.json();
+
+              if (statusData.status === 'in_progress') {
+                startPollingForSession(sessionId, savedFileName || 'Documento', {
+                  current: statusData.currentSection || 0,
+                  total: statusData.totalSections || 1
+                });
+                return; // Trovato, non serve controllare il database
+              } else if (statusData.status === 'completed') {
+                localStorage.removeItem('ultra_processing_session');
+                // Aggiorna usando forma funzionale per evitare closure stale
+                if (statusData.ultraSummary) {
+                  setResults(prevResults => {
+                    if (prevResults && prevResults.sessionId === sessionId) {
+                      return { ...prevResults, riassunto_ultra: statusData.ultraSummary };
+                    }
+                    return prevResults;
+                  });
+
+                  // Aggiorna anche la cache Redis dello storico
+                  fetch('/api/history/update-ultra', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                      sessionId,
+                      riassuntoUltra: statusData.ultraSummary
+                    })
+                  }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+                  showSuccess(`🎉 Riassunto Ultra completato per "${savedFileName || 'Documento'}"! Aprilo dallo storico.`);
+                }
+                return;
+              } else {
+                localStorage.removeItem('ultra_processing_session');
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Errore parsing localStorage:', error);
+          localStorage.removeItem('ultra_processing_session');
+        }
+      }
+
+      // 2. Se non c'è localStorage, controlla il database (altri dispositivi)
+      console.log('🔍 Controllo database per elaborazioni in corso...');
+      try {
+        const response = await fetch(`/api/ultra-summary-status/check-user?userId=${user.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
         if (response.ok) {
-          const statusData = await response.json();
-          console.log('📊 Stato Ultra Summary:', statusData);
+          const data = await response.json();
 
-          if (statusData.status === 'in_progress') {
-            // Elaborazione ancora in corso - ripristina lo stato e riprendi polling
-            console.log('🔄 Ripristino polling Ultra Summary...');
-            setUltraProcessing(true);
-            setUltraProgress({
-              current: statusData.currentSection || 0,
-              total: statusData.totalSections || 1,
-              estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 3)
+          if (data.hasProcessing && data.sessions.length > 0) {
+            // Prendi la prima sessione in elaborazione
+            const session = data.sessions[0];
+            console.log('📱 Trovata elaborazione da altro dispositivo:', session);
+
+            // Salva in localStorage per questo dispositivo
+            localStorage.setItem('ultra_processing_session', JSON.stringify({
+              sessionId: session.sessionId,
+              fileName: session.fileName,
+              startedAt: new Date(session.startedAt).getTime()
+            }));
+
+            // Avvia il polling
+            startPollingForSession(session.sessionId, session.fileName, {
+              current: session.currentSection,
+              total: session.totalSections
             });
 
-            // Avvia polling (startUltraSummaryPolling usa results.sessionId, quindi dobbiamo usare quello salvato)
-            // Creiamo un polling inline qui
-            const pollInterval = setInterval(async () => {
-              try {
-                const pollResponse = await fetch(`/api/ultra-summary-status?sessionId=${sessionId}&userId=${user.id}`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-
-                if (pollResponse.ok) {
-                  const pollData = await pollResponse.json();
-
-                  if (pollData.status === 'completed' && pollData.ultraSummary) {
-                    console.log('🎉 Ultra Summary completato (ripristino)!');
-                    setUltraProcessing(false);
-                    localStorage.removeItem('ultra_processing_session');
-                    clearInterval(pollInterval);
-
-                    // Aggiorna results se disponibile
-                    if (results) {
-                      setResults({ ...results, riassunto_ultra: pollData.ultraSummary });
-                    }
-
-                    showSuccess('🎉 Riassunto Ultra completato! Visualizzalo nel tab "Riassunto Ultra".');
-                    setActiveTab('riassunto_ultra');
-                  } else if (pollData.status === 'in_progress') {
-                    setUltraProgress({
-                      current: pollData.currentSection || 0,
-                      total: pollData.totalSections || 1,
-                      estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 3)
-                    });
-                  } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
-                    setUltraProcessing(false);
-                    localStorage.removeItem('ultra_processing_session');
-                    clearInterval(pollInterval);
-                    if (pollData.status === 'failed') {
-                      showError('❌ Riassunto Ultra fallito.');
-                    }
-                  }
-                }
-              } catch (error) {
-                console.error('Errore polling Ultra Summary:', error);
-              }
-            }, 10000);
-
-            // Cleanup dopo 2 ore
-            setTimeout(() => {
-              clearInterval(pollInterval);
-              setUltraProcessing(false);
-              localStorage.removeItem('ultra_processing_session');
-            }, 2 * 60 * 60 * 1000);
-
-          } else if (statusData.status === 'completed') {
-            // Già completato - pulisci localStorage
-            localStorage.removeItem('ultra_processing_session');
-            if (statusData.ultraSummary && results) {
-              setResults({ ...results, riassunto_ultra: statusData.ultraSummary });
-              showSuccess('🎉 Riassunto Ultra già completato! Visualizzalo nel tab "Riassunto Ultra".');
-            }
-          } else {
-            // Non in corso - pulisci localStorage
-            localStorage.removeItem('ultra_processing_session');
+            showInfo(`📱 Rilevata elaborazione in corso per "${session.fileName}". Mostrando il progresso...`);
           }
         }
       } catch (error) {
-        console.error('Errore verifica Ultra Summary:', error);
-        localStorage.removeItem('ultra_processing_session');
+        console.error('Errore controllo database:', error);
       }
     };
 
     checkUltraProcessing();
+
+    // Cleanup quando il componente si smonta
+    return () => {
+      if (ultraPollingRef.current) {
+        clearInterval(ultraPollingRef.current);
+        ultraPollingRef.current = null;
+      }
+    };
   }, [user, token]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1926,6 +2087,12 @@ const StudiusAIV2: React.FC = () => {
     const sessionId = results?.sessionId;
     if (!sessionId || !user || !token) return;
 
+    // Evita polling multipli - usa lo stesso ref del useEffect
+    if (ultraPollingRef.current) {
+      console.log('⚠️ Polling già attivo, skip startUltraSummaryPolling');
+      return;
+    }
+
     console.log('🔄 Starting Ultra Summary progress polling...');
 
     const pollInterval = setInterval(async () => {
@@ -1939,6 +2106,7 @@ const StudiusAIV2: React.FC = () => {
 
         if (response.ok) {
           const statusData = await response.json();
+          console.log('📊 Ultra polling response:', statusData.status, statusData.ultraSummary ? `(${statusData.ultraSummary.length} chars)` : '(no summary)');
 
           if (statusData.status === 'completed' && statusData.ultraSummary) {
             // Ultra Summary is completed!
@@ -1946,31 +2114,46 @@ const StudiusAIV2: React.FC = () => {
             setUltraProcessing(false);
             localStorage.removeItem('ultra_processing_session');
             clearInterval(pollInterval);
+            ultraPollingRef.current = null;
 
-            // Update results state
-            if (results) {
-              const updatedResults = {
-                ...results,
-                riassunto_ultra: statusData.ultraSummary
-              };
-              setResults(updatedResults);
+            // Update results state usando forma funzionale per evitare closure stale
+            setResults(prevResults => {
+              if (prevResults && prevResults.sessionId === sessionId) {
+                const updatedResults = {
+                  ...prevResults,
+                  riassunto_ultra: statusData.ultraSummary
+                };
 
-              // IMPORTANTE: Salva anche nello studio history per persistenza
-              saveStudySession(
-                convertResultsToHistory(updatedResults, user.id, results.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
-                token || undefined
-              ).catch(error => {
-                console.error('❌ Error saving Ultra Summary to history:', error);
-              });
+                // Salva nello studio history per persistenza
+                saveStudySession(
+                  convertResultsToHistory(updatedResults, user.id, prevResults.fileName || 'Documento', targetLanguage === 'Auto' ? 'Italiano' : targetLanguage),
+                  token || undefined
+                ).catch(error => {
+                  console.error('❌ Error saving Ultra Summary to history:', error);
+                });
 
-              setActiveTab('riassunto_ultra');
-            }
+                return updatedResults;
+              }
+              return prevResults;
+            });
 
-            // Show completion popup with auto-redirect to Ultra tab
-            if (window.confirm('🎉 Riassunto Ultra completato!\n\n✅ Il tuo riassunto ultra-dettagliato è pronto!\n\nVuoi andare al tab "Riassunto Ultra" per visualizzarlo subito?')) {
-              setActiveTab('riassunto_ultra');
-            }
-            showSuccess('🎉 Riassunto Ultra completato! Puoi visualizzarlo nel tab "Riassunto Ultra".');
+            // Aggiorna anche la cache Redis dello storico
+            fetch('/api/history/update-ultra', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                sessionId,
+                riassuntoUltra: statusData.ultraSummary
+              })
+            }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+            setActiveTab('riassunto_ultra');
+
+            // Show completion popup
+            showSuccess('🎉 Riassunto Ultra completato! Visualizzalo nel tab "Riassunto Ultra".');
 
           } else if (statusData.status === 'in_progress') {
             // Update progress if available
@@ -1990,6 +2173,7 @@ const StudiusAIV2: React.FC = () => {
             setUltraProcessing(false);
             localStorage.removeItem('ultra_processing_session');
             clearInterval(pollInterval);
+            ultraPollingRef.current = null;
             showError(`❌ Riassunto Ultra fallito: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
           }
         }
@@ -1999,14 +2183,20 @@ const StudiusAIV2: React.FC = () => {
       }
     }, 10000); // Poll every 10 seconds
 
+    // Salva il ref per evitare polling multipli
+    ultraPollingRef.current = pollInterval;
+
     // Stop polling after 2 hours (maximum Trigger.dev duration)
     setTimeout(() => {
-      clearInterval(pollInterval);
-      if (ultraProcessing) {
-        console.log('⏰ Ultra Summary polling timeout');
-        setUltraProcessing(false);
-        localStorage.removeItem('ultra_processing_session');
-        showError('⏰ Timeout: Riassunto Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
+      if (ultraPollingRef.current === pollInterval) {
+        clearInterval(pollInterval);
+        ultraPollingRef.current = null;
+        if (ultraProcessing) {
+          console.log('⏰ Ultra Summary polling timeout');
+          setUltraProcessing(false);
+          localStorage.removeItem('ultra_processing_session');
+          showError('⏰ Timeout: Riassunto Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
+        }
       }
     }, 2 * 60 * 60 * 1000); // 2 hours
   };
@@ -2061,6 +2251,7 @@ const StudiusAIV2: React.FC = () => {
     // Salva in localStorage per ripristinare dopo reload
     localStorage.setItem('ultra_processing_session', JSON.stringify({
       sessionId: results.sessionId,
+      fileName: results.fileName || 'Documento',
       startedAt: Date.now()
     }));
 
