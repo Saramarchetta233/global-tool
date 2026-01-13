@@ -564,38 +564,86 @@ const TOTAL_CREDITS_NEEDED = 25; // extraction(5) + summary(10) + flashcards(8) 
 export async function POST(request: NextRequest) {
   console.log('🚀 PDF-V2 API called');
   try {
-    const formData = await request.formData();
-    const file = formData.get('file') as File;
-    const language = formData.get('language') as string || 'Italiano';
-    const targetLanguage = formData.get('targetLanguage') as string || language;
-    const userId = formData.get('userId') as string;
-    const isPremium = formData.get('isPremium') === 'true';
-    
+    const contentType = request.headers.get('content-type') || '';
+
+    let buffer: ArrayBuffer;
+    let fileName: string;
+    let language: string;
+    let targetLanguage: string;
+    let userId: string;
+    let isPremium: boolean;
+    let fileSize: number;
+
+    // Supporta sia JSON (con fileUrl da Supabase) che formData (legacy)
+    if (contentType.includes('application/json')) {
+      // NUOVO: JSON con URL del file da Supabase Storage
+      const body = await request.json();
+      const { fileUrl, fileName: bodyFileName, language: bodyLang, targetLanguage: bodyTargetLang, userId: bodyUserId, isPremium: bodyIsPremium } = body;
+
+      if (!fileUrl) {
+        return NextResponse.json({ error: 'fileUrl required' }, { status: 400 });
+      }
+
+      if (!bodyUserId) {
+        return NextResponse.json({ error: 'User ID required' }, { status: 400 });
+      }
+
+      console.log('📥 Downloading PDF from Supabase Storage...');
+
+      // Scarica il file da Supabase Storage usando il signed URL
+      const fileResponse = await fetch(fileUrl);
+      if (!fileResponse.ok) {
+        console.error('❌ Failed to download file from Supabase:', fileResponse.status);
+        return NextResponse.json({ error: 'Failed to download file' }, { status: 500 });
+      }
+
+      buffer = await fileResponse.arrayBuffer();
+      fileName = bodyFileName || 'document.pdf';
+      language = bodyLang || 'Italiano';
+      targetLanguage = bodyTargetLang || language;
+      userId = bodyUserId;
+      isPremium = bodyIsPremium === true;
+      fileSize = buffer.byteLength;
+
+      console.log(`✅ Downloaded PDF: ${fileName}, size: ${fileSize} bytes`);
+
+    } else {
+      // LEGACY: formData con file allegato
+      const formData = await request.formData();
+      const file = formData.get('file') as File;
+
+      if (!file) {
+        return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      }
+
+      if (file.type !== 'application/pdf') {
+        return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
+      }
+
+      buffer = await file.arrayBuffer();
+      fileName = file.name;
+      language = formData.get('language') as string || 'Italiano';
+      targetLanguage = formData.get('targetLanguage') as string || language;
+      userId = formData.get('userId') as string;
+      isPremium = formData.get('isPremium') === 'true';
+      fileSize = file.size;
+    }
+
     console.log('📝 PDF processing started:', {
-      fileName: file.name,
+      fileName,
       userId,
       language,
       targetLanguage
     });
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
-    }
-
     if (!userId) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 });
     }
 
-    if (file.type !== 'application/pdf') {
-      return NextResponse.json({ error: 'File must be a PDF' }, { status: 400 });
-    }
+    console.log(`Processing PDF: ${fileName}, size: ${fileSize} bytes`);
 
-    // Extract text from PDF
-    const buffer = await file.arrayBuffer();
-    console.log(`Processing PDF: ${file.name}, size: ${file.size} bytes`);
-
-    const extractedText = await extractTextFromPDF(buffer, file.name);
-    console.log(`Extracted ${extractedText.length} characters from PDF: ${file.name}`);
+    const extractedText = await extractTextFromPDF(buffer, fileName);
+    console.log(`Extracted ${extractedText.length} characters from PDF: ${fileName}`);
 
     if (!extractedText || extractedText.length < 50) {
       console.log('ERROR: Text extraction failed or too short');
@@ -656,13 +704,13 @@ export async function POST(request: NextRequest) {
 
     // Generate study materials with OpenAI
     const studyMaterials = await generateStudyMaterials(
-      extractedText, 
-      language, 
-      userId, 
+      extractedText,
+      language,
+      userId,
       targetLanguage,
-      file.name, // Pass filename to save in database
+      fileName, // Pass filename to save in database
       estimatedPages,
-      file.size
+      fileSize
     );
 
     return NextResponse.json({

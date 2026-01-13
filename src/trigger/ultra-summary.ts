@@ -552,7 +552,9 @@ ${processedSections.join('\n\n---\n\n')}
 `;
 
       // 7. Salva nel database
-      const { error: saveError } = await supabaseAdmin
+      console.log(`💾 [Trigger.dev] Saving to database for session: ${sessionId}`);
+
+      const { data: updateData, error: saveError } = await supabaseAdmin
         .from('tutor_sessions')
         .update({
           riassunto_ultra: ultraSummary,
@@ -564,10 +566,21 @@ ${processedSections.join('\n\n---\n\n')}
             total_chars: ultraSummary.length
           }
         })
-        .eq('id', sessionId);
+        .eq('id', sessionId)
+        .select('id, riassunto_ultra');
 
       if (saveError) {
+        console.error(`❌ [Trigger.dev] Save error:`, saveError);
         throw new Error('Errore nel salvare il Riassunto Ultra');
+      }
+
+      // Verifica che sia stato salvato
+      console.log(`✅ [Trigger.dev] Save result:`, updateData ? `Updated ${updateData.length} rows` : 'No data returned');
+
+      if (!updateData || updateData.length === 0) {
+        console.error(`❌ [Trigger.dev] No rows updated! Session might not exist: ${sessionId}`);
+      } else {
+        console.log(`✅ [Trigger.dev] Verified: riassunto_ultra saved (${updateData[0]?.riassunto_ultra?.length || 0} chars)`);
       }
 
       console.log(`🎉 [Trigger.dev] Ultra Summary completed! ${ultraSummary.length} characters`);
