@@ -226,31 +226,63 @@ const processWithAI = async (file: File, language: string, authToken: string, ta
   let filePath: string | null = null;
 
   try {
-    // STEP 1: Upload file su Supabase Storage
-    console.log('☁️ Caricamento su Supabase Storage...');
-    const uploadFormData = new FormData();
-    uploadFormData.append('file', file);
-    uploadFormData.append('userId', user?.id || 'anonymous');
-
-    const uploadResponse = await fetch('/api/upload-pdf', {
+    // STEP 1: Ottieni signed URL per upload diretto a Supabase (bypassa Vercel!)
+    console.log('☁️ Richiesta signed URL per upload diretto...');
+    const signedUrlResponse = await fetch('/api/upload-pdf', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${authToken}`
+        'Authorization': `Bearer ${authToken}`,
+        'Content-Type': 'application/json'
       },
-      body: uploadFormData
+      body: JSON.stringify({
+        userId: user?.id || 'anonymous',
+        fileName: file.name
+      })
     });
 
-    if (!uploadResponse.ok) {
-      const uploadError = await uploadResponse.json();
-      throw new Error(uploadError.error || 'Errore upload file');
+    if (!signedUrlResponse.ok) {
+      const signedUrlError = await signedUrlResponse.json();
+      throw new Error(signedUrlError.error || 'Errore generazione URL upload');
     }
 
-    const uploadData = await uploadResponse.json();
-    fileUrl = uploadData.signedUrl;
-    filePath = uploadData.filePath;
-    console.log('✅ File caricato su Supabase Storage:', uploadData.fileId);
+    const signedUrlData = await signedUrlResponse.json();
+    const { uploadUrl, token: uploadToken, fileName: storagePath, fileId } = signedUrlData;
+    filePath = storagePath;
 
-    // STEP 2: Chiama process-pdf-v2 con l'URL del file
+    // STEP 2: Upload diretto a Supabase Storage (bypassa completamente Vercel!)
+    console.log('☁️ Upload diretto su Supabase Storage...');
+    const supabaseUploadResponse = await fetch(uploadUrl, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/pdf'
+      },
+      body: file
+    });
+
+    if (!supabaseUploadResponse.ok) {
+      const errorText = await supabaseUploadResponse.text();
+      console.error('Errore upload Supabase:', errorText);
+      throw new Error('Errore upload diretto su Supabase Storage');
+    }
+
+    // Genera signed URL per download (il server ne avrà bisogno per scaricare il file)
+    const downloadUrlResponse = await fetch(`/api/upload-pdf/signed-url?filePath=${encodeURIComponent(storagePath)}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`
+      }
+    });
+
+    if (downloadUrlResponse.ok) {
+      const downloadUrlData = await downloadUrlResponse.json();
+      fileUrl = downloadUrlData.signedUrl;
+    } else {
+      // Fallback: usa URL pubblico se il bucket è pubblico
+      fileUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/pdf-uploads/${storagePath}`;
+    }
+
+    console.log('✅ File caricato su Supabase Storage:', fileId);
+
+    // STEP 3: Chiama process-pdf-v2 con l'URL del file
     console.log('🔄 Elaborazione PDF...');
     const processResponse = await fetch('/api/process-pdf-v2', {
       method: 'POST',
