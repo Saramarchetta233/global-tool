@@ -84,7 +84,7 @@ interface StudySessionState {
   setSessionId: (id: string | null) => void;
   setDocumentId: (id: string | null) => void;
   setDocContext: (ctx: any) => void;
-  setResults: (results: any) => void;
+  setResults: (resultsOrUpdater: any | ((prev: any) => any)) => void;
   
   // Tutor actions
   setTutorMessages: (msgs: TutorMessage[]) => void;
@@ -185,7 +185,18 @@ export const useStudySessionStore = create<StudySessionState>()(
       setSessionId: (id) => set({ sessionId: id }),
       setDocumentId: (id) => set({ documentId: id }),
       setDocContext: (ctx) => set({ docContext: ctx }),
-      setResults: (results) => set({ results }),
+      // setResults supporta sia valori diretti che functional updates
+      setResults: (resultsOrUpdater) => {
+        if (typeof resultsOrUpdater === 'function') {
+          // Functional update: passa lo stato precedente alla funzione
+          set((state) => ({
+            results: resultsOrUpdater(state.results)
+          }));
+        } else {
+          // Direct update: imposta il valore direttamente
+          set({ results: resultsOrUpdater });
+        }
+      },
       
       // Tutor actions
       setTutorMessages: (msgs) => set({ tutorMessages: msgs }),

@@ -15,224 +15,56 @@ const supabaseAdmin = createClient(
 
 // Prompt Ultra Summary MASSIMAMENTE DETTAGLIATO (identico all'originale)
 const createUltraSummaryPrompt = (section: string, sectionNumber: number, totalSections: number, documentTitle: string) => {
-  return `Sei un PROFESSORE UNIVERSITARIO ESPERTO che deve creare un riassunto ULTRA-DETTAGLIATO che SOSTITUISCA COMPLETAMENTE il libro di testo.
+  return `Sei un TUTOR UNIVERSITARIO ESPERTO. Crea materiale di studio ULTRA-DETTAGLIATO che permetta allo studente di CAPIRE, MEMORIZZARE e SUPERARE l'esame.
 
 DOCUMENTO: ${documentTitle} - Sezione ${sectionNumber} di ${totalSections}
 
-🎯 OBIETTIVO CRITICO: Lo studente deve poter studiare ESCLUSIVAMENTE da questo riassunto e superare brillantemente l'esame. Questo riassunto deve essere più completo e dettagliato del libro stesso.
-
-📏 TARGET MINIMO: 3000-5000 parole dettagliate per sezione (molto più del normale)
-
-🔥 REGOLE INDEROGABILI:
-1. OGNI SINGOLA INFORMAZIONE deve essere inclusa ed espansa
-2. OGNI concetto spiegato con 2-3 esempi pratici diversi
-3. OGNI formula spiegata variabile per variabile con esempi numerici completi
-4. OGNI teorema con dimostrazione passo-passo e applicazioni multiple
-5. OGNI termine tecnico definito completamente con contesto storico
-6. OGNI connessione logica resa esplicita
-7. OGNI possibile domanda d'esame anticipata e preparata
-
-📋 STRUTTURA OBBLIGATORIA:
-
-# 📖 Sezione ${sectionNumber}: [TITOLO SEZIONE ESTRATTO DAL TESTO]
-
-## 🌟 Panoramica della Sezione
-[Introduzione che inquadra gli argomenti e spiega perché sono importanti - 300-500 parole]
-
-## 💡 Concetti Chiave Approfonditi
-[Elenco e spiegazione COMPLETA di ogni concetto principale - minimo 500 parole per concetto]
-
-### 🔍 [Nome del Primo Concetto]
-- **Definizione completa**: [definizione tecnica + spiegazione semplificata]
-- **Origine storica**: [chi l'ha sviluppato, quando, perché]
-- **Contesto di utilizzo**: [quando e dove si applica]
-- **Esempi pratici**:
-  1. [Esempio 1 con tutti i passaggi]
-  2. [Esempio 2 con tutti i passaggi]
-  3. [Esempio 3 con tutti i passaggi]
-- **Errori comuni**: [cosa sbagliano gli studenti]
-- **Trucchi mnemonici**: [come ricordare facilmente]
-
-### 🔍 [Nome del Secondo Concetto]
-[Stessa struttura dettagliata...]
-
-## 📚 Definizioni Tecniche Complete
-[OGNI termine tecnico del testo con definizione esaustiva]
-
-**📌 DEFINIZIONE: [TERMINE]**
-- **Definizione formale**: [definizione precisa dal testo]
-- **Spiegazione intuitiva**: [spiegazione in parole semplici]
-- **Etimologia**: [origine della parola se rilevante]
-- **Contesto storico**: [quando è stato introdotto]
-- **Campi di applicazione**: [dove viene usato]
-- **Esempi concreti**: [minimo 3 esempi diversi]
-- **Relazioni**: [come si collega ad altri concetti]
-- **Errori frequenti**: [confusioni comuni]
-
-## 🧮 Formule e Calcoli Dettagliati
-[OGNI formula spiegata completamente]
-
-### 📐 Formula: [Nome della Formula]
-**Forma matematica**: [formula scritta in testo normale per evitare problemi JSON]
-- x al quadrato più y al quadrato uguale z al quadrato (invece di simboli matematici)
-
-**Significato fisico/matematico**: [cosa rappresenta la formula]
-
-**Variabili spiegate**:
-- **x** = [cosa rappresenta] + [unità di misura] + [range tipico]
-- **y** = [cosa rappresenta] + [unità di misura] + [range tipico]
-- **z** = [cosa rappresenta] + [unità di misura] + [range tipico]
-
-**Quando utilizzare**: [condizioni di applicabilità]
-
-**Derivazione**: [come si arriva a questa formula - passaggi logici]
-
-**Esempi numerici completi**:
-1. **Esempio 1**:
-   - Dati: [valori specifici]
-   - Procedimento: [ogni singolo passaggio]
-   - Calcolo: [operazioni dettagliate]
-   - Risultato: [risultato con unità]
-   - Interpretazione: [cosa significa il risultato]
-
-2. **Esempio 2**: [struttura identica]
-
-3. **Esempio 3**: [struttura identica]
-
-**Varianti della formula**: [altre forme della stessa formula]
-
-**Errori tipici**: [errori di calcolo comuni]
-
-## 🏛️ Teoremi e Proprietà
-[OGNI teorema con dimostrazione completa]
-
-### 📐 TEOREMA: [Nome del Teorema]
-
-**Enunciato formale**: [enunciato preciso dal testo]
-
-**Enunciato informale**: [spiegazione in parole semplici]
-
-**Ipotesi**: [condizioni necessarie]
-- Ipotesi 1: [spiegazione dettagliata]
-- Ipotesi 2: [spiegazione dettagliata]
-
-**Tesi**: [cosa dimostra il teorema]
-
-**Dimostrazione completa**:
-1. **Passo 1**: [primo passaggio logico con spiegazione]
-2. **Passo 2**: [secondo passaggio logico con spiegazione]
-3. **Passo 3**: [terzo passaggio logico con spiegazione]
-[...continua per tutti i passaggi]
-
-**Conseguenze del teorema**: [cosa implica]
-
-**Applicazioni pratiche**: [dove viene usato]
-
-**Esempi di utilizzo**:
-[Minimo 3 esempi completi di applicazione del teorema]
-
-## ✏️ Esempi Svolti Completamente
-[OGNI problema con soluzione dettagliatissima]
-
-### 🔧 ESEMPIO SVOLTO 1: [Titolo del problema]
-
-**Testo del problema**: [problema completo]
-
-**Analisi del problema**: [cosa ci chiede, dati forniti, strategia risolutiva]
-
-**Conoscenze richieste**: [teoremi, formule, concetti necessari]
-
-**Soluzione passo-passo**:
-1. **Identificazione**: [riconoscere il tipo di problema]
-2. **Raccolta dati**: [organizzare le informazioni]
-3. **Scelta metodo**: [quale approccio usare e perché]
-4. **Applicazione formula**: [quale formula usare]
-5. **Calcoli dettagliati**: [ogni operazione matematica]
-6. **Verifica**: [controllo del risultato]
-7. **Interpretazione**: [significato della soluzione]
-
-**Varianti del problema**: [come cambierebbe con dati diversi]
-
-**Errori da evitare**: [errori tipici in questo tipo di problema]
-
-### 🔧 ESEMPIO SVOLTO 2: [Altro esempio con stessa struttura]
-
-### 🔧 ESEMPIO SVOLTO 3: [Altro esempio con stessa struttura]
-
-## 📊 Tabelle, Grafici e Schemi
-[Ricostruzione di OGNI elemento grafico del testo]
-
-### 📈 Tabella: [Nome della tabella]
-
-[Ricostruzione della tabella in formato testuale]
-
-**Intestazioni colonne**: [spiegazione di ogni colonna]
-**Interpretazione dati**: [cosa ci dicono i numeri]
-**Tendenze osservabili**: [pattern nei dati]
-**Utilizzo pratico**: [come usare questa tabella]
-
-## 🔗 Collegamenti e Prerequisiti
-
-**Prerequisiti**: [cosa bisogna sapere prima di questa sezione]
-
-**Collegamenti interni**: [come si collega alle sezioni precedenti]
-
-**Preparazione per**: [cosa prepara per le sezioni successive]
-
-**Collegamenti interdisciplinari**: [relazioni con altre materie]
-
-## 🎯 Preparazione Esame Completa
-
-### 🔥 DOMANDE PROBABILI ALL'ESAME:
-
-1. **Domanda**: [possibile domanda d'esame]
-   **Risposta completa**: [come rispondere in modo esaustivo]
-   **Punti chiave**: [elementi essenziali da includere]
-
-2. **Domanda**: [altra possibile domanda]
-   **Risposta completa**: [come rispondere in modo esaustivo]
-   **Punti chiave**: [elementi essenziali da includere]
-
-[Continua per tutte le possibili domande...]
-
-### ⚠️ ERRORI DA EVITARE ASSOLUTAMENTE:
-
-1. **Errore**: [errore comune]
-   **Correzione**: [versione corretta]
-   **Perché succede**: [causa dell'errore]
-
-2. **Errore**: [altro errore comune]
-   **Correzione**: [versione corretta]
-   **Perché succede**: [causa dell'errore]
-
-### 🧠 STRATEGIE DI MEMORIZZAZIONE:
-
-- **Mnemoniche**: [tecniche per ricordare]
-- **Associazioni**: [collegamenti mentali utili]
-- **Ripetizione**: [cosa ripassare spesso]
-
-## 💎 Approfondimenti Extra
-[Informazioni aggiuntive che arricchiscono la comprensione]
-
-**Curiosità**: [fatti interessanti correlati]
-**Storia**: [evoluzione storica dei concetti]
-**Applicazioni moderne**: [utilizzi attuali]
-**Ricerche recenti**: [sviluppi contemporanei]
-
----
-
-IMPORTANTE: Analizza COMPLETAMENTE tutto il testo fornito. Non riassumere o condensare - ESPANDI ogni informazione. Questo deve essere più dettagliato del libro originale.
-
-TESTO DA ANALIZZARE E ESPANDERE COMPLETAMENTE:
+🎯 OBIETTIVO: Lo studente studia SOLO da questo riassunto e supera brillantemente l'esame.
+
+📏 TARGET: 5000-7000 parole per sezione (molto dettagliato)
+
+📌 REGOLA FONDAMENTALE - ADATTATI AL CONTENUTO:
+- Lavora ESCLUSIVAMENTE con quello che è REALMENTE nel testo
+- Se ci sono formule/teoremi → spiegali in dettaglio nella sezione apposita
+- Se NON ci sono formule → NON inventarle, OMETTI la sezione formule
+- Se ci sono articoli di legge → citali precisamente e spiegali
+- Se ci sono teorie/autori → contestualizzali e approfondiscili
+- NON aggiungere contenuti che non esistono nel testo originale
+
+🔥 REGOLE PER OGNI TIPO DI DOCUMENTO:
+
+[DOCUMENTI GIURIDICI - Diritto, Legge, Giurisprudenza]:
+- Cita gli articoli esattamente come nel testo
+- Spiega l'interpretazione dottrinale
+- Indica la giurisprudenza rilevante se menzionata
+- Casi pratici di applicazione
+- NON aggiungere formule matematiche
+
+[DOCUMENTI SCIENTIFICI - Matematica, Fisica, Ingegneria]:
+- Formule spiegate variabile per variabile
+- Dimostrazioni passo-passo
+- Esempi numerici svolti
+- Grafici e tabelle descritti
+
+[DOCUMENTI UMANISTICI - Filosofia, Storia, Economia, Sociologia]:
+- Focus su autori e correnti di pensiero
+- Evoluzione storica dei concetti
+- Dibattiti e posizioni contrapposte
+- Collegamenti interdisciplinari
+- NON aggiungere formule matematiche
+
+📋 STRUTTURA (usa SOLO le sezioni pertinenti al contenuto):
+
+TESTO DA ANALIZZARE:
 ${section}
 
-GENERA HTML STRUTTURATO CON QUESTA STRUTTURA ESATTA:
+GENERA HTML STRUTTURATO:
 
-<h1>📚 Sezione ${sectionNumber}: [TITOLO SEZIONE]</h1>
+<h1>📚 Sezione ${sectionNumber}: [TITOLO ESTRATTO DAL TESTO]</h1>
 
 <div class="section-intro">
 <h2>🌟 Panoramica della Sezione</h2>
-<p>[Introduzione completa]</p>
+<p>[Di cosa parla questa sezione - contesto - perché è importante - 400-600 parole]</p>
 </div>
 
 <div class="concepts-section">
@@ -240,107 +72,120 @@ GENERA HTML STRUTTURATO CON QUESTA STRUTTURA ESATTA:
 
 <div class="concept-detail">
 <h3>🔍 [Nome del Concetto]</h3>
-<div class="definition-box">
-<h4>Definizione completa</h4>
-<p>[Definizione tecnica + spiegazione semplificata]</p>
-</div>
+<p><strong>Cos'è</strong>: [Spiegazione chiara e completa]</p>
+<p><strong>Perché è importante</strong>: [Rilevanza nel contesto]</p>
+<p><strong>Come si collega</strong>: [Collegamenti con altri concetti]</p>
 <div class="examples-box">
-<h4>Esempi pratici</h4>
-<ol>
-<li><strong>Esempio 1</strong>: [esempio dettagliato]</li>
-<li><strong>Esempio 2</strong>: [esempio dettagliato]</li>
-</ol>
+<h4>Applicazioni ed esempi</h4>
+<ul>
+<li>[Esempio concreto dal testo o applicazione pratica]</li>
+<li>[Altro esempio se presente]</li>
+</ul>
 </div>
 </div>
 
+<!-- Ripeti per ogni concetto chiave -->
 </div>
 
 <div class="definitions-section">
-<h2>📚 Definizioni Tecniche Complete</h2>
+<h2>📖 Definizioni e Termini Chiave</h2>
 
 <div class="definition-box">
-<h3>📌 [TERMINE TECNICO]</h3>
-<p><strong>Definizione formale</strong>: [definizione precisa]</p>
-<p><strong>Spiegazione intuitiva</strong>: [spiegazione semplice]</p>
-<p><strong>Esempi concreti</strong>: [esempi pratici]</p>
+<h3>📌 [TERMINE/ARTICOLO/CONCETTO]</h3>
+<p><strong>Definizione</strong>: [Testo esatto dal documento]</p>
+<p><strong>Spiegazione</strong>: [In parole semplici]</p>
+<p><strong>Contesto</strong>: [Quando e come si applica]</p>
+<p><strong>Esempio</strong>: [Caso pratico se presente]</p>
 </div>
 
+<!-- Ripeti per ogni definizione importante -->
 </div>
 
+<!-- SOLO SE IL DOCUMENTO CONTIENE FORMULE/CALCOLI: -->
 <div class="formulas-section">
-<h2>🧮 Formule e Calcoli Dettagliati</h2>
+<h2>🔢 Formule e Calcoli</h2>
 
 <div class="formula-box">
-<h3>📐 Formula: [Nome]</h3>
-<div class="formula-display">[formula in testo normale]</div>
-<p><strong>Significato</strong>: [spiegazione del significato]</p>
-<p><strong>Quando utilizzare</strong>: [condizioni di applicabilità]</p>
-<div class="examples-calculation">
-<h4>Esempio numerico</h4>
-<p>[calcolo dettagliato step by step]</p>
-</div>
-</div>
-
-</div>
-
-<div class="theorems-section">
-<h2>🏛️ Teoremi e Proprietà</h2>
-
-<div class="theorem-box">
-<h3>📐 TEOREMA: [Nome]</h3>
-<p><strong>Enunciato</strong>: [enunciato formale]</p>
-<div class="proof-box">
-<h4>Dimostrazione</h4>
-<ol>
-<li><strong>Passo 1</strong>: [primo passaggio logico]</li>
-<li><strong>Passo 2</strong>: [secondo passaggio logico]</li>
-</ol>
-</div>
-<p><strong>Applicazioni pratiche</strong>: [dove viene usato]</p>
-</div>
-
-</div>
-
-<div class="examples-section">
-<h2>✏️ Esempi Svolti Completamente</h2>
-
-<div class="example-solved">
-<h3>🔧 ESEMPIO 1: [Titolo]</h3>
-<p><strong>Testo del problema</strong>: [problema completo]</p>
-<div class="solution-steps">
-<h4>Soluzione passo-passo</h4>
-<ol>
-<li><strong>Identificazione</strong>: [tipo di problema]</li>
-<li><strong>Applicazione formula</strong>: [quale formula]</li>
-<li><strong>Calcoli</strong>: [operazioni dettagliate]</li>
-<li><strong>Risultato</strong>: [soluzione finale]</li>
-</ol>
-</div>
-</div>
-
-</div>
-
-<div class="exam-prep">
-<h2>🎯 Preparazione Esame Completa</h2>
-
-<div class="probable-questions">
-<h3>🔥 DOMANDE PROBABILI ALL'ESAME</h3>
-<div class="question-answer">
-<p><strong>Domanda</strong>: [possibile domanda d'esame]</p>
-<p><strong>Risposta completa</strong>: [come rispondere in modo esaustivo]</p>
-</div>
-</div>
-
-<div class="common-errors">
-<h3>⚠️ ERRORI DA EVITARE</h3>
+<h3>📐 [Nome Formula]</h3>
+<div class="formula-display">[formula scritta in modo leggibile]</div>
+<p><strong>Variabili</strong>:</p>
 <ul>
-<li><strong>Errore</strong>: [errore comune] - <strong>Correzione</strong>: [versione corretta]</li>
+<li><strong>[var]</strong> = [cosa rappresenta]</li>
+</ul>
+<p><strong>Quando si usa</strong>: [condizioni di applicabilità]</p>
+<div class="examples-calculation">
+<h4>Esempio svolto</h4>
+<p>[calcolo dettagliato]</p>
+</div>
+</div>
+</div>
+
+<!-- SOLO SE IL DOCUMENTO CONTIENE ARTICOLI DI LEGGE: -->
+<div class="legal-section">
+<h2>⚖️ Riferimenti Normativi</h2>
+
+<div class="legal-box">
+<h3>📜 [Articolo/Norma]</h3>
+<p><strong>Testo</strong>: [Citazione esatta]</p>
+<p><strong>Interpretazione</strong>: [Cosa significa in pratica]</p>
+<p><strong>Applicazione</strong>: [Casi in cui si applica]</p>
+</div>
+</div>
+
+<div class="connections-section">
+<h2>🔗 Collegamenti e Mappa Concettuale</h2>
+<p>[Come i concetti di questa sezione si collegano tra loro e con le altre sezioni]</p>
+<ul>
+<li><strong>[Concetto A]</strong> → si collega a → <strong>[Concetto B]</strong> perché [spiegazione]</li>
 </ul>
 </div>
 
+<div class="exam-prep">
+<h2>🎯 Preparazione Esame</h2>
+
+<div class="probable-questions">
+<h3>❓ Domande Probabili</h3>
+<div class="question-answer">
+<p><strong>D</strong>: [Possibile domanda d'esame]</p>
+<p><strong>R</strong>: [Risposta completa - punti chiave da includere]</p>
+</div>
+<!-- Ripeti per 3-5 domande -->
 </div>
 
-Rispondi ESCLUSIVAMENTE in HTML seguendo ESATTAMENTE la struttura sopra. Non usare Markdown. Non usare JSON. Scrivi tutto in italiano accademico ma comprensibile.`;
+<div class="common-errors">
+<h3>⚠️ Errori da Evitare</h3>
+<ul>
+<li><strong>Errore</strong>: [errore comune] → <strong>Corretto</strong>: [versione giusta]</li>
+</ul>
+</div>
+
+<div class="memory-tips">
+<h3>🧠 Come Memorizzare</h3>
+<ul>
+<li>[Tecnica o trucco per ricordare i concetti chiave]</li>
+<li>[Associazione mentale utile]</li>
+</ul>
+</div>
+</div>
+
+<div class="section-summary">
+<h2>📝 Schema Finale di Ripasso</h2>
+<ul>
+<li><strong>[Punto 1]</strong>: [cosa ricordare]</li>
+<li><strong>[Punto 2]</strong>: [cosa ricordare]</li>
+<li><strong>[Punto 3]</strong>: [cosa ricordare]</li>
+</ul>
+<p><em>In sintesi</em>: [Riassunto in 3-4 frasi di tutta la sezione]</p>
+</div>
+
+IMPORTANTE:
+- Genera 5000-7000 parole di contenuto UTILE
+- NON inventare formule se non ci sono nel testo
+- NON inventare articoli di legge se non ci sono
+- Concentrati su quello che C'È nel documento
+- Rendi tutto FACILE da studiare e memorizzare
+
+Rispondi ESCLUSIVAMENTE in HTML. Non usare Markdown. Non usare JSON. Scrivi in italiano chiaro e comprensibile.`;
 };
 
 // Payload del task

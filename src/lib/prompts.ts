@@ -5,83 +5,102 @@ export interface PromptConfig {
 }
 
 export const createSummaryPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
-Sei un professore universitario che prepara materiale di studio. Devi creare DUE riassunti HTML che SOSTITUISCANO completamente il libro per lo studente.
+Sei un tutor universitario esperto. Crea materiale di studio che permetta allo studente di CAPIRE e MEMORIZZARE facilmente.
 
-OBIETTIVO CRITICO: Lo studente deve poter studiare SOLO da questi riassunti e passare l'esame.
+🎯 OBIETTIVO: Lo studente studia SOLO da questi riassunti e supera l'esame.
 
-GENERA HTML STRUTTURATO CON QUESTA STRUTTURA ESATTA:
+📌 REGOLA FONDAMENTALE - ADATTATI AL CONTENUTO:
+- Lavora ESCLUSIVAMENTE con quello che è REALMENTE nel documento
+- Se ci sono formule/teoremi → spiegali in dettaglio con la sezione apposita
+- Se NON ci sono formule → NON inventarle, NON aggiungere la sezione formule
+- Se ci sono articoli di legge → citali e spiegali precisamente
+- Se ci sono teorie/autori → contestualizzali e spiegali
+- NON aggiungere contenuti che non esistono nel testo originale
+
+GENERA HTML STRUTTURATO. Usa SOLO le sezioni pertinenti al contenuto:
 
 <h1>📚 [Titolo Documento]</h1>
+
 <div class="section-intro">
-  <h2>💎 Introduzione</h2>
-  <p>[Paragrafo introduttivo completo]</p>
+  <h2>💎 Panoramica</h2>
+  <p>[Di cosa parla il documento - contesto generale - perché è importante]</p>
 </div>
+
 <div class="section-concepts">
   <h3>💡 Concetti Chiave</h3>
   <ul class="concept-list">
-    <li><span class="term">[Termine]</span>: [Spiegazione dettagliata]</li>
-    <li><span class="term">[Termine]</span>: [Spiegazione dettagliata]</li>
+    <li><span class="term">[Concetto 1]</span>: [Spiegazione chiara - cosa è - perché è importante - come si collega agli altri]</li>
+    <li><span class="term">[Concetto 2]</span>: [Spiegazione chiara e completa]</li>
   </ul>
 </div>
+
 <div class="section-definitions">
-  <h3>📖 Definizioni</h3>
+  <h3>📖 Definizioni e Termini Chiave</h3>
   <div class="definition-box">
-    <div class="definition-title">📌 DEFINIZIONE - [Nome]</div>
-    <p class="definition-text">[Testo definizione esatta]</p>
-    <p><span class="label">Contesto</span>: [Contesto applicazione]</p>
-    <p><span class="label">Esempio</span>: [Esempio pratico]</p>
+    <div class="definition-title">📌 [TERMINE/ARTICOLO/CONCETTO]</div>
+    <p class="definition-text">[Definizione o testo esatto dal documento]</p>
+    <p><span class="label">Significato</span>: [Spiegazione in parole semplici]</p>
+    <p><span class="label">Contesto</span>: [Quando e come si applica]</p>
   </div>
 </div>
+
+<!-- SOLO SE IL DOCUMENTO CONTIENE FORMULE/CALCOLI: -->
 <div class="section-formulas">
   <h3>🔢 Formule e Calcoli</h3>
   <div class="formula-box">
-    <div class="formula-title">Formula principale:</div>
-    <div class="formula">$[formula LaTeX]$</div>
-    <p><span class="label">Dove</span>:</p>
+    <div class="formula-title">[Nome formula]</div>
+    <div class="formula">$[formula]$</div>
+    <p><span class="label">Variabili</span>:</p>
     <ul>
-      <li><code>[variabile]</code> = [significato]</li>
+      <li><code>[var]</code> = [significato]</li>
     </ul>
-    <p><span class="label">Esempio numerico</span>: [Esempio con numeri]</p>
+    <p><span class="label">Esempio</span>: [Applicazione pratica]</p>
   </div>
 </div>
-<div class="section-examples">
-  <h3>📝 Esempi Svolti</h3>
-  <div class="example-box">
-    <h4>Esempio 1: [Titolo]</h4>
-    <p>[Problema completo]</p>
-    <div class="solution">
-      <h5>Soluzione:</h5>
-      <ol>
-        <li>[Passo 1]</li>
-        <li>[Passo 2]</li>
-      </ol>
-    </div>
-  </div>
+
+<div class="section-connections">
+  <h3>🔗 Collegamenti tra Concetti</h3>
+  <p>[Come i vari concetti si collegano tra loro - mappa mentale discorsiva]</p>
+</div>
+
+<div class="section-exam">
+  <h3>❓ Possibili Domande d'Esame</h3>
+  <ul>
+    <li><strong>Domanda</strong>: [Domanda probabile] → <em>Risposta chiave</em>: [Punti essenziali]</li>
+  </ul>
+</div>
+
+<div class="section-summary">
+  <h3>📝 Schema Finale per il Ripasso</h3>
+  <ul>
+    <li>[Punto chiave 1 da ricordare]</li>
+    <li>[Punto chiave 2 da ricordare]</li>
+  </ul>
 </div>
 
 CREA ESATTAMENTE DUE RIASSUNTI:
 
-1. **RIASSUNTO BREVE** (600-800 parole): Versione concentrata sui punti essenziali
-2. **RIASSUNTO ESTESO** (MINIMO 4000-6000 parole): Versione completa e universitaria ULTRA-DETTAGLIATISSIMA
+1. **RIASSUNTO BREVE** (800-1000 parole):
+   - Panoramica dell'argomento
+   - 5-7 concetti chiave in bullet points
+   - Schema finale per ripasso veloce
 
-REQUISITI TECNICI:
-- MINIMO 4000-6000 parole per il riassunto esteso (MASSIMO DETTAGLIO POSSIBILE)
-- Linguaggio accademico ma chiaro
-- OGNI concetto deve essere spiegato completamente con MINIMO 3 esempi diversi
-- TUTTE le formule devono essere incluse e spiegate variabile per variabile
-- TUTTI i teoremi con dimostrazioni complete step-by-step
-- OGNI definizione deve essere riportata esattamente + contesto + applicazioni
-- ESPANDI ogni sezione al MASSIMO possibile
-- NON essere conciso, sii ESTREMAMENTE dettagliato
-- Aggiungi esempi pratici, casi d'uso, applicazioni reali
-- Spiega PERCHÉ ogni concetto è importante
-- **Parole chiave** evidenziate con asterischi
-- Nessuna frase vuota o generica
-- Riferimenti specifici al testo originale
-- Struttura a paragrafi ben definiti
-- Collegamenti espliciti tra sezioni
+2. **RIASSUNTO ESTESO** (MINIMO 6000-8000 parole):
+   - TUTTE le sezioni sopra, sviluppate in modo COMPLETO
+   - Ogni concetto spiegato approfonditamente (cosa è, perché è importante, collegamenti)
+   - Definizioni complete con contesto e applicazioni
+   - Formule SOLO se presenti nel documento originale
+   - Collegamenti espliciti tra le varie parti
+   - Domande d'esame probabili con risposte
+   - Schema finale dettagliato
 
-Il riassunto breve deve rimanere conciso e focalizzato sui punti essenziali.
+REQUISITI:
+- Linguaggio chiaro e diretto, facile da memorizzare
+- Usa elenchi puntati e struttura gerarchica
+- **Evidenzia** i termini chiave
+- Spiega SEMPRE il "perché" oltre al "cosa"
+- Fai riferimenti specifici al testo originale
+- Crea collegamenti logici tra le sezioni
 
 Testo da analizzare:
 ${text}
@@ -89,11 +108,11 @@ ${text}
 IMPORTANTE: Rispondi ESCLUSIVAMENTE con JSON valido nel formato esatto qui sotto. Non aggiungere testo prima o dopo il JSON. Non usare markdown o backticks.
 
 {
-  "riassunto_breve": "<h1>📚 [Titolo]</h1><div class=\"section-intro\"><h2>💎 Introduzione</h2><p>[Riassunto breve HTML strutturato]</p></div>",
-  "riassunto_esteso": "<h1>📚 [Titolo]</h1><div class=\"section-intro\"><h2>💎 Introduzione</h2><p>[Riassunto esteso HTML strutturato completo]</p></div><div class=\"section-concepts\"><h3>💡 Concetti Chiave</h3>...</div>"
+  "riassunto_breve": "<h1>📚 [Titolo]</h1><div class=\\"section-intro\\"><h2>💎 Panoramica</h2><p>[Intro]</p></div><div class=\\"section-concepts\\"><h3>💡 Concetti Chiave</h3><ul class=\\"concept-list\\"><li>...</li></ul></div><div class=\\"section-summary\\"><h3>📝 Schema Ripasso</h3><ul><li>...</li></ul></div>",
+  "riassunto_esteso": "<h1>📚 [Titolo]</h1>[TUTTE LE SEZIONI COMPLETE E DETTAGLIATE]"
 }
 
-ATTENZIONE: Assicurati che ogni campo contenga SOLO il suo contenuto specifico. Non includere il riassunto esteso nel campo breve e viceversa.`;
+ATTENZIONE: Il riassunto breve deve essere CONCISO. Il riassunto esteso deve essere MOLTO DETTAGLIATO (6000-8000 parole). Non mescolare i contenuti.`;
 
 export const createFlashcardsPrompt = ({ language, text, targetLanguage }: PromptConfig) => `
 Crea 20 flashcard in ${targetLanguage || language} basate sul seguente testo.
