@@ -1657,6 +1657,8 @@ const StudiusAIV2: React.FC = () => {
   const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
   const [ultraMapsProgress, setUltraMapsProgress] = useState<{ current: number; total: number; estimatedMinutes: number }>({ current: 0, total: 0, estimatedMinutes: 10 });
   const ultraMapsPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const [ultraFlashcardsProgress, setUltraFlashcardsProgress] = useState<{ current: number; total: number; estimatedMinutes: number; targetFlashcards: number }>({ current: 0, total: 0, estimatedMinutes: 10, targetFlashcards: 50 });
+  const ultraFlashcardsPollingRef = useRef<NodeJS.Timeout | null>(null);
   const [creditError, setCreditError] = useState<{
     required: number;
     current: number;
@@ -2169,6 +2171,10 @@ const StudiusAIV2: React.FC = () => {
         clearInterval(ultraMapsPollingRef.current);
         ultraMapsPollingRef.current = null;
       }
+      if (ultraFlashcardsPollingRef.current) {
+        clearInterval(ultraFlashcardsPollingRef.current);
+        ultraFlashcardsPollingRef.current = null;
+      }
     };
   }, []); // Array vuoto = esegue cleanup SOLO su unmount
 
@@ -2479,6 +2485,83 @@ const StudiusAIV2: React.FC = () => {
     };
 
     checkUltraMapsProcessing();
+  }, [user, token]);
+
+  // Ripristina stato Ultra Flashcards dopo reload della pagina
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const checkUltraFlashcardsProcessing = async () => {
+      if (ultraFlashcardsPollingRef.current || ultraFlashcardsProcessing) return;
+
+      const savedSession = localStorage.getItem('ultra_flashcards_processing_session');
+      if (!savedSession) return;
+
+      try {
+        const { sessionId, startedAt, fileName: savedFileName } = JSON.parse(savedSession);
+
+        // Se già interrotta manualmente
+        if (sessionStorage.getItem(`ultra_flashcards_dismissed_${sessionId}`)) {
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          return;
+        }
+
+        // Se passato più di 1 ora, pulisci
+        if (startedAt < Date.now() - (60 * 60 * 1000)) {
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          return;
+        }
+
+        console.log('🔄 [ULTRA_FLASHCARDS] Trovata sessione in localStorage:', sessionId);
+
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${sessionId}&userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+
+          if (statusData.status === 'in_progress') {
+            console.log('🔄 [ULTRA_FLASHCARDS] Ripristino polling...');
+            setUltraFlashcardsProcessing(true);
+            setUltraFlashcardsProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 2),
+              targetFlashcards: statusData.targetFlashcards || 50
+            });
+            startUltraFlashcardsPolling(sessionId);
+
+            const popupKey = `ultra_flashcards_popup_shown_${sessionId}`;
+            if (!sessionStorage.getItem(popupKey)) {
+              sessionStorage.setItem(popupKey, 'true');
+              showInfo(`📱 Rilevata elaborazione Flashcard Ultra in corso. Mostrando il progresso...`);
+            }
+          } else if (statusData.status === 'completed' && statusData.flashcardUltra) {
+            localStorage.removeItem('ultra_flashcards_processing_session');
+            setResults(prevResults => {
+              if (prevResults && prevResults.sessionId === sessionId) {
+                setShowUltraFlashcards(true);
+                return { ...prevResults, flashcard_ultra: statusData.flashcardUltra };
+              }
+              return prevResults;
+            });
+            const completedPopupKey = `ultra_flashcards_completed_shown_${sessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              showSuccess(`🎉 Flashcard Ultra già pronte!`, { autoClose: false });
+            }
+          } else {
+            localStorage.removeItem('ultra_flashcards_processing_session');
+          }
+        }
+      } catch (error) {
+        console.error('Errore ripristino flashcards:', error);
+        localStorage.removeItem('ultra_flashcards_processing_session');
+      }
+    };
+
+    checkUltraFlashcardsProcessing();
   }, [user, token]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2834,6 +2917,163 @@ const StudiusAIV2: React.FC = () => {
     }, 1 * 60 * 60 * 1000); // 1 hour
   };
 
+  // Ultra Flashcards Polling - Same pattern as Ultra Maps
+  const startUltraFlashcardsPolling = (overrideSessionId?: string) => {
+    const targetSessionId = overrideSessionId || results?.sessionId;
+    if (!targetSessionId || !user || !token) return;
+
+    // Evita polling multipli
+    if (ultraFlashcardsPollingRef.current) {
+      console.log('⚠️ Polling già attivo, skip startUltraFlashcardsPolling');
+      return;
+    }
+
+    console.log('🔄 Starting Ultra Flashcards progress polling...');
+
+    let pollCount = 0;
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      console.log(`🔄 [POLL #${pollCount}] Polling for Ultra Flashcards progress...`);
+
+      if (!user?.id || !token) {
+        console.error('❌ [POLL] Lost user/token during polling!');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 Ultra Flashcards polling response:', statusData.status, statusData.flashcardUltra ? `(${statusData.totalFlashcards} flashcards)` : '(no flashcards)');
+
+          if (statusData.status === 'completed' && statusData.flashcardUltra) {
+            // Ultra Flashcards is completed!
+            console.log('🎉 Ultra Flashcards completed via polling!');
+            console.log('🎉 Ultra Flashcards count:', statusData.totalFlashcards);
+
+            // Stop polling
+            clearInterval(pollInterval);
+            ultraFlashcardsPollingRef.current = null;
+            setUltraFlashcardsProcessing(false);
+            localStorage.removeItem('ultra_flashcards_processing_session');
+
+            const completedFlashcards = statusData.flashcardUltra;
+
+            // Update results state
+            setResults(prevResults => {
+              if (prevResults && prevResults.sessionId === targetSessionId) {
+                return {
+                  ...prevResults,
+                  flashcard_ultra: completedFlashcards
+                };
+              }
+              return prevResults;
+            });
+
+            // Update cache
+            fetch('/api/history/update-ultra-flashcards', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                sessionId: targetSessionId,
+                flashcardUltra: completedFlashcards
+              })
+            }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+            // Show flashcards
+            setShowUltraFlashcards(true);
+
+            // Show completion popup
+            const completedPopupKey = `ultra_flashcards_completed_shown_${targetSessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              showSuccess(`🎉 Flashcard Ultra completate!\n${statusData.totalFlashcards} flashcard generate.\nVisualizzale nel tab "Flashcard".`, { autoClose: false });
+            }
+
+          } else if (statusData.status === 'in_progress') {
+            const current = statusData.currentSection || 0;
+            const total = statusData.totalSections || 1;
+            const targetFlashcards = statusData.targetFlashcards || 50;
+            const estimatedMinutes = Math.ceil((total - current) * 2);
+
+            console.log(`📊 Flashcards Progress: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+
+            setUltraFlashcardsProgress({
+              current,
+              total,
+              estimatedMinutes,
+              targetFlashcards
+            });
+          } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+            console.error('❌ Ultra Flashcards failed via polling:', statusData.error);
+            setUltraFlashcardsProcessing(false);
+            localStorage.removeItem('ultra_flashcards_processing_session');
+            clearInterval(pollInterval);
+            ultraFlashcardsPollingRef.current = null;
+            showError(`❌ Flashcard Ultra fallite: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Error during Ultra Flashcards polling:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    ultraFlashcardsPollingRef.current = pollInterval;
+
+    // Execute first poll immediately
+    (async () => {
+      try {
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          },
+          cache: 'no-store'
+        });
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 First Ultra Flashcards poll:', statusData.status, `${statusData.currentSection || 0}/${statusData.totalSections || 0}`);
+          if (statusData.status === 'in_progress') {
+            setUltraFlashcardsProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - (statusData.currentSection || 0)) * 2),
+              targetFlashcards: statusData.targetFlashcards || 50
+            });
+          }
+        }
+      } catch (err) {
+        console.error('❌ First flashcards poll error:', err);
+      }
+    })();
+
+    // Stop polling after 1 hour
+    setTimeout(() => {
+      if (ultraFlashcardsPollingRef.current === pollInterval) {
+        clearInterval(pollInterval);
+        ultraFlashcardsPollingRef.current = null;
+        if (ultraFlashcardsProcessing) {
+          console.log('⏰ Ultra Flashcards polling timeout');
+          setUltraFlashcardsProcessing(false);
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          showError('⏰ Timeout: Flashcard Ultra stanno impiegando più del previsto. Ricarica la pagina.');
+        }
+      }
+    }, 1 * 60 * 60 * 1000); // 1 hour
+  };
+
   // Ultra Summary Generation Handler
   const handleGenerateUltra = async () => {
     console.log('🚀 Ultra Summary requested');
@@ -2979,8 +3219,9 @@ const StudiusAIV2: React.FC = () => {
     }
   };
 
-  // Ultra Flashcards Generation Handler
+  // Ultra Flashcards Generation Handler (Async with Trigger.dev)
   const handleGenerateUltraFlashcards = async () => {
+    console.log('🎴 Ultra Flashcards requested');
 
     if (ultraFlashcardsProcessing) {
       return;
@@ -2998,17 +3239,17 @@ const StudiusAIV2: React.FC = () => {
     }
 
     // Check if already exists
-    if (results.flashcard_ultra) {
+    if (results.flashcard_ultra && results.flashcard_ultra.flashcards && results.flashcard_ultra.flashcards.length > 0) {
       setShowUltraFlashcards(true);
       return;
     }
 
     const userCredits = user?.credits || 0;
-    if (userCredits < 100) {
+    if (userCredits < 150) {
       setCreditError({
-        required: 100,
+        required: 150,
         current: userCredits,
-        costDescription: 'Flashcard Ultra (100 crediti)'
+        costDescription: 'Flashcard Ultra (150 crediti)'
       });
       setShowInsufficientCreditsModal(true);
       return;
@@ -3016,23 +3257,19 @@ const StudiusAIV2: React.FC = () => {
 
     const confirmed = window.confirm(
       'Conferma Flashcard Ultra?\n\n' +
-      '• Verranno scalati 100 crediti\n' +
-      '• L\'elaborazione richiederà 2-3 minuti\n' +
-      '• Otterrai 50-100+ flashcard categorizzate\n\n' +
+      '• Verranno scalati 150 crediti\n' +
+      '• L\'elaborazione richiederà 10-20 minuti\n' +
+      '• Otterrai 50-100 flashcard dettagliate e categorizzate\n\n' +
       'Vuoi procedere?'
     );
 
     if (!confirmed) return;
 
-    // Save sessionId locally to avoid race condition
-    const currentSessionId = results.sessionId;
-    const currentResults = results;
-
     setUltraFlashcardsProcessing(true);
-    showInfo('🃏 Flashcard Ultra in elaborazione...');
+    setUltraFlashcardsProgress({ current: 0, total: 0, estimatedMinutes: 15, targetFlashcards: 50 });
+    showInfo('🎴 Flashcard Ultra avviate! Elaborazione in corso...');
 
     try {
-
       const response = await fetch('/api/generate-ultra-flashcards', {
         method: 'POST',
         headers: {
@@ -3040,7 +3277,8 @@ const StudiusAIV2: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          sessionId: currentSessionId,
+          sessionId: results.sessionId,
+          userId: user.id,
           targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
         })
       });
@@ -3051,28 +3289,61 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('🎴 Ultra Flashcards API Response:', data);
 
-      // Update results
-      setResults(prev => prev ? {
-        ...prev,
-        flashcard_ultra: data.flashcard_ultra
-      } : null);
-
-      // Deduct credits only if it's a new generation
-      if (!data.fromCache && !data.fromDatabase) {
-        await updateCredits(userCredits - 100);
-        showSuccess(`✅ Flashcard Ultra generate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
-      } else {
-        showSuccess(`✅ Flashcard Ultra trovate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
+      // Update credits if consumed
+      if (data.newCreditBalance !== undefined) {
+        updateCredits(data.newCreditBalance);
+        console.log(`💳 Ultra Flashcards: 150 credits used, new balance: ${data.newCreditBalance}`);
       }
 
-      setShowUltraFlashcards(true);
+      // Check if flashcards returned immediately (from cache/database) or need polling
+      if (data.flashcard_ultra && data.flashcard_ultra.flashcards && data.flashcard_ultra.flashcards.length > 0) {
+        // Immediate completion
+        console.log('🎉 Ultra Flashcards found immediately!');
+        setUltraFlashcardsProcessing(false);
+
+        setResults(prev => prev ? {
+          ...prev,
+          flashcard_ultra: data.flashcard_ultra
+        } : null);
+
+        setShowUltraFlashcards(true);
+
+        if (data.fromDatabase) {
+          showSuccess(`✅ Flashcard Ultra trovate! ${data.flashcard_ultra.flashcards?.length || 0} flashcard disponibili.`);
+        } else {
+          showSuccess(`🎉 Flashcard Ultra completate!\n${data.flashcard_ultra.flashcards?.length || 0} flashcard generate.`, { autoClose: false });
+        }
+      } else if (data.status === 'in_progress') {
+        // Background processing started, begin polling
+        console.log('⏳ Ultra Flashcards processing started, beginning progress monitoring...');
+
+        if (data.totalSections) {
+          setUltraFlashcardsProgress({
+            current: data.currentSection || 0,
+            total: data.totalSections,
+            estimatedMinutes: Math.ceil(data.totalSections * 2),
+            targetFlashcards: data.estimatedFlashcards || 50
+          });
+        }
+
+        // Save to localStorage for page reload persistence
+        localStorage.setItem('ultra_flashcards_processing_session', JSON.stringify({
+          sessionId: results.sessionId,
+          startedAt: Date.now(),
+          fileName: file?.name || 'Documento',
+          totalSections: data.totalSections || 0
+        }));
+
+        startUltraFlashcardsPolling(results.sessionId);
+        showSuccess(`✅ Flashcard Ultra avviate! ~${data.estimatedFlashcards || 50} flashcard in arrivo...`);
+      }
 
     } catch (error) {
       console.error('❌ Ultra Flashcards Error:', error);
-      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
       setUltraFlashcardsProcessing(false);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   };
 
@@ -5162,15 +5433,18 @@ const StudiusAIV2: React.FC = () => {
                           Standard ({results.flashcard?.length || 0})
                         </button>
                         <button
-                          disabled={true}
-                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                          onClick={() => setShowUltraFlashcards(true)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${showUltraFlashcards
+                            ? 'bg-gradient-to-r from-pink-500/30 to-purple-500/30 text-pink-200 border border-pink-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                         >
-                          Ultra (in arrivo)
+                          Ultra {results.flashcard_ultra?.flashcards?.length || results.flashcard_ultra?.length ? `(${results.flashcard_ultra?.flashcards?.length || results.flashcard_ultra?.length})` : ''}
                         </button>
                       </div>
                     </div>
 
-                    {/* Processing State */}
+                    {/* Processing State with Progress */}
                     {ultraFlashcardsProcessing && (
                       <div className="bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-2xl p-8 border border-pink-400/30 text-center">
                         <div className="flex items-center justify-center space-x-3 mb-4">
@@ -5179,12 +5453,64 @@ const StudiusAIV2: React.FC = () => {
                             Generazione Flashcard Ultra in corso...
                           </div>
                         </div>
-                        <p className="text-gray-300 text-sm">
-                          🃏 Creando 50-100+ flashcard categorizzate • Tempo stimato: 2-3 minuti
-                        </p>
-                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
-                          <div className="bg-gradient-to-r from-pink-400 to-purple-400 h-full animate-pulse w-3/4"></div>
-                        </div>
+                        {ultraFlashcardsProgress.total > 0 ? (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-pink-300 mb-2">
+                              {Math.round((ultraFlashcardsProgress.current / ultraFlashcardsProgress.total) * 100)}%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🎴 Elaborazione sezione {ultraFlashcardsProgress.current} di {ultraFlashcardsProgress.total}
+                            </p>
+                            <p className="text-pink-300 text-xs">
+                              ⏱️ Tempo rimanente stimato: ~{ultraFlashcardsProgress.estimatedMinutes} minuti
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              📚 Target: ~{ultraFlashcardsProgress.targetFlashcards} flashcard
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-pink-400 to-purple-400 h-full transition-all duration-500"
+                                style={{ width: `${Math.max(5, (ultraFlashcardsProgress.current / ultraFlashcardsProgress.total) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-pink-300 mb-2 animate-pulse">
+                              0%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🎴 Avvio elaborazione in corso...
+                            </p>
+                            <p className="text-pink-300 text-xs">
+                              ⏱️ Tempo stimato: 10-20 minuti
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div className="bg-gradient-to-r from-pink-400 to-purple-400 h-full animate-pulse w-1/4"></div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Cancel button */}
+                        <button
+                          onClick={() => {
+                            const savedSession = localStorage.getItem('ultra_flashcards_processing_session');
+                            if (savedSession) {
+                              try {
+                                const { sessionId } = JSON.parse(savedSession);
+                                sessionStorage.setItem(`ultra_flashcards_dismissed_${sessionId}`, 'true');
+                              } catch {}
+                            }
+                            setUltraFlashcardsProcessing(false);
+                            localStorage.removeItem('ultra_flashcards_processing_session');
+                            if (ultraFlashcardsPollingRef.current) {
+                              clearInterval(ultraFlashcardsPollingRef.current);
+                              ultraFlashcardsPollingRef.current = null;
+                            }
+                          }}
+                          className="mt-6 text-sm text-gray-400 hover:text-white underline"
+                        >
+                          Elaborazione continua in background - Clicca per nascondere
+                        </button>
                       </div>
                     )}
 
@@ -5205,25 +5531,25 @@ const StudiusAIV2: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Ultra CTA Box - Only if Ultra not available */}
-                        {!results.flashcard_ultra && (
+                        {/* CTA promozionale per Ultra Flashcards - visibile solo se non esistono già */}
+                        {!results.flashcard_ultra && !ultraFlashcardsProcessing && (
                           <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
                             <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
                             <p className="text-gray-300 mb-4">
-                              Ottieni 50-100+ flashcard categorizzate per uno studio approfondito e completo.
+                              Ottieni 50-100 flashcard categorizzate per uno studio approfondito e completo.
                             </p>
                             <ul className="text-sm text-gray-300 space-y-1 mb-4">
-                              <li>📚 50-100+ flashcard (vs {results.flashcard?.length || 0} standard)</li>
-                              <li>🏷️ Categorizzate: Definizioni, Formule, Esempi, Date</li>
-                              <li>📈 Difficoltà progressive: Basic → Advanced</li>
-                              <li>🪙 Costo: 100 crediti</li>
+                              <li>📚 50-100 flashcard dettagliate (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
+                              <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
+                              <li>🪙 Costo: 150 crediti</li>
                               <li>💾 Salvate per sempre nel tuo account</li>
                             </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraFlashcards}
+                              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all"
                             >
-                              🚧 In arrivo
+                              🎴 Genera Flashcard Ultra (150 crediti)
                             </button>
                           </div>
                         )}
@@ -5231,29 +5557,51 @@ const StudiusAIV2: React.FC = () => {
                     ) : (
                       // Ultra Flashcards
                       <div className="space-y-4">
-                        {results.flashcard_ultra ? (
+                        {results.flashcard_ultra && (results.flashcard_ultra.flashcards || Array.isArray(results.flashcard_ultra)) ? (
                           <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
                             <div className="mb-4">
                               <h4 className="text-lg font-bold text-pink-300 mb-2">
-                                📚 Flashcard Ultra - {results.flashcard_ultra.length} carte
+                                📚 Flashcard Ultra - {results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0} carte
                               </h4>
-                              {/* TODO: Add category filters here */}
+                              {results.flashcard_ultra.stats && (
+                                <div className="flex flex-wrap gap-2 text-xs text-gray-400">
+                                  {results.flashcard_ultra.stats.by_difficulty && (
+                                    <>
+                                      <span className="bg-green-500/20 px-2 py-1 rounded">Base: {results.flashcard_ultra.stats.by_difficulty.base || 0}</span>
+                                      <span className="bg-yellow-500/20 px-2 py-1 rounded">Intermedio: {results.flashcard_ultra.stats.by_difficulty.intermedio || 0}</span>
+                                      <span className="bg-red-500/20 px-2 py-1 rounded">Avanzato: {results.flashcard_ultra.stats.by_difficulty.avanzato || 0}</span>
+                                    </>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                            <FlashCardView flashcards={results.flashcard_ultra} />
+                            <FlashCardView flashcards={results.flashcard_ultra.flashcards || results.flashcard_ultra} />
+                          </div>
+                        ) : !ultraFlashcardsProcessing ? (
+                          // CTA Box per generare Ultra Flashcards
+                          <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni 50-100 flashcard categorizzate per uno studio approfondito e completo.
+                            </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>📚 50-100 flashcard dettagliate (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
+                              <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
+                              <li>🪙 Costo: 150 crediti</li>
+                              <li>💾 Salvate per sempre nel tuo account</li>
+                            </ul>
+                            <button
+                              onClick={handleGenerateUltraFlashcards}
+                              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all"
+                            >
+                              🎴 Genera Flashcard Ultra (150 crediti)
+                            </button>
                           </div>
                         ) : (
+                          // Placeholder mentre è in elaborazione (la progress bar è già sopra)
                           <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
-                            <BookOpen className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                            <h4 className="text-xl font-bold text-white mb-3">Flashcard Ultra non disponibili</h4>
-                            <p className="text-gray-300 mb-6">
-                              Genera flashcard Ultra per ottenere uno studio più approfondito e categorizzato.
-                            </p>
-                            <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
-                            >
-                              🚧 In arrivo
-                            </button>
+                            <p className="text-gray-400">Elaborazione in corso... guarda la progress bar sopra.</p>
                           </div>
                         )}
                       </div>

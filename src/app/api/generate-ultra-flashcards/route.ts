@@ -1,256 +1,198 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { supabaseAdmin } from '@/lib/supabase';
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { ultraFlashcardsTask } from "@/trigger/ultra-flashcards";
 
-import { cache } from '@/lib/redis-cache';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+export async function POST(request: NextRequest) {
+  console.log('🎴 Ultra Flashcards API called');
 
-// Force dynamic rendering for real-time generation
-export const dynamic = 'force-dynamic';
+  let sessionId: string | undefined;
+  let userId: string | undefined;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// Enhanced prompts for Ultra Flashcards
-const createUltraFlashcardsPrompt = (text: string, targetLanguage: string = 'Italiano') => `
-Crea 40-60 flashcard ULTRA in ${targetLanguage} dal testo. 
-
-REGOLE:
-- Risposte CONCISE (max 80 parole)
-- Categorizza: Definizioni, Formule, Esempi, Date, Concetti, Confronti, Cause-Effetti
-- Difficoltà: basic|intermediate|advanced
-- NO simboli matematici
-
-FORMATO JSON RICHIESTO:
-{
-  "flashcard_ultra": [
-    {
-      "front": "Domanda chiara",
-      "back": "Risposta concisa",
-      "category": "Definizioni", 
-      "difficulty": "basic"
-    }
-  ],
-  "stats": {"total": 45}
-}
-
-TESTO:
-${text.substring(0, 8000)}
-
-IMPORTANTE: Solo JSON valido, risposte brevi, massimo 60 flashcard.`;
-
-export const POST = async (request: NextRequest) => {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
-    }
-
-    // Handle demo tokens
-    if (token.startsWith('demo-token-')) {
-      return NextResponse.json(
-        { error: 'Demo mode - Ultra features not available' },
-        { status: 403 }
-      );
-    }
-
-    // Verify token and get user
-    const { data: userAuth, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !userAuth.user) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
-    const { sessionId, targetLanguage = 'Italiano' } = body;
+    sessionId = body.sessionId;
+    userId = body.userId;
+    const targetLanguage = body.targetLanguage || 'Italiano';
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Session ID required' },
-        { status: 400 }
-      );
+    console.log('📝 Ultra Flashcards request:', { sessionId, userId, targetLanguage });
+
+    if (!sessionId || !userId) {
+      return NextResponse.json({
+        error: 'SessionId e UserId sono richiesti'
+      }, { status: 400 });
     }
 
-    console.log('🃏 [ULTRA_FLASHCARDS] Starting generation for session:', sessionId);
-
-    // Check if already exists in cache
-    const cacheKey = `ultra_flashcards_${sessionId}`;
-    try {
-      const cached = await cache.get(cacheKey);
-      if (cached) {
-        console.log('🚀 [ULTRA_FLASHCARDS_CACHE_HIT] Returning cached flashcards (no credit charge)');
-        return NextResponse.json({ 
-          flashcard_ultra: cached, 
-          fromCache: true,
-          message: 'Flashcard Ultra già generate per questo documento' 
-        });
-      }
-    } catch (cacheError) {
-      console.log('⚠️ Cache error (non-critical):', cacheError);
-    }
-
-    // Get original document text from database
-    const { data: session, error: sessionError } = await supabaseAdmin
+    // 1. Verify session exists and belongs to user
+    const { data: session, error: sessionError } = await supabaseAdmin!
       .from('tutor_sessions')
-      .select('pdf_text, flashcard_ultra')
+      .select('*')
       .eq('id', sessionId)
-      .eq('user_id', userAuth.user.id)
+      .eq('user_id', userId)
       .single();
 
     if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Session not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        error: 'Sessione non trovata o non autorizzata'
+      }, { status: 404 });
     }
 
-    // Check if already generated
-    if (session.flashcard_ultra) {
+    // 2. Check if Ultra Flashcards already exists
+    if (session.flashcard_ultra && session.flashcard_ultra.flashcards && session.flashcard_ultra.flashcards.length > 0) {
       console.log('✅ [ULTRA_FLASHCARDS] Already exists in DB, returning (no credit charge)');
-      return NextResponse.json({ 
-        flashcard_ultra: session.flashcard_ultra, 
+      return NextResponse.json({
+        flashcard_ultra: session.flashcard_ultra,
         fromDatabase: true,
-        message: 'Flashcard Ultra già generate per questo documento' 
+        message: 'Flashcard Ultra già generate per questo documento'
       });
     }
 
-    if (!session.pdf_text) {
-      return NextResponse.json(
-        { error: 'No document text found' },
-        { status: 404 }
-      );
+    // 3. Check if Ultra Flashcards is already in progress
+    const metadata = session.processing_metadata || {};
+    if (metadata?.ultra_flashcards_status === 'in_progress') {
+      return NextResponse.json({
+        error: 'Flashcard Ultra già in elaborazione. Controlla lo stato nella dashboard.',
+        status: 'in_progress',
+        currentSection: metadata.ultra_flashcards_current_section || 0,
+        totalSections: metadata.ultra_flashcards_total_sections || 0
+      }, { status: 409 });
     }
 
-    console.log('🤖 [ULTRA_FLASHCARDS] Generating with OpenAI...');
-    
-    // Generate Ultra Flashcards with OpenAI
-    const prompt = createUltraFlashcardsPrompt(session.pdf_text, targetLanguage);
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.4,
-      max_tokens: 3000, // Reduced to prevent truncation
+    // 4. Verify we have PDF text to work with
+    if (!session.pdf_text || session.pdf_text.length < 100) {
+      return NextResponse.json({
+        error: 'Testo del documento non disponibile o troppo breve per le Flashcard Ultra'
+      }, { status: 400 });
+    }
+
+    // 5. Consume 150 credits
+    const baseUrl = request.url.split('/api')[0];
+    const creditResponse = await fetch(`${baseUrl}/api/credits/consume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('Authorization') || ''
+      },
+      body: JSON.stringify({
+        userId: userId,
+        amount: 150,
+        description: 'Flashcard Ultra - Set completo 50-100 flashcard dettagliate',
+        featureType: 'ultra_flashcards'
+      })
     });
 
-    const content = response.choices[0].message.content;
-    
-    if (!content) {
-      throw new Error('Empty response from OpenAI');
-    }
-
-    // Parse response - robust JSON extraction
-    let flashcardData;
-    
-    // Multiple strategies to extract JSON
-    let cleanContent = content.trim();
-    
-    // Strategy 1: Remove markdown code blocks
-    cleanContent = cleanContent
-      .replace(/```json\s*/gi, '')
-      .replace(/```\s*$/g, '')
-      .trim();
-    
-    // Strategy 2: Find JSON object between { and last }
-    const firstBrace = cleanContent.indexOf('{');
-    const lastBrace = cleanContent.lastIndexOf('}');
-    
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
-    }
-    
-    // Strategy 3: Remove any text before first { and after last }
-    cleanContent = cleanContent.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-    
-    try {
-      console.log('🧹 [JSON_CLEAN] Attempting to parse:', cleanContent.substring(0, 200) + '...');
-      
-      flashcardData = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError);
-      
-      // Fallback: Try to fix incomplete JSON
-      try {
-        console.log('🔧 [JSON_REPAIR] Attempting to repair truncated JSON...');
-        
-        // Find last complete flashcard
-        const flashcardArrayStart = cleanContent.indexOf('"flashcard_ultra": [');
-        const flashcardArrayContent = cleanContent.substring(flashcardArrayStart);
-        
-        // Find position of last complete }
-        let lastCompleteCard = -1;
-        let braceCount = 0;
-        for (let i = 0; i < flashcardArrayContent.length; i++) {
-          if (flashcardArrayContent[i] === '{') braceCount++;
-          if (flashcardArrayContent[i] === '}') {
-            braceCount--;
-            if (braceCount === 0) lastCompleteCard = i;
-          }
-        }
-        
-        if (lastCompleteCard > -1) {
-          const repairedContent = cleanContent.substring(0, flashcardArrayStart + lastCompleteCard + 1) + '], "stats": {"total": 0}}';
-          console.log('🔧 [JSON_REPAIR] Trying repaired version...');
-          flashcardData = JSON.parse(repairedContent);
-          console.log('✅ [JSON_REPAIR] Successfully repaired truncated JSON');
-        } else {
-          throw new Error('Cannot repair JSON');
-        }
-      } catch (repairError) {
-        console.error('❌ JSON repair failed:', repairError);
-        console.error('❌ Raw content (first 1000 chars):', content.substring(0, 1000));
-        console.error('❌ Cleaned content (first 1000 chars):', cleanContent.substring(0, 1000));
-        throw new Error('Invalid JSON response from AI');
+    if (!creditResponse.ok) {
+      const creditError = await creditResponse.json();
+      if (creditError.error === 'insufficient_credits') {
+        return NextResponse.json({
+          error: 'insufficient_credits',
+          message: 'Crediti insufficienti per le Flashcard Ultra',
+          required: 150,
+          current: creditError.currentCredits || 0
+        }, { status: 403 });
       }
+      throw new Error('Errore nel consumo crediti');
     }
 
-    if (!flashcardData.flashcard_ultra || !Array.isArray(flashcardData.flashcard_ultra)) {
-      throw new Error('Invalid flashcard data structure');
+    const creditResult = await creditResponse.json();
+    console.log(`💳 Ultra Flashcards: 150 credits consumed, new balance: ${creditResult.newBalance}`);
+
+    // 6. Calcola stima iniziale delle sezioni basata sulla lunghezza del documento
+    const documentLength = session.pdf_text.length;
+    let estimatedSections: number;
+    let estimatedFlashcards: number;
+
+    if (documentLength > 300000) {
+      estimatedSections = Math.min(20, Math.ceil(documentLength / 8000));
+      estimatedFlashcards = 100;
+    } else if (documentLength > 150000) {
+      estimatedSections = Math.min(16, Math.ceil(documentLength / 7000));
+      estimatedFlashcards = 80;
+    } else if (documentLength > 50000) {
+      estimatedSections = Math.min(12, Math.ceil(documentLength / 6000));
+      estimatedFlashcards = 60;
+    } else {
+      estimatedSections = Math.min(10, Math.ceil(documentLength / 5000));
+      estimatedFlashcards = 50;
     }
+    estimatedSections = Math.max(3, estimatedSections); // Minimo 3 sezioni
 
-    console.log('✅ [ULTRA_FLASHCARDS] Generated:', flashcardData.flashcard_ultra.length, 'flashcards');
-
-    // Save to database
-    const { error: updateError } = await supabaseAdmin
+    // 7. Mark Ultra Flashcards as "in progress" in database
+    await supabaseAdmin!
       .from('tutor_sessions')
-      .update({ 
-        flashcard_ultra: flashcardData.flashcard_ultra,
-        updated_at: new Date().toISOString()
+      .update({
+        processing_metadata: {
+          ...metadata,
+          ultra_flashcards_status: 'in_progress',
+          ultra_flashcards_started_at: new Date().toISOString(),
+          ultra_flashcards_current_section: 0,
+          ultra_flashcards_total_sections: estimatedSections,
+          ultra_flashcards_target_count: estimatedFlashcards,
+          ultra_flashcards_estimated_completion: new Date(Date.now() + estimatedSections * 2 * 60 * 1000).toISOString()
+        }
       })
-      .eq('id', sessionId)
-      .eq('user_id', userAuth.user.id);
+      .eq('id', sessionId);
 
-    if (updateError) {
-      console.error('❌ Failed to save flashcards to database:', updateError);
-      throw new Error('Failed to save flashcards');
-    }
+    // 8. Trigger the background task with Trigger.dev
+    console.log('🚀 Triggering Trigger.dev task for Ultra Flashcards...');
 
-    // Cache for 6 months
-    const CACHE_TTL_6_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000;
-    try {
-      await cache.set(cacheKey, flashcardData.flashcard_ultra, CACHE_TTL_6_MONTHS);
-      console.log('🚀 [ULTRA_FLASHCARDS_CACHE_SET] Cached for 6 months');
-    } catch (cacheError) {
-      console.log('⚠️ Failed to cache flashcards (non-critical):', cacheError);
-    }
+    const handle = await tasks.trigger<typeof ultraFlashcardsTask>(
+      "ultra-flashcards",
+      {
+        sessionId,
+        userId,
+        newCreditBalance: creditResult.newBalance,
+        targetLanguage,
+      }
+    );
 
-    return NextResponse.json({ 
-      flashcard_ultra: flashcardData.flashcard_ultra,
-      stats: flashcardData.stats 
+    console.log(`✅ Trigger.dev task triggered with ID: ${handle.id}`);
+
+    // 9. Return immediately with task info
+    return NextResponse.json({
+      success: true,
+      message: 'Flashcard Ultra avviate in background! Riceverai una notifica quando saranno pronte.',
+      sessionId,
+      newCreditBalance: creditResult.newBalance,
+      creditsUsed: 150,
+      taskId: handle.id,
+      status: 'in_progress',
+      currentSection: 0,
+      totalSections: estimatedSections,
+      estimatedFlashcards,
+      estimatedTime: `~${estimatedSections * 2} minuti per ~${estimatedFlashcards} flashcard`
     });
 
   } catch (error) {
-    console.error('❌ [ULTRA_FLASHCARDS] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate Ultra Flashcards' },
-      { status: 500 }
-    );
+    console.error('❌ Ultra Flashcards API Error:', error);
+
+    // Mark as failed in database if we have sessionId
+    if (sessionId) {
+      try {
+        const { data: session } = await supabaseAdmin!
+          .from('tutor_sessions')
+          .select('processing_metadata')
+          .eq('id', sessionId)
+          .single();
+
+        await supabaseAdmin!
+          .from('tutor_sessions')
+          .update({
+            processing_metadata: {
+              ...(session?.processing_metadata || {}),
+              ultra_flashcards_status: 'failed',
+              ultra_flashcards_error: error instanceof Error ? error.message : 'Errore sconosciuto',
+              ultra_flashcards_failed_at: new Date().toISOString()
+            }
+          })
+          .eq('id', sessionId);
+      } catch (dbError) {
+        console.error('❌ Error updating failure status:', dbError);
+      }
+    }
+
+    return NextResponse.json({
+      error: `Errore durante l'avvio delle Flashcard Ultra: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`
+    }, { status: 500 });
   }
-};
+}
