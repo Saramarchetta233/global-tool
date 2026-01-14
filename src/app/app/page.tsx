@@ -4,6 +4,20 @@ import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, ChevronUp,
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for UltraMindMap (React Flow needs client-side only)
+const UltraMindMap = dynamic(() => import('@/components/UltraMindMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] rounded-xl bg-slate-900/50 flex items-center justify-center border border-white/20">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400 mx-auto mb-3"></div>
+        <p className="text-gray-400 text-sm">Caricamento mappa interattiva...</p>
+      </div>
+    </div>
+  ),
+});
 
 // Ultra Summary CTA Styles
 const ultraCTAStyles = `
@@ -1926,7 +1940,7 @@ const StudiusAIV2: React.FC = () => {
                 total: pollData.totalSections || 1,
                 estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 3)
               });
-            } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+            } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
               setUltraProcessing(false);
               localStorage.removeItem('ultra_processing_session');
               clearInterval(pollInterval);
@@ -2158,15 +2172,7 @@ const StudiusAIV2: React.FC = () => {
                       setUltraMapsProcessing(false);
                       localStorage.removeItem('ultra_maps_processing_session');
 
-                      // Aggiorna results
-                      setResults(prevResults => {
-                        if (prevResults && prevResults.sessionId === sessionId) {
-                          return { ...prevResults, mappa_ultra: pollData.ultraMaps };
-                        }
-                        return prevResults;
-                      });
-
-                      // Aggiorna cache Redis
+                      // Aggiorna cache Redis (sempre)
                       fetch('/api/history/update-ultra-maps', {
                         method: 'POST',
                         headers: {
@@ -2179,8 +2185,21 @@ const StudiusAIV2: React.FC = () => {
                         })
                       }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
 
-                      setShowUltraMaps(true);
-                      showSuccess(`🎉 Mappa Ultra completata per "${savedFileName || 'Documento'}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                      // Aggiorna results solo se siamo sullo stesso documento
+                      setResults(prevResults => {
+                        if (prevResults && prevResults.sessionId === sessionId) {
+                          setShowUltraMaps(true);
+                          return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                        }
+                        return prevResults;
+                      });
+
+                      // Mostra popup solo una volta per sessione browser
+                      const completedPopupKey = `ultra_maps_completed_shown_${sessionId}`;
+                      if (!sessionStorage.getItem(completedPopupKey)) {
+                        sessionStorage.setItem(completedPopupKey, 'true');
+                        showSuccess(`🎉 Mappa Ultra completata per "${savedFileName || 'Documento'}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                      }
 
                     } else if (pollData.status === 'in_progress') {
                       setUltraMapsProgress({
@@ -2188,13 +2207,13 @@ const StudiusAIV2: React.FC = () => {
                         total: pollData.totalSections || 1,
                         estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
                       });
-                    } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+                    } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
                       setUltraMapsProcessing(false);
                       localStorage.removeItem('ultra_maps_processing_session');
                       clearInterval(pollInterval);
                       ultraMapsPollingRef.current = null;
-                      if (pollData.status === 'failed') {
-                        showError('❌ Mappa Ultra fallita.');
+                      if (pollData.status === 'failed' || pollData.status === 'expired') {
+                        showError(`❌ ${pollData.error || 'Mappa Ultra fallita.'}`);
                       }
                     }
                   }
@@ -2226,15 +2245,22 @@ const StudiusAIV2: React.FC = () => {
             } else if (statusData.status === 'completed' && statusData.ultraMaps) {
               localStorage.removeItem('ultra_maps_processing_session');
 
+              // Aggiorna results e mostra mappa solo se siamo sullo stesso documento
               setResults(prevResults => {
                 if (prevResults && prevResults.sessionId === sessionId) {
+                  setShowUltraMaps(true);
                   return { ...prevResults, mappa_ultra: statusData.ultraMaps };
                 }
                 return prevResults;
               });
 
               console.log('🎉 [ULTRA_MAPS] Già completata, aggiornati results');
-              showSuccess(`🎉 Mappa Ultra per "${savedFileName}" già pronta!`, { autoClose: false });
+              // Mostra popup solo una volta per sessione browser
+              const completedPopupKey = `ultra_maps_completed_shown_${sessionId}`;
+              if (!sessionStorage.getItem(completedPopupKey)) {
+                sessionStorage.setItem(completedPopupKey, 'true');
+                showSuccess(`🎉 Mappa Ultra per "${savedFileName}" già pronta!`, { autoClose: false });
+              }
               return; // Già completata, non serve controllare database
             } else {
               localStorage.removeItem('ultra_maps_processing_session');
@@ -2301,13 +2327,7 @@ const StudiusAIV2: React.FC = () => {
                     setUltraMapsProcessing(false);
                     localStorage.removeItem('ultra_maps_processing_session');
 
-                    setResults(prevResults => {
-                      if (prevResults && prevResults.sessionId === session.sessionId) {
-                        return { ...prevResults, mappa_ultra: pollData.ultraMaps };
-                      }
-                      return prevResults;
-                    });
-
+                    // Aggiorna cache Redis (sempre)
                     fetch('/api/history/update-ultra-maps', {
                       method: 'POST',
                       headers: {
@@ -2320,8 +2340,21 @@ const StudiusAIV2: React.FC = () => {
                       })
                     }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
 
-                    setShowUltraMaps(true);
-                    showSuccess(`🎉 Mappa Ultra completata per "${sessionFileName}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                    // Aggiorna results solo se siamo sullo stesso documento
+                    setResults(prevResults => {
+                      if (prevResults && prevResults.sessionId === session.sessionId) {
+                        setShowUltraMaps(true);
+                        return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                      }
+                      return prevResults;
+                    });
+
+                    // Mostra popup solo una volta per sessione browser
+                    const completedPopupKey = `ultra_maps_completed_shown_${session.sessionId}`;
+                    if (!sessionStorage.getItem(completedPopupKey)) {
+                      sessionStorage.setItem(completedPopupKey, 'true');
+                      showSuccess(`🎉 Mappa Ultra completata per "${sessionFileName}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                    }
 
                   } else if (pollData.status === 'in_progress') {
                     setUltraMapsProgress({
@@ -2329,13 +2362,13 @@ const StudiusAIV2: React.FC = () => {
                       total: pollData.totalSections || 1,
                       estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
                     });
-                  } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+                  } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
                     setUltraMapsProcessing(false);
                     localStorage.removeItem('ultra_maps_processing_session');
                     clearInterval(pollInterval);
                     ultraMapsPollingRef.current = null;
-                    if (pollData.status === 'failed') {
-                      showError('❌ Mappa Ultra fallita.');
+                    if (pollData.status === 'failed' || pollData.status === 'expired') {
+                      showError(`❌ ${pollData.error || 'Mappa Ultra fallita.'}`);
                     }
                   }
                 }
@@ -2553,9 +2586,15 @@ const StudiusAIV2: React.FC = () => {
   };
 
   // Ultra Maps Progress Polling
-  const startUltraMapsPolling = () => {
-    const sessionId = results?.sessionId;
-    if (!sessionId || !user || !token) return;
+  const startUltraMapsPolling = (overrideSessionId?: string) => {
+    const sessionId = overrideSessionId || results?.sessionId;
+
+    console.log('🔄 [ULTRA_MAPS_POLLING] Attempting to start polling...', { sessionId, hasUser: !!user, hasToken: !!token });
+
+    if (!sessionId || !user || !token) {
+      console.error('❌ [ULTRA_MAPS_POLLING] Cannot start polling - missing:', { sessionId, hasUser: !!user, hasToken: !!token });
+      return;
+    }
 
     // Evita polling multipli
     if (ultraMapsPollingRef.current) {
@@ -2563,19 +2602,22 @@ const StudiusAIV2: React.FC = () => {
       return;
     }
 
-    console.log('🔄 Starting Ultra Maps progress polling...');
+    console.log('🔄 Starting Ultra Maps progress polling for session:', sessionId);
 
-    const pollInterval = setInterval(async () => {
+    // Funzione di polling che può essere chiamata sia subito che nel setInterval
+    const doPoll = async () => {
       try {
-        console.log('🔄 Polling for Ultra Maps progress...');
+        console.log('🔄 Polling for Ultra Maps progress... sessionId:', sessionId);
 
         const response = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
           headers: { 'Authorization': `Bearer ${token}` }
         });
 
+        console.log('📊 Ultra Maps API response status:', response.status);
+
         if (response.ok) {
           const statusData = await response.json();
-          console.log('📊 Ultra Maps polling response:', statusData.status, statusData.ultraMaps ? `(${statusData.totalNodes} nodes)` : '(no maps)');
+          console.log('📊 Ultra Maps polling response:', JSON.stringify(statusData, null, 2));
 
           if (statusData.status === 'completed' && statusData.ultraMaps) {
             // Ultra Maps completed!
@@ -2583,26 +2625,17 @@ const StudiusAIV2: React.FC = () => {
             console.log('🎉 Ultra Maps nodes:', statusData.totalNodes);
 
             // Stop polling first
-            clearInterval(pollInterval);
-            ultraMapsPollingRef.current = null;
+            if (ultraMapsPollingRef.current) {
+              clearInterval(ultraMapsPollingRef.current);
+              ultraMapsPollingRef.current = null;
+            }
             setUltraMapsProcessing(false);
             localStorage.removeItem('ultra_maps_processing_session');
 
             // Save the maps in a local variable
             const completedUltraMaps = statusData.ultraMaps;
 
-            // Update results state
-            setResults(prevResults => {
-              console.log('🔄 Updating results with ultra maps, prevSessionId:', prevResults?.sessionId, 'targetSessionId:', sessionId);
-              if (prevResults && prevResults.sessionId === sessionId) {
-                console.log('✅ Results updated with ultra maps');
-                return { ...prevResults, mappa_ultra: completedUltraMaps };
-              }
-              console.log('⚠️ SessionId mismatch, maps not updated');
-              return prevResults;
-            });
-
-            // Aggiorna anche la cache Redis dello storico
+            // Aggiorna la cache Redis dello storico (sempre, indipendentemente dal documento corrente)
             fetch('/api/history/update-ultra-maps', {
               method: 'POST',
               headers: {
@@ -2615,12 +2648,33 @@ const StudiusAIV2: React.FC = () => {
               })
             }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
 
-            // Show ultra maps tab
-            setShowUltraMaps(true);
+            // Controlla se siamo sullo stesso documento
+            const currentSessionId = results?.sessionId;
+            const isCurrentDocument = currentSessionId === sessionId;
 
-            // Show completion popup - NON auto-close
-            console.log('🔔 Showing ultra maps success popup...');
-            showSuccess(`🎉 Mappa Ultra completata!\n${statusData.totalNodes} nodi generati.\nVisualizzala nel tab "Mappe".`, { autoClose: false });
+            console.log('🔄 Ultra Maps completion check:', { currentSessionId, targetSessionId: sessionId, isCurrentDocument });
+
+            if (isCurrentDocument) {
+              // Siamo sullo stesso documento - aggiorna results e mostra mappa
+              setResults(prev => prev ? { ...prev, mappa_ultra: completedUltraMaps } : prev);
+              setShowUltraMaps(true);
+              console.log('✅ Results updated with ultra maps, showing map');
+            } else {
+              console.log('⚠️ Documento diverso - mappa salvata nel database ma non mostrata');
+            }
+
+            // Mostra popup di completamento (solo una volta per sessione)
+            const completedPopupKey = `ultra_maps_completed_shown_${sessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              if (isCurrentDocument) {
+                showSuccess(`🎉 Mappa Ultra completata!\n${statusData.totalNodes} nodi generati.\nVisualizzala nel tab "Mappe".`, { autoClose: false });
+              } else {
+                // Documento diverso - informa l'utente
+                showSuccess(`🎉 Mappa Ultra completata!\n${statusData.totalNodes} nodi generati.\nTrovala nello storico dei documenti.`, { autoClose: false });
+              }
+            }
+            return true; // Indica che il polling è finito
 
           } else if (statusData.status === 'in_progress') {
             // Update progress
@@ -2628,30 +2682,48 @@ const StudiusAIV2: React.FC = () => {
             const total = statusData.totalSections || 1;
             const estimatedMinutes = Math.ceil((total - current) * 2); // 2 min per section
 
-            console.log(`📊 Ultra Maps progress: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+            console.log(`📊 Ultra Maps progress UPDATE: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
 
             setUltraMapsProgress({
               current,
               total,
               estimatedMinutes
             });
-          } else if (statusData.status === 'failed') {
-            console.error('❌ Ultra Maps failed via polling:', statusData.error);
+            return false; // Continua polling
+          } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+            console.error('❌ Ultra Maps failed/expired via polling:', statusData.error);
             setUltraMapsProcessing(false);
-            clearInterval(pollInterval);
-            ultraMapsPollingRef.current = null;
+            if (ultraMapsPollingRef.current) {
+              clearInterval(ultraMapsPollingRef.current);
+              ultraMapsPollingRef.current = null;
+            }
             localStorage.removeItem('ultra_maps_processing_session');
-            showError(`❌ Mappa Ultra fallita: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+            showError(`❌ ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+            return true; // Indica che il polling è finito
           }
         }
-
+        return false; // Continua polling
       } catch (error) {
         console.error('❌ Error during Ultra Maps polling:', error);
+        return false; // Continua polling anche in caso di errore
       }
-    }, 8000); // Poll every 8 seconds (maps are faster than summaries)
+    };
 
-    // Save ref to prevent multiple pollings
+    // Crea il setInterval PRIMA di eseguire il primo polling
+    const pollInterval = setInterval(async () => {
+      const finished = await doPoll();
+      if (finished && ultraMapsPollingRef.current) {
+        clearInterval(ultraMapsPollingRef.current);
+        ultraMapsPollingRef.current = null;
+      }
+    }, 5000); // Poll ogni 5 secondi
+
+    // Save ref SUBITO così doPoll può usarlo per fermare il polling
     ultraMapsPollingRef.current = pollInterval;
+
+    // Esegui subito il primo polling (il ref è già settato)
+    console.log('🔄 Executing first poll immediately...');
+    doPoll();
 
     // Stop polling after 1 hour (maximum Trigger.dev duration for maps)
     setTimeout(() => {
@@ -3023,15 +3095,25 @@ const StudiusAIV2: React.FC = () => {
         // Background processing started, begin polling
         console.log('⏳ Ultra Maps processing started, beginning progress monitoring...');
 
+        // Inizializza subito il progresso con i valori dalla risposta API
+        if (data.totalSections) {
+          setUltraMapsProgress({
+            current: data.currentSection || 0,
+            total: data.totalSections,
+            estimatedMinutes: Math.ceil(data.totalSections * 2)
+          });
+        }
+
         // Save to localStorage for page reload persistence
         localStorage.setItem('ultra_maps_processing_session', JSON.stringify({
           sessionId: results.sessionId,
           startedAt: Date.now(),
-          fileName: file?.name || 'Documento'
+          fileName: file?.name || 'Documento',
+          totalSections: data.totalSections || 0 // Salva anche la stima
         }));
 
-        startUltraMapsPolling();
-        showSuccess('✅ Mappa Ultra avviata! Elaborazione in corso con progresso in tempo reale...');
+        startUltraMapsPolling(results.sessionId);
+        showSuccess(`✅ Mappa Ultra avviata! ~${data.totalSections || 10} sezioni da elaborare...`);
       }
 
     } catch (error) {
@@ -4936,7 +5018,7 @@ const StudiusAIV2: React.FC = () => {
                                 </p>
                               )}
                             </div>
-                            <ConceptMap concepts={results.mappa_ultra.nodes || results.mappa_ultra} />
+                            <UltraMindMap data={results.mappa_ultra} />
                           </div>
                         ) : (
                           // Same promotional content as Standard section

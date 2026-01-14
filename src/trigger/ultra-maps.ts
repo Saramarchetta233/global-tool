@@ -15,26 +15,42 @@ const supabaseAdmin = createClient(
 
 // Helper per aggiornare processing_metadata senza sovrascrivere altri campi (es. ultra_summary)
 async function updateProcessingMetadata(sessionId: string, newMetadata: Record<string, any>) {
-  // 1. Leggi il metadata esistente
-  const { data: session } = await supabaseAdmin
-    .from('tutor_sessions')
-    .select('processing_metadata')
-    .eq('id', sessionId)
-    .single();
+  try {
+    // 1. Leggi il metadata esistente
+    const { data: session, error: readError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('processing_metadata')
+      .eq('id', sessionId)
+      .single();
 
-  const existingMetadata = session?.processing_metadata || {};
+    if (readError) {
+      console.error('❌ [updateProcessingMetadata] Error reading session:', readError);
+      return;
+    }
 
-  // 2. Merge: mantieni i campi esistenti, aggiungi/aggiorna solo quelli nuovi
-  const mergedMetadata = {
-    ...existingMetadata,
-    ...newMetadata
-  };
+    const existingMetadata = session?.processing_metadata || {};
 
-  // 3. Aggiorna con il merge
-  await supabaseAdmin
-    .from('tutor_sessions')
-    .update({ processing_metadata: mergedMetadata })
-    .eq('id', sessionId);
+    // 2. Merge: mantieni i campi esistenti, aggiungi/aggiorna solo quelli nuovi
+    const mergedMetadata = {
+      ...existingMetadata,
+      ...newMetadata
+    };
+
+    // 3. Aggiorna con il merge
+    const { error: updateError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .update({ processing_metadata: mergedMetadata })
+      .eq('id', sessionId);
+
+    if (updateError) {
+      console.error('❌ [updateProcessingMetadata] Error updating session:', updateError);
+      return;
+    }
+
+    console.log(`✅ [updateProcessingMetadata] Updated: current_section=${newMetadata.current_section}, total_sections=${newMetadata.total_sections || existingMetadata.total_sections}`);
+  } catch (err) {
+    console.error('❌ [updateProcessingMetadata] Exception:', err);
+  }
 }
 
 // Prompt per generare mappa concettuale da una sezione
@@ -218,23 +234,35 @@ export const ultraMapsTask = task({
 
       console.log(`📊 [Trigger.dev] Divided into ${sections.length} sections for mapping`);
 
-      // 5. Processa ogni sezione con OpenAI
+      // 5. Aggiorna SUBITO il total_sections nel database (così il frontend può mostrare progresso reale)
+      await updateProcessingMetadata(sessionId, {
+        ultra_maps_status: 'in_progress',
+        current_section: 0,
+        total_sections: sections.length,
+        estimated_completion: new Date(Date.now() + sections.length * 2 * 60 * 1000).toISOString()
+      });
+      console.log(`📊 [ULTRA-v9] Initial metadata set: 0/${sections.length} sections (version v9)`);
+
+      // 6. Processa ogni sezione con OpenAI
       const allNodes: UltraMapNode[] = [];
       const allConnections: UltraMapConnection[] = [];
       const sectionSummaries: string[] = [];
 
       for (let i = 0; i < sections.length; i++) {
         const sectionNumber = i + 1;
-        console.log(`🔄 [Trigger.dev] Processing map section ${sectionNumber}/${sections.length}`);
+        console.log(`🔄 [ULTRA-v9] Processing map section ${sectionNumber}/${sections.length}`);
 
-        // Aggiorna progresso nel database (merge per non sovrascrivere ultra_summary)
-        await updateProcessingMetadata(sessionId, {
-          ultra_maps_status: 'in_progress',
-          ultra_maps_started_at: new Date().toISOString(),
-          current_section: sectionNumber,
-          total_sections: sections.length,
-          estimated_completion: new Date(Date.now() + (sections.length - sectionNumber) * 2 * 60 * 1000).toISOString()
-        });
+        // Aggiorna progresso nel database PRIMA di elaborare
+        console.log(`🔄 [ULTRA-v9] >>> ABOUT TO UPDATE DB: section ${sectionNumber}/${sections.length}`);
+        try {
+          await updateProcessingMetadata(sessionId, {
+            current_section: sectionNumber,
+            estimated_completion: new Date(Date.now() + (sections.length - sectionNumber) * 2 * 60 * 1000).toISOString()
+          });
+          console.log(`✅ [ULTRA-v9] <<< DB UPDATE DONE: section ${sectionNumber}/${sections.length}`);
+        } catch (metaError) {
+          console.error(`❌ [ULTRA-v9] METADATA UPDATE FAILED:`, metaError);
+        }
 
         try {
           const prompt = createUltraMapSectionPrompt(

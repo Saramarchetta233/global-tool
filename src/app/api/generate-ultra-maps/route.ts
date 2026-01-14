@@ -96,7 +96,19 @@ export async function POST(request: NextRequest) {
     const creditResult = await creditResponse.json();
     console.log(`💳 Ultra Maps: 100 credits consumed, new balance: ${creditResult.newBalance}`);
 
-    // 6. Mark Ultra Maps as "in progress" in database
+    // 6. Calcola stima iniziale delle sezioni basata sulla lunghezza del documento
+    const documentLength = session.pdf_text.length;
+    let estimatedSections: number;
+    if (documentLength > 300000) {
+      estimatedSections = Math.min(30, Math.ceil(documentLength / 5000));
+    } else if (documentLength > 150000) {
+      estimatedSections = Math.min(25, Math.ceil(documentLength / 6000));
+    } else {
+      estimatedSections = Math.min(20, Math.ceil(documentLength / 7000));
+    }
+    estimatedSections = Math.max(3, estimatedSections); // Minimo 3 sezioni
+
+    // 7. Mark Ultra Maps as "in progress" in database con stima sezioni
     await supabaseAdmin!
       .from('tutor_sessions')
       .update({
@@ -104,12 +116,14 @@ export async function POST(request: NextRequest) {
           ...metadata,
           ultra_maps_status: 'in_progress',
           ultra_maps_started_at: new Date().toISOString(),
-          estimated_completion: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minuti stima
+          current_section: 0,
+          total_sections: estimatedSections, // Stima iniziale
+          estimated_completion: new Date(Date.now() + estimatedSections * 2 * 60 * 1000).toISOString()
         }
       })
       .eq('id', sessionId);
 
-    // 7. Trigger the background task with Trigger.dev
+    // 8. Trigger the background task with Trigger.dev
     console.log('🚀 Triggering Trigger.dev task for Ultra Maps...');
 
     const handle = await tasks.trigger<typeof ultraMapsTask>(
@@ -123,7 +137,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`✅ Trigger.dev task triggered with ID: ${handle.id}`);
 
-    // 8. Return immediately with task info
+    // 9. Return immediately with task info (includi stime per la progress bar)
     return NextResponse.json({
       success: true,
       message: 'Mappa Ultra avviata in background! Riceverai una notifica quando sarà pronta.',
@@ -132,7 +146,9 @@ export async function POST(request: NextRequest) {
       creditsUsed: 100,
       taskId: handle.id,
       status: 'in_progress',
-      estimatedTime: '10-20 minuti per documenti lunghi'
+      currentSection: 0,
+      totalSections: estimatedSections,
+      estimatedTime: `~${estimatedSections * 2} minuti per ${estimatedSections} sezioni`
     });
 
   } catch (error) {

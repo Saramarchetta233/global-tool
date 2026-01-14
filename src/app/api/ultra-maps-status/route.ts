@@ -40,23 +40,53 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Se è in progress, restituisci lo stato
+    // Se è in progress, verifica che non sia troppo vecchia (max 2 ore)
     if (metadata.ultra_maps_status === 'in_progress') {
-      return NextResponse.json({
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      const startedAt = metadata.ultra_maps_started_at
+        ? new Date(metadata.ultra_maps_started_at).getTime()
+        : 0;
+      const isExpired = startedAt > 0 && (Date.now() - startedAt > TWO_HOURS_MS);
+
+      if (isExpired) {
+        // Marca come expired nel database
+        console.log(`🧹 [ULTRA_MAPS] Session ${sessionId} expired, cleaning up`);
+        await supabaseAdmin!
+          .from('tutor_sessions')
+          .update({
+            processing_metadata: {
+              ...metadata,
+              ultra_maps_status: 'expired',
+              ultra_maps_expired_at: new Date().toISOString(),
+              ultra_maps_error: 'Elaborazione scaduta (timeout 2 ore)'
+            }
+          })
+          .eq('id', sessionId);
+
+        return NextResponse.json({
+          status: 'expired',
+          error: 'Elaborazione scaduta. Puoi rigenerare la mappa.',
+          expiredAt: new Date().toISOString()
+        });
+      }
+
+      const responseData = {
         status: 'in_progress',
         currentSection: metadata.current_section || 0,
         totalSections: metadata.total_sections || 0,
         startedAt: metadata.ultra_maps_started_at,
         estimatedCompletion: metadata.estimated_completion
-      });
+      };
+      console.log('📊 [ULTRA_MAPS_STATUS] Returning in_progress:', JSON.stringify(responseData));
+      return NextResponse.json(responseData);
     }
 
-    // Se è fallito, restituisci l'errore
-    if (metadata.ultra_maps_status === 'failed') {
+    // Se è fallito o expired, restituisci l'errore
+    if (metadata.ultra_maps_status === 'failed' || metadata.ultra_maps_status === 'expired') {
       return NextResponse.json({
-        status: 'failed',
+        status: metadata.ultra_maps_status,
         error: metadata.ultra_maps_error || 'Errore sconosciuto',
-        failedAt: metadata.ultra_maps_failed_at
+        failedAt: metadata.ultra_maps_failed_at || metadata.ultra_maps_expired_at
       });
     }
 
