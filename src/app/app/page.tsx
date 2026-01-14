@@ -1848,6 +1848,7 @@ const StudiusAIV2: React.FC = () => {
   const [showUltraMaps, setShowUltraMaps] = useState(false);
   const [ultraFlashcardsProcessing, setUltraFlashcardsProcessing] = useState(false);
   const [ultraFlashcardsDifficultyFilter, setUltraFlashcardsDifficultyFilter] = useState<'all' | 'base' | 'intermedio' | 'avanzato'>('all');
+  const [oralExamMode, setOralExamMode] = useState<'base' | 'ultra'>('base');
   const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
   const [ultraMapsProgress, setUltraMapsProgress] = useState<{ current: number; total: number; estimatedMinutes: number }>({ current: 0, total: 0, estimatedMinutes: 10 });
   const ultraMapsPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -6009,9 +6010,86 @@ const StudiusAIV2: React.FC = () => {
                             </div>
                           </div>
 
+                          {/* Mode Selector - Base vs Ultra */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <button
+                              onClick={() => setOralExamMode('base')}
+                              className={`p-5 rounded-xl border-2 transition-all duration-300 text-left ${
+                                oralExamMode === 'base'
+                                  ? 'bg-green-500/20 border-green-400/50 shadow-lg shadow-green-500/20'
+                                  : 'bg-white/5 border-white/10 hover:border-white/30'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="text-3xl">🎓</div>
+                                <div className="flex-1">
+                                  <div className={`font-bold text-lg ${oralExamMode === 'base' ? 'text-green-300' : 'text-white'}`}>
+                                    Esame Base
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-2 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Professore disponibile e paziente</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Domande sui concetti principali</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Ideale per ripassare</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => setOralExamMode('ultra')}
+                              className={`p-5 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden ${
+                                oralExamMode === 'ultra'
+                                  ? 'bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-400/50 shadow-lg shadow-purple-500/20'
+                                  : 'bg-white/5 border-white/10 hover:border-purple-400/30'
+                              }`}
+                            >
+                              {oralExamMode === 'ultra' && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 animate-pulse"></div>
+                              )}
+                              <div className="flex items-start gap-3 relative z-10">
+                                <div className="text-3xl">👑</div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-bold text-lg ${oralExamMode === 'ultra' ? 'text-yellow-300' : 'text-white'}`}>
+                                      Esame Ultra
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] rounded-full font-bold">
+                                      PRO
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-2 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Professore severo ed esigente</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Domande su dettagli, date e definizioni</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Simulazione realistica d'esame</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
 
                           <OralExamSection
-                            docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
+                            docContext={oralExamMode === 'ultra'
+                              ? (docContext || results.pdf_text || renderContent(results.riassunto_ultra) || renderContent(results.riassunto_esteso))
+                              : (renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve))
+                            }
                             authToken={token || undefined}
                             targetLanguage={targetLanguage === 'Auto' ? 'Italiano' : targetLanguage}
                             onBack={() => setActiveTab('riassunto_breve')}
@@ -6021,6 +6099,7 @@ const StudiusAIV2: React.FC = () => {
                               updateCredits(newCredits);
                             }}
                             documentId={documentId || results.sessionId}
+                            isUltra={oralExamMode === 'ultra'}
                           />
                         </div>
                       )}

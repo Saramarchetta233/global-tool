@@ -19,15 +19,17 @@ interface OralExamSectionProps {
   onBack?: () => void;
   onCreditsUpdate?: (newCredits: number) => void;
   documentId?: string;
+  isUltra?: boolean;
 }
 
-const OralExamSection: React.FC<OralExamSectionProps> = ({ 
-  docContext, 
-  authToken, 
+const OralExamSection: React.FC<OralExamSectionProps> = ({
+  docContext,
+  authToken,
   targetLanguage = 'Italiano',
   onBack,
   onCreditsUpdate,
-  documentId
+  documentId,
+  isUltra = false
 }) => {
   // Use store for oral exam state persistence
   const { examState, updateExamOralState } = useStudySessionStore();
@@ -264,7 +266,8 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
           docContext,
           action: 'start',
           targetLanguage,
-          documentId
+          documentId,
+          isUltra
         })
       });
 
@@ -526,17 +529,25 @@ const OralExamSection: React.FC<OralExamSectionProps> = ({
           <button
             onClick={startExam}
             disabled={isLoading}
-            className="bg-gradient-to-r from-red-600 to-pink-600 text-white px-8 py-4 rounded-xl hover:from-red-700 hover:to-pink-700 font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] disabled:opacity-50"
+            className={`text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05] disabled:opacity-50 ${
+              isUltra
+                ? 'bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600'
+                : 'bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700'
+            }`}
           >
             {isLoading ? '🔄 Preparando...' : (
               <div className="text-center">
-                <div className="font-bold">🚀 Inizia Esame Orale</div>
+                <div className="font-bold">
+                  {isUltra ? '👑 Inizia Esame Orale Ultra' : '🎓 Inizia Esame Orale Base'}
+                </div>
                 <div className="text-sm opacity-75">
-                  {isCheckingFirstTime 
-                    ? 'Verificando...' 
-                    : shouldShowAsFirstTime 
-                      ? 'GRATIS' 
-                      : '25 crediti'
+                  {isUltra
+                    ? '50 crediti'
+                    : isCheckingFirstTime
+                      ? 'Verificando...'
+                      : shouldShowAsFirstTime
+                        ? 'GRATIS'
+                        : '25 crediti'
                   }
                 </div>
               </div>
