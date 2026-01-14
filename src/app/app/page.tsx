@@ -1570,6 +1570,8 @@ const StudiusAIV2: React.FC = () => {
   const [showUltraMaps, setShowUltraMaps] = useState(false);
   const [ultraFlashcardsProcessing, setUltraFlashcardsProcessing] = useState(false);
   const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
+  const [ultraMapsProgress, setUltraMapsProgress] = useState<{ current: number; total: number; estimatedMinutes: number }>({ current: 0, total: 0, estimatedMinutes: 10 });
+  const ultraMapsPollingRef = useRef<NodeJS.Timeout | null>(null);
   const [creditError, setCreditError] = useState<{
     required: number;
     current: number;
@@ -2072,7 +2074,301 @@ const StudiusAIV2: React.FC = () => {
         clearInterval(ultraPollingRef.current);
         ultraPollingRef.current = null;
       }
+      if (ultraMapsPollingRef.current) {
+        clearInterval(ultraMapsPollingRef.current);
+        ultraMapsPollingRef.current = null;
+      }
     };
+  }, [user, token]);
+
+  // Ripristina stato Ultra Maps dopo reload della pagina
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const checkUltraMapsProcessing = async () => {
+      // Se polling già attivo, skip
+      if (ultraMapsPollingRef.current) {
+        console.log('⚠️ Ultra Maps polling già attivo, skip check');
+        return;
+      }
+
+      // Se già in processing state, skip (evita popup multipli durante navigazione SPA)
+      if (ultraMapsProcessing) {
+        console.log('⚠️ Ultra Maps già in processing state, skip check');
+        return;
+      }
+
+      // Controlla localStorage per sessione in corso
+      const savedSession = localStorage.getItem('ultra_maps_processing_session');
+
+      if (savedSession) {
+        try {
+          const { sessionId, startedAt, fileName: savedFileName } = JSON.parse(savedSession);
+
+          // Controlla se l'utente ha già interrotto manualmente questa sessione
+          if (sessionStorage.getItem(`ultra_maps_dismissed_${sessionId}`)) {
+            console.log('⏹️ [ULTRA_MAPS] Sessione già interrotta manualmente, skip:', sessionId);
+            localStorage.removeItem('ultra_maps_processing_session');
+            return;
+          }
+
+          // Se è passato più di 1 ora, pulisci localStorage
+          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          if (startedAt < oneHourAgo) {
+            localStorage.removeItem('ultra_maps_processing_session');
+            return;
+          }
+
+          console.log('🔄 [ULTRA_MAPS] Trovata sessione in localStorage:', sessionId);
+
+          // Verifica lo stato attuale con l'API
+          const response = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const statusData = await response.json();
+            console.log('📊 [ULTRA_MAPS] Status check result:', statusData.status);
+
+            if (statusData.status === 'in_progress') {
+              console.log('🔄 [ULTRA_MAPS] Ripristino polling per sessione in corso...');
+
+              // Mostra stato di elaborazione
+              setUltraMapsProcessing(true);
+              setUltraMapsProgress({
+                current: statusData.currentSection || 0,
+                total: statusData.totalSections || 1,
+                estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 2)
+              });
+
+              // Avvia polling con sessionId salvato
+              const pollInterval = setInterval(async () => {
+                try {
+                  const pollResponse = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+
+                  if (pollResponse.ok) {
+                    const pollData = await pollResponse.json();
+
+                    if (pollData.status === 'completed' && pollData.ultraMaps) {
+                      console.log('🎉 [ULTRA_MAPS] Completata da sessione ripristinata!');
+                      clearInterval(pollInterval);
+                      ultraMapsPollingRef.current = null;
+                      setUltraMapsProcessing(false);
+                      localStorage.removeItem('ultra_maps_processing_session');
+
+                      // Aggiorna results
+                      setResults(prevResults => {
+                        if (prevResults && prevResults.sessionId === sessionId) {
+                          return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                        }
+                        return prevResults;
+                      });
+
+                      // Aggiorna cache Redis
+                      fetch('/api/history/update-ultra-maps', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          sessionId,
+                          mappaUltra: pollData.ultraMaps
+                        })
+                      }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
+
+                      setShowUltraMaps(true);
+                      showSuccess(`🎉 Mappa Ultra completata per "${savedFileName || 'Documento'}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+
+                    } else if (pollData.status === 'in_progress') {
+                      setUltraMapsProgress({
+                        current: pollData.currentSection || 0,
+                        total: pollData.totalSections || 1,
+                        estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
+                      });
+                    } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+                      setUltraMapsProcessing(false);
+                      localStorage.removeItem('ultra_maps_processing_session');
+                      clearInterval(pollInterval);
+                      ultraMapsPollingRef.current = null;
+                      if (pollData.status === 'failed') {
+                        showError('❌ Mappa Ultra fallita.');
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error('Errore polling Ultra Maps:', error);
+                }
+              }, 8000);
+
+              ultraMapsPollingRef.current = pollInterval;
+
+              // Cleanup dopo 1 ora
+              setTimeout(() => {
+                if (ultraMapsPollingRef.current === pollInterval) {
+                  clearInterval(pollInterval);
+                  ultraMapsPollingRef.current = null;
+                  setUltraMapsProcessing(false);
+                  localStorage.removeItem('ultra_maps_processing_session');
+                }
+              }, 60 * 60 * 1000);
+
+              // Mostra popup solo una volta per sessione browser
+              const popupKey = `ultra_maps_popup_shown_${sessionId}`;
+              if (!sessionStorage.getItem(popupKey)) {
+                sessionStorage.setItem(popupKey, 'true');
+                showInfo(`📱 Rilevata elaborazione Mappa Ultra in corso per "${savedFileName}". Mostrando il progresso...`);
+              }
+              return; // Trovato in localStorage, non serve controllare database
+
+            } else if (statusData.status === 'completed' && statusData.ultraMaps) {
+              localStorage.removeItem('ultra_maps_processing_session');
+
+              setResults(prevResults => {
+                if (prevResults && prevResults.sessionId === sessionId) {
+                  return { ...prevResults, mappa_ultra: statusData.ultraMaps };
+                }
+                return prevResults;
+              });
+
+              console.log('🎉 [ULTRA_MAPS] Già completata, aggiornati results');
+              showSuccess(`🎉 Mappa Ultra per "${savedFileName}" già pronta!`, { autoClose: false });
+              return; // Già completata, non serve controllare database
+            } else {
+              localStorage.removeItem('ultra_maps_processing_session');
+            }
+          }
+        } catch (error) {
+          console.error('Errore parsing localStorage ultra maps:', error);
+          localStorage.removeItem('ultra_maps_processing_session');
+        }
+      }
+
+      // 2. Se non c'è localStorage, controlla il database (altri dispositivi)
+      console.log('🔍 [ULTRA_MAPS] Controllo database per elaborazioni in corso...');
+      try {
+        const response = await fetch(`/api/ultra-maps-status/check-user?userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.hasProcessing && data.sessions.length > 0) {
+            // Prendi la prima sessione in elaborazione
+            const session = data.sessions[0];
+
+            // Controlla se l'utente ha già interrotto manualmente questa sessione
+            if (sessionStorage.getItem(`ultra_maps_dismissed_${session.sessionId}`)) {
+              console.log('⏹️ [ULTRA_MAPS] Sessione già interrotta manualmente, skip:', session.sessionId);
+              return;
+            }
+
+            console.log('📱 [ULTRA_MAPS] Trovata elaborazione da altro dispositivo:', session);
+
+            // Salva in localStorage per questo dispositivo
+            const sessionFileName = session.fileName || 'Documento';
+            localStorage.setItem('ultra_maps_processing_session', JSON.stringify({
+              sessionId: session.sessionId,
+              fileName: sessionFileName,
+              startedAt: new Date(session.startedAt).getTime()
+            }));
+
+            // Mostra stato di elaborazione
+            setUltraMapsProcessing(true);
+            setUltraMapsProgress({
+              current: session.currentSection || 0,
+              total: session.totalSections || 1,
+              estimatedMinutes: Math.ceil((session.totalSections - session.currentSection) * 2)
+            });
+
+            // Avvia polling
+            const pollInterval = setInterval(async () => {
+              try {
+                const pollResponse = await fetch(`/api/ultra-maps-status?sessionId=${session.sessionId}&userId=${user.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (pollResponse.ok) {
+                  const pollData = await pollResponse.json();
+
+                  if (pollData.status === 'completed' && pollData.ultraMaps) {
+                    console.log('🎉 [ULTRA_MAPS] Completata da altro dispositivo!');
+                    clearInterval(pollInterval);
+                    ultraMapsPollingRef.current = null;
+                    setUltraMapsProcessing(false);
+                    localStorage.removeItem('ultra_maps_processing_session');
+
+                    setResults(prevResults => {
+                      if (prevResults && prevResults.sessionId === session.sessionId) {
+                        return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                      }
+                      return prevResults;
+                    });
+
+                    fetch('/api/history/update-ultra-maps', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        sessionId: session.sessionId,
+                        mappaUltra: pollData.ultraMaps
+                      })
+                    }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
+
+                    setShowUltraMaps(true);
+                    showSuccess(`🎉 Mappa Ultra completata per "${sessionFileName}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+
+                  } else if (pollData.status === 'in_progress') {
+                    setUltraMapsProgress({
+                      current: pollData.currentSection || 0,
+                      total: pollData.totalSections || 1,
+                      estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
+                    });
+                  } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+                    setUltraMapsProcessing(false);
+                    localStorage.removeItem('ultra_maps_processing_session');
+                    clearInterval(pollInterval);
+                    ultraMapsPollingRef.current = null;
+                    if (pollData.status === 'failed') {
+                      showError('❌ Mappa Ultra fallita.');
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('Errore polling Ultra Maps (cross-device):', error);
+              }
+            }, 8000);
+
+            ultraMapsPollingRef.current = pollInterval;
+
+            setTimeout(() => {
+              if (ultraMapsPollingRef.current === pollInterval) {
+                clearInterval(pollInterval);
+                ultraMapsPollingRef.current = null;
+                setUltraMapsProcessing(false);
+                localStorage.removeItem('ultra_maps_processing_session');
+              }
+            }, 60 * 60 * 1000);
+
+            // Mostra popup solo una volta per sessione browser
+            const popupKey = `ultra_maps_popup_shown_${session.sessionId}`;
+            if (!sessionStorage.getItem(popupKey)) {
+              sessionStorage.setItem(popupKey, 'true');
+              showInfo(`📱 Rilevata elaborazione Mappa Ultra in corso per "${sessionFileName}". Mostrando il progresso...`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Errore controllo database ultra maps:', error);
+      }
+    };
+
+    checkUltraMapsProcessing();
   }, [user, token]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2254,6 +2550,121 @@ const StudiusAIV2: React.FC = () => {
         }
       }
     }, 2 * 60 * 60 * 1000); // 2 hours
+  };
+
+  // Ultra Maps Progress Polling
+  const startUltraMapsPolling = () => {
+    const sessionId = results?.sessionId;
+    if (!sessionId || !user || !token) return;
+
+    // Evita polling multipli
+    if (ultraMapsPollingRef.current) {
+      console.log('⚠️ Ultra Maps polling già attivo, skip');
+      return;
+    }
+
+    console.log('🔄 Starting Ultra Maps progress polling...');
+
+    const pollInterval = setInterval(async () => {
+      try {
+        console.log('🔄 Polling for Ultra Maps progress...');
+
+        const response = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 Ultra Maps polling response:', statusData.status, statusData.ultraMaps ? `(${statusData.totalNodes} nodes)` : '(no maps)');
+
+          if (statusData.status === 'completed' && statusData.ultraMaps) {
+            // Ultra Maps completed!
+            console.log('🎉 Ultra Maps completed via polling!');
+            console.log('🎉 Ultra Maps nodes:', statusData.totalNodes);
+
+            // Stop polling first
+            clearInterval(pollInterval);
+            ultraMapsPollingRef.current = null;
+            setUltraMapsProcessing(false);
+            localStorage.removeItem('ultra_maps_processing_session');
+
+            // Save the maps in a local variable
+            const completedUltraMaps = statusData.ultraMaps;
+
+            // Update results state
+            setResults(prevResults => {
+              console.log('🔄 Updating results with ultra maps, prevSessionId:', prevResults?.sessionId, 'targetSessionId:', sessionId);
+              if (prevResults && prevResults.sessionId === sessionId) {
+                console.log('✅ Results updated with ultra maps');
+                return { ...prevResults, mappa_ultra: completedUltraMaps };
+              }
+              console.log('⚠️ SessionId mismatch, maps not updated');
+              return prevResults;
+            });
+
+            // Aggiorna anche la cache Redis dello storico
+            fetch('/api/history/update-ultra-maps', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                sessionId,
+                mappaUltra: completedUltraMaps
+              })
+            }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
+
+            // Show ultra maps tab
+            setShowUltraMaps(true);
+
+            // Show completion popup - NON auto-close
+            console.log('🔔 Showing ultra maps success popup...');
+            showSuccess(`🎉 Mappa Ultra completata!\n${statusData.totalNodes} nodi generati.\nVisualizzala nel tab "Mappe".`, { autoClose: false });
+
+          } else if (statusData.status === 'in_progress') {
+            // Update progress
+            const current = statusData.currentSection || 0;
+            const total = statusData.totalSections || 1;
+            const estimatedMinutes = Math.ceil((total - current) * 2); // 2 min per section
+
+            console.log(`📊 Ultra Maps progress: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+
+            setUltraMapsProgress({
+              current,
+              total,
+              estimatedMinutes
+            });
+          } else if (statusData.status === 'failed') {
+            console.error('❌ Ultra Maps failed via polling:', statusData.error);
+            setUltraMapsProcessing(false);
+            clearInterval(pollInterval);
+            ultraMapsPollingRef.current = null;
+            localStorage.removeItem('ultra_maps_processing_session');
+            showError(`❌ Mappa Ultra fallita: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Error during Ultra Maps polling:', error);
+      }
+    }, 8000); // Poll every 8 seconds (maps are faster than summaries)
+
+    // Save ref to prevent multiple pollings
+    ultraMapsPollingRef.current = pollInterval;
+
+    // Stop polling after 1 hour (maximum Trigger.dev duration for maps)
+    setTimeout(() => {
+      if (ultraMapsPollingRef.current === pollInterval) {
+        clearInterval(pollInterval);
+        ultraMapsPollingRef.current = null;
+        if (ultraMapsProcessing) {
+          console.log('⏰ Ultra Maps polling timeout');
+          setUltraMapsProcessing(false);
+          showError('⏰ Timeout: Mappa Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
+        }
+      }
+    }, 1 * 60 * 60 * 1000); // 1 hour
   };
 
   // Ultra Summary Generation Handler
@@ -2501,25 +2912,31 @@ const StudiusAIV2: React.FC = () => {
   // Ultra Maps Generation Handler
   const handleGenerateUltraMaps = async () => {
     console.log('🗺️ Ultra Maps requested');
+    console.log('🗺️ Ultra Maps DEBUG - User:', user?.id, 'Session:', results?.sessionId);
 
+    // 1. Check if user is authenticated
     if (!user || !token) {
       setShowAuthModal(true);
       return;
     }
 
+    // 2. Check if we have results with valid session
     if (!results || !results.sessionId) {
       console.error('❌ [ULTRA_MAPS] Results state corrupted:', { results, sessionId: results?.sessionId });
       showError('Errore: nessun documento elaborato. Elabora prima un documento.');
       return;
     }
 
-    // Check if already exists
-    if (results.mappa_ultra) {
+    // 3. Check if already exists
+    if (results.mappa_ultra && results.mappa_ultra.nodes && results.mappa_ultra.nodes.length > 0) {
       setShowUltraMaps(true);
       return;
     }
 
+    // 4. Check user credits
     const userCredits = user?.credits || 0;
+    console.log('🗺️ Ultra Maps DEBUG - User credits:', userCredits);
+
     if (userCredits < 100) {
       setCreditError({
         required: 100,
@@ -2530,20 +2947,26 @@ const StudiusAIV2: React.FC = () => {
       return;
     }
 
+    // 5. Show confirmation modal
     const confirmed = window.confirm(
       'Conferma Mappa Ultra?\n\n' +
       '• Verranno scalati 100 crediti\n' +
-      '• L\'elaborazione richiederà 2-3 minuti\n' +
-      '• Otterrai una mappa dettagliata e stratificata\n\n' +
+      '• L\'elaborazione richiederà 10-20 minuti\n' +
+      '• Vedrai il risultato immediatamente al termine\n\n' +
       'Vuoi procedere?'
     );
 
     if (!confirmed) return;
 
+    // 6. Show processing state
     setUltraMapsProcessing(true);
-    showInfo('🗺️ Mappa Ultra in elaborazione...');
+    setUltraMapsProgress({ current: 0, total: 0, estimatedMinutes: 15 });
+    showInfo('🗺️ Mappa Ultra avviata! Elaborazione in corso...');
 
     try {
+      // 7. Call Ultra Maps API
+      console.log('🗺️ Ultra Maps DEBUG - Calling API...');
+
       const response = await fetch('/api/generate-ultra-maps', {
         method: 'POST',
         headers: {
@@ -2552,9 +2975,11 @@ const StudiusAIV2: React.FC = () => {
         },
         body: JSON.stringify({
           sessionId: results.sessionId,
-          targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
+          userId: user.id
         })
       });
+
+      console.log('🗺️ Ultra Maps DEBUG - API Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2562,28 +2987,57 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('🗺️ Ultra Maps DEBUG - API Response:', {
+        success: data.success,
+        fromDatabase: data.fromDatabase,
+        hasUltraMaps: !!data.mappa_ultra,
+        status: data.status
+      });
 
-      // Update results
-      setResults(prev => prev ? {
-        ...prev,
-        mappa_ultra: data.mappa_ultra
-      } : null);
-
-      // Deduct credits only if it's a new generation
-      if (!data.fromCache && !data.fromDatabase) {
-        await updateCredits(userCredits - 100);
-        showSuccess(`✅ Mappa Ultra generata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
-      } else {
-        showSuccess(`✅ Mappa Ultra trovata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+      // 8. Update user credits if consumed
+      if (data.newCreditBalance !== undefined) {
+        updateCredits(data.newCreditBalance);
+        console.log(`💳 Ultra Maps: 100 credits used, new balance: ${data.newCreditBalance}`);
       }
 
-      setShowUltraMaps(true);
+      // 9. Check if maps were returned immediately (from cache/database) or need polling
+      if (data.mappa_ultra && data.mappa_ultra.nodes && data.mappa_ultra.nodes.length > 0) {
+        // Immediate completion (from cache or database)
+        console.log('🎉 Ultra Maps found immediately!');
+        setUltraMapsProcessing(false);
+
+        setResults(prev => prev ? {
+          ...prev,
+          mappa_ultra: data.mappa_ultra
+        } : null);
+
+        setShowUltraMaps(true);
+
+        if (data.fromDatabase) {
+          showSuccess(`✅ Mappa Ultra trovata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+        } else {
+          console.log('🔔 Showing ultra maps success popup (immediate)...');
+          showSuccess(`🎉 Mappa Ultra completata!\n${data.mappa_ultra?.stats?.total_nodes || 0} nodi generati.`, { autoClose: false });
+        }
+      } else if (data.status === 'in_progress') {
+        // Background processing started, begin polling
+        console.log('⏳ Ultra Maps processing started, beginning progress monitoring...');
+
+        // Save to localStorage for page reload persistence
+        localStorage.setItem('ultra_maps_processing_session', JSON.stringify({
+          sessionId: results.sessionId,
+          startedAt: Date.now(),
+          fileName: file?.name || 'Documento'
+        }));
+
+        startUltraMapsPolling();
+        showSuccess('✅ Mappa Ultra avviata! Elaborazione in corso con progresso in tempo reale...');
+      }
 
     } catch (error) {
       console.error('❌ Ultra Maps Error:', error);
-      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
       setUltraMapsProcessing(false);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   };
 
@@ -4333,13 +4787,16 @@ const StudiusAIV2: React.FC = () => {
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
-                          Base ({results.mappa_concettuale?.length || 0} nodi)
+                          Standard ({results.mappa_concettuale?.length || 0} nodi)
                         </button>
                         <button
-                          disabled={true}
-                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                          onClick={() => setShowUltraMaps(true)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${showUltraMaps
+                            ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                         >
-                          Ultra (in arrivo)
+                          Ultra {results.mappa_ultra?.stats?.total_nodes ? `(${results.mappa_ultra.stats.total_nodes} nodi)` : ''}
                         </button>
                       </div>
                     </div>
@@ -4353,12 +4810,66 @@ const StudiusAIV2: React.FC = () => {
                             Generazione Mappa Ultra in corso...
                           </div>
                         </div>
-                        <p className="text-gray-300 text-sm">
-                          🗺️ Creando mappa stratificata con 40-60+ nodi • Tempo stimato: 2-3 minuti
-                        </p>
-                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
-                          <div className="bg-gradient-to-r from-purple-400 to-blue-400 h-full animate-pulse w-3/4"></div>
-                        </div>
+                        {ultraMapsProgress.total > 0 ? (
+                          <div className="space-y-2">
+                            {/* Percentage display */}
+                            <div className="text-3xl font-bold text-purple-300 mb-2">
+                              {Math.round((ultraMapsProgress.current / ultraMapsProgress.total) * 100)}%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🗺️ Elaborazione sezione {ultraMapsProgress.current} di {ultraMapsProgress.total}
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              ⏱️ Tempo rimanente stimato: ~{ultraMapsProgress.estimatedMinutes} minuti
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-purple-400 to-blue-400 h-full transition-all duration-500"
+                                style={{ width: `${Math.max(5, (ultraMapsProgress.current / ultraMapsProgress.total) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-purple-300 mb-2 animate-pulse">
+                              0%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🗺️ Avvio elaborazione in corso...
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              ⏱️ Tempo stimato: 10-20 minuti per documenti lunghi
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div className="bg-gradient-to-r from-purple-400 to-blue-400 h-full animate-pulse w-1/4"></div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Cancel button */}
+                        <button
+                          onClick={() => {
+                            // Salva il sessionId prima di pulire
+                            const savedSession = localStorage.getItem('ultra_maps_processing_session');
+                            if (savedSession) {
+                              try {
+                                const { sessionId } = JSON.parse(savedSession);
+                                // Marca come "dismissed" così non ricominciamo dal database check
+                                sessionStorage.setItem(`ultra_maps_dismissed_${sessionId}`, 'true');
+                              } catch (e) {}
+                            }
+
+                            if (ultraMapsPollingRef.current) {
+                              clearInterval(ultraMapsPollingRef.current);
+                              ultraMapsPollingRef.current = null;
+                            }
+                            setUltraMapsProcessing(false);
+                            localStorage.removeItem('ultra_maps_processing_session');
+                            showInfo('Monitoraggio interrotto. Se l\'elaborazione è ancora in corso, il risultato verrà salvato nello storico.');
+                          }}
+                          className="mt-4 px-4 py-2 text-sm text-gray-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          ✕ Interrompi monitoraggio
+                        </button>
                       </div>
                     )}
 
@@ -4395,10 +4906,15 @@ const StudiusAIV2: React.FC = () => {
                               <li>💾 Salvata per sempre nel tuo account</li>
                             </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraMaps}
+                              disabled={ultraMapsProcessing}
+                              className={`px-6 py-3 font-semibold rounded-lg transition-all ${
+                                ultraMapsProcessing
+                                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-emerald-500/25'
+                              }`}
                             >
-                              🚧 In arrivo
+                              {ultraMapsProcessing ? '⏳ Generazione in corso...' : '🚀 Genera Mappa Ultra (100 crediti)'}
                             </button>
                           </div>
                         )}
@@ -4423,17 +4939,30 @@ const StudiusAIV2: React.FC = () => {
                             <ConceptMap concepts={results.mappa_ultra.nodes || results.mappa_ultra} />
                           </div>
                         ) : (
-                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
-                            <Brain className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-                            <h4 className="text-xl font-bold text-white mb-3">Mappa Ultra non disponibile</h4>
-                            <p className="text-gray-300 mb-6">
-                              Genera una mappa Ultra per ottenere una visualizzazione completa e stratificata.
+                          // Same promotional content as Standard section
+                          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-emerald-300 mb-3">🗺️ Vuoi una mappa ULTRA dettagliata?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni una mappa concettuale stratificata con collegamenti profondi e dettagli completi.
                             </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>🌳 Struttura a 4-5 livelli di profondità</li>
+                              <li>🔗 Collegamenti trasversali tra concetti</li>
+                              <li>📊 40-60 nodi dettagliati con relazioni</li>
+                              <li>🎨 Metadata per priorità e tipologia</li>
+                              <li>🪙 Costo: 100 crediti</li>
+                              <li>💾 Salvata per sempre nel tuo account</li>
+                            </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraMaps}
+                              disabled={ultraMapsProcessing}
+                              className={`px-6 py-3 font-semibold rounded-lg transition-all ${
+                                ultraMapsProcessing
+                                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-emerald-500/25'
+                              }`}
                             >
-                              🚧 In arrivo
+                              {ultraMapsProcessing ? '⏳ Generazione in corso...' : '🚀 Genera Mappa Ultra (100 crediti)'}
                             </button>
                           </div>
                         )}

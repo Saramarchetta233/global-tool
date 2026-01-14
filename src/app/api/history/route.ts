@@ -202,6 +202,7 @@ export const GET = async (request: NextRequest) => {
       riassunto_esteso: session.riassunto_esteso,
       riassunto_ultra: session.riassunto_ultra, // Added Ultra Summary field
       mappa_concettuale: session.mappa_concettuale || [],
+      mappa_ultra: session.mappa_ultra || null, // Added Ultra Maps field
       flashcard: session.flashcard || [],
       quiz: session.quiz || [],
       guida_esame: session.guida_esame || '',

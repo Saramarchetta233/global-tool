@@ -295,6 +295,7 @@ export const useStudySessionStore = create<StudySessionState>()(
             riassunto_esteso: isNewFormat ? historyData.riassunto_esteso : historyData.summaryExtended,
             riassunto_ultra: isNewFormat ? historyData.riassunto_ultra : historyData.summaryUltra, // Added Ultra Summary mapping
             mappa_concettuale: isNewFormat ? historyData.mappa_concettuale : historyData.conceptMap,
+            mappa_ultra: historyData.mappa_ultra || null, // Added Ultra Maps mapping
             flashcard: isNewFormat ? historyData.flashcard : historyData.flashcards,
             quiz: isNewFormat ? historyData.quiz : historyData.quizData,
             guida_esame: isNewFormat ? historyData.guida_esame : historyData.studyInOneHour,

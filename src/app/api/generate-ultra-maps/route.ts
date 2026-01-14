@@ -1,236 +1,170 @@
 import { NextRequest, NextResponse } from 'next/server';
-import OpenAI from 'openai';
+import { supabaseAdmin } from '@/lib/supabase';
+import { tasks } from "@trigger.dev/sdk/v3";
+import type { ultraMapsTask } from "@/trigger/ultra-maps";
 
-import { cache } from '@/lib/redis-cache';
-import { supabase, supabaseAdmin } from '@/lib/supabase';
+export async function POST(request: NextRequest) {
+  console.log('🗺️ Ultra Maps API called');
 
-export const dynamic = 'force-dynamic';
+  let sessionId: string | undefined;
+  let userId: string | undefined;
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-const createUltraMapsPrompt = (text: string, targetLanguage: string = 'Italiano') => `
-Crea mappa ULTRA in ${targetLanguage} (massimo 30-40 nodi).
-
-REGOLE:
-- Struttura 3-4 livelli max
-- Titoli BREVI (max 40 caratteri)
-- Type: concept|example|formula|definition
-- Priority: high|medium|low
-
-FORMATO JSON:
-{
-  "mappa_ultra": [
-    {
-      "id": "main_1",
-      "title": "Argomento Breve", 
-      "type": "concept",
-      "priority": "high",
-      "children": [
-        {
-          "id": "sub_1_1",
-          "title": "Sottoargomento",
-          "type": "concept",
-          "priority": "medium"
-        }
-      ]
-    }
-  ],
-  "connections": [],
-  "stats": {"total_nodes": 35, "max_depth": 3}
-}
-
-TESTO:
-${text.substring(0, 8000)}
-
-IMPORTANTE: JSON valido, titoli brevi, max 40 nodi totali.`;
-
-export const POST = async (request: NextRequest) => {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    
-    if (!token) {
-      return NextResponse.json(
-        { error: 'Authorization token required' },
-        { status: 401 }
-      );
-    }
-
-    if (token.startsWith('demo-token-')) {
-      return NextResponse.json(
-        { error: 'Demo mode - Ultra features not available' },
-        { status: 403 }
-      );
-    }
-
-    const { data: userAuth, error: authError } = await supabase.auth.getUser(token);
-    
-    if (authError || !userAuth.user) {
-      return NextResponse.json(
-        { error: 'Invalid token' },
-        { status: 401 }
-      );
-    }
-
     const body = await request.json();
-    const { sessionId, targetLanguage = 'Italiano' } = body;
+    sessionId = body.sessionId;
+    userId = body.userId;
 
-    if (!sessionId) {
-      return NextResponse.json(
-        { error: 'Session ID required' },
-        { status: 400 }
-      );
+    console.log('📝 Ultra Maps request:', { sessionId, userId });
+
+    if (!sessionId || !userId) {
+      return NextResponse.json({
+        error: 'SessionId e UserId sono richiesti'
+      }, { status: 400 });
     }
 
-    console.log('🗺️ [ULTRA_MAPS] Starting generation for session:', sessionId);
-
-    // Check cache
-    const cacheKey = `ultra_maps_${sessionId}`;
-    try {
-      const cached = await cache.get(cacheKey);
-      if (cached) {
-        console.log('🚀 [ULTRA_MAPS_CACHE_HIT] Returning cached maps (no credit charge)');
-        return NextResponse.json({ 
-          mappa_ultra: cached, 
-          fromCache: true,
-          message: 'Mappa Ultra già generata per questo documento' 
-        });
-      }
-    } catch (cacheError) {
-      console.log('⚠️ Cache error (non-critical):', cacheError);
-    }
-
-    // Get session data
-    const { data: session, error: sessionError } = await supabaseAdmin
+    // 1. Verify session exists and belongs to user
+    const { data: session, error: sessionError } = await supabaseAdmin!
       .from('tutor_sessions')
-      .select('pdf_text, mappa_ultra')
+      .select('*')
       .eq('id', sessionId)
-      .eq('user_id', userAuth.user.id)
+      .eq('user_id', userId)
       .single();
 
     if (sessionError || !session) {
-      return NextResponse.json(
-        { error: 'Session not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({
+        error: 'Sessione non trovata o non autorizzata'
+      }, { status: 404 });
     }
 
-    // Check if already generated
-    if (session.mappa_ultra) {
+    // 2. Check if Ultra Maps already exists
+    if (session.mappa_ultra && session.mappa_ultra.nodes && session.mappa_ultra.nodes.length > 0) {
       console.log('✅ [ULTRA_MAPS] Already exists in DB, returning (no credit charge)');
-      return NextResponse.json({ 
-        mappa_ultra: session.mappa_ultra, 
+      return NextResponse.json({
+        mappa_ultra: session.mappa_ultra,
         fromDatabase: true,
-        message: 'Mappa Ultra già generata per questo documento' 
+        message: 'Mappa Ultra già generata per questo documento'
       });
     }
 
-    if (!session.pdf_text) {
-      return NextResponse.json(
-        { error: 'No document text found' },
-        { status: 404 }
-      );
+    // 3. Check if Ultra Maps is already in progress
+    const metadata = session.processing_metadata;
+    if (metadata?.ultra_maps_status === 'in_progress') {
+      return NextResponse.json({
+        error: 'Mappa Ultra già in elaborazione. Controlla lo stato nella dashboard.',
+        status: 'in_progress',
+        currentSection: metadata.current_section,
+        totalSections: metadata.total_sections
+      }, { status: 409 });
     }
 
-    console.log('🤖 [ULTRA_MAPS] Generating with OpenAI...');
-    
-    // Generate Ultra Maps
-    const prompt = createUltraMapsPrompt(session.pdf_text, targetLanguage);
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.3,
-      max_tokens: 2500, // Reduced to prevent truncation
+    // 4. Verify we have PDF text to work with
+    if (!session.pdf_text || session.pdf_text.length < 100) {
+      return NextResponse.json({
+        error: 'Testo del documento non disponibile o troppo breve per la Mappa Ultra'
+      }, { status: 400 });
+    }
+
+    // 5. Consume 100 credits
+    const baseUrl = request.url.split('/api')[0];
+    const creditResponse = await fetch(`${baseUrl}/api/credits/consume`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': request.headers.get('Authorization') || ''
+      },
+      body: JSON.stringify({
+        userId: userId,
+        amount: 100,
+        description: 'Mappa Ultra - Mappa concettuale dettagliata completa',
+        featureType: 'ultra_maps'
+      })
     });
 
-    const content = response.choices[0].message.content;
-    
-    if (!content) {
-      throw new Error('Empty response from OpenAI');
-    }
-
-    // Parse response - robust JSON extraction
-    let mapData;
-    try {
-      // Multiple strategies to extract JSON
-      let cleanContent = content.trim();
-      
-      // Strategy 1: Remove markdown code blocks
-      cleanContent = cleanContent
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*$/g, '')
-        .trim();
-      
-      // Strategy 2: Find JSON object between { and last }
-      const firstBrace = cleanContent.indexOf('{');
-      const lastBrace = cleanContent.lastIndexOf('}');
-      
-      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-        cleanContent = cleanContent.substring(firstBrace, lastBrace + 1);
+    if (!creditResponse.ok) {
+      const creditError = await creditResponse.json();
+      if (creditError.error === 'insufficient_credits') {
+        return NextResponse.json({
+          error: 'insufficient_credits',
+          message: 'Crediti insufficienti per la Mappa Ultra',
+          required: 100,
+          current: creditError.currentCredits || 0
+        }, { status: 403 });
       }
-      
-      // Strategy 3: Remove any text before first { and after last }
-      cleanContent = cleanContent.replace(/^[^{]*/, '').replace(/[^}]*$/, '');
-      
-      console.log('🧹 [JSON_CLEAN] Attempting to parse:', cleanContent.substring(0, 200) + '...');
-      
-      mapData = JSON.parse(cleanContent);
-    } catch (parseError) {
-      console.error('❌ JSON parse error:', parseError);
-      console.error('❌ Raw content (first 500 chars):', content.substring(0, 500));
-      console.error('❌ Cleaned content (first 500 chars):', content.substring(0, 500));
-      throw new Error('Invalid JSON response from AI');
+      throw new Error('Errore nel consumo crediti');
     }
 
-    if (!mapData.mappa_ultra || !Array.isArray(mapData.mappa_ultra)) {
-      throw new Error('Invalid map data structure');
-    }
+    const creditResult = await creditResponse.json();
+    console.log(`💳 Ultra Maps: 100 credits consumed, new balance: ${creditResult.newBalance}`);
 
-    console.log('✅ [ULTRA_MAPS] Generated map with', mapData.stats?.total_nodes || 'unknown', 'nodes');
-
-    // Save to database
-    const { error: updateError } = await supabaseAdmin
+    // 6. Mark Ultra Maps as "in progress" in database
+    await supabaseAdmin!
       .from('tutor_sessions')
-      .update({ 
-        mappa_ultra: {
-          nodes: mapData.mappa_ultra,
-          connections: mapData.connections || [],
-          stats: mapData.stats || {}
-        },
-        updated_at: new Date().toISOString()
+      .update({
+        processing_metadata: {
+          ...metadata,
+          ultra_maps_status: 'in_progress',
+          ultra_maps_started_at: new Date().toISOString(),
+          estimated_completion: new Date(Date.now() + 15 * 60 * 1000).toISOString() // 15 minuti stima
+        }
       })
-      .eq('id', sessionId)
-      .eq('user_id', userAuth.user.id);
+      .eq('id', sessionId);
 
-    if (updateError) {
-      console.error('❌ Failed to save maps to database:', updateError);
-      throw new Error('Failed to save maps');
-    }
+    // 7. Trigger the background task with Trigger.dev
+    console.log('🚀 Triggering Trigger.dev task for Ultra Maps...');
 
-    // Cache for 6 months
-    const CACHE_TTL_6_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000;
-    try {
-      await cache.set(cacheKey, mapData, CACHE_TTL_6_MONTHS);
-      console.log('🚀 [ULTRA_MAPS_CACHE_SET] Cached for 6 months');
-    } catch (cacheError) {
-      console.log('⚠️ Failed to cache maps (non-critical):', cacheError);
-    }
-
-    return NextResponse.json({ 
-      mappa_ultra: {
-        nodes: mapData.mappa_ultra,
-        connections: mapData.connections || [],
-        stats: mapData.stats || {}
+    const handle = await tasks.trigger<typeof ultraMapsTask>(
+      "ultra-maps",
+      {
+        sessionId,
+        userId,
+        newCreditBalance: creditResult.newBalance,
       }
+    );
+
+    console.log(`✅ Trigger.dev task triggered with ID: ${handle.id}`);
+
+    // 8. Return immediately with task info
+    return NextResponse.json({
+      success: true,
+      message: 'Mappa Ultra avviata in background! Riceverai una notifica quando sarà pronta.',
+      sessionId,
+      newCreditBalance: creditResult.newBalance,
+      creditsUsed: 100,
+      taskId: handle.id,
+      status: 'in_progress',
+      estimatedTime: '10-20 minuti per documenti lunghi'
     });
 
   } catch (error) {
-    console.error('❌ [ULTRA_MAPS] Error:', error);
-    return NextResponse.json(
-      { error: 'Failed to generate Ultra Maps' },
-      { status: 500 }
-    );
+    console.error('❌ Ultra Maps API Error:', error);
+
+    // Mark as failed in database if we have sessionId
+    if (sessionId) {
+      try {
+        const { data: session } = await supabaseAdmin!
+          .from('tutor_sessions')
+          .select('processing_metadata')
+          .eq('id', sessionId)
+          .single();
+
+        await supabaseAdmin!
+          .from('tutor_sessions')
+          .update({
+            processing_metadata: {
+              ...(session?.processing_metadata || {}),
+              ultra_maps_status: 'failed',
+              ultra_maps_error: error instanceof Error ? error.message : 'Errore sconosciuto',
+              ultra_maps_failed_at: new Date().toISOString()
+            }
+          })
+          .eq('id', sessionId);
+      } catch (dbError) {
+        console.error('❌ Error updating failure status:', dbError);
+      }
+    }
+
+    return NextResponse.json({
+      error: `Errore durante l'avvio della Mappa Ultra: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`
+    }, { status: 500 });
   }
-};
+}
