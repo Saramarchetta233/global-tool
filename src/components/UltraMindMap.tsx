@@ -107,7 +107,12 @@ const MindMapNode = ({ data, selected }: { data: any; selected: boolean }) => {
       >
         {/* Title */}
         <div
-          style={{ color: colors.text }}
+          style={{
+            color: colors.text,
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+            hyphens: 'auto',
+          }}
           className={`text-center leading-tight font-medium ${isRoot ? 'text-sm' : 'text-xs'}`}
         >
           {data.label}
