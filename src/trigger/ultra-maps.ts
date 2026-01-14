@@ -47,7 +47,15 @@ async function updateProcessingMetadata(sessionId: string, newMetadata: Record<s
       return;
     }
 
-    console.log(`✅ [updateProcessingMetadata] Updated: current_section=${newMetadata.current_section}, total_sections=${newMetadata.total_sections || existingMetadata.total_sections}`);
+    // VERIFICA: Rileggi per confermare che l'update sia stato applicato
+    const { data: verifySession } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('processing_metadata')
+      .eq('id', sessionId)
+      .single();
+
+    const verifiedMeta = verifySession?.processing_metadata || {};
+    console.log(`✅ [updateProcessingMetadata] VERIFIED in DB: current_section=${verifiedMeta.current_section}, total_sections=${verifiedMeta.total_sections}`);
   } catch (err) {
     console.error('❌ [updateProcessingMetadata] Exception:', err);
   }

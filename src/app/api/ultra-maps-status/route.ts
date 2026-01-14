@@ -29,6 +29,10 @@ export async function GET(request: NextRequest) {
 
     const metadata = session.processing_metadata || {};
 
+    // DEBUG: Log raw metadata from database
+    console.log('📊 [ULTRA_MAPS_STATUS] Raw metadata from DB:', JSON.stringify(metadata, null, 2));
+    console.log('📊 [ULTRA_MAPS_STATUS] current_section:', metadata.current_section, 'total_sections:', metadata.total_sections);
+
     // Se la mappa è già completata, restituiscila
     if (session.mappa_ultra && session.mappa_ultra.nodes && session.mappa_ultra.nodes.length > 0) {
       return NextResponse.json({
