@@ -16,18 +16,56 @@ export async function POST(request: NextRequest) {
   try {
     // Verifica autenticazione
     const user = await verifyAuth(request);
-    
-    const { docContext, sessionId } = await request.json();
-    
+
+    const { sessionId } = await request.json();
+
     console.log('🚀 Probable Questions API chiamata:', {
-      hasDocContext: !!docContext,
       sessionId: sessionId,
       userId: user.id
     });
 
-    if (!docContext) {
+    if (!sessionId) {
       return NextResponse.json(
-        { error: 'Document context is required' },
+        { error: 'Session ID richiesto' },
+        { status: 400 }
+      );
+    }
+
+    // Verifica che supabaseAdmin sia disponibile
+    if (!supabaseAdmin) {
+      console.error('❌ supabaseAdmin not configured');
+      return NextResponse.json(
+        { error: 'Configurazione server incompleta' },
+        { status: 500 }
+      );
+    }
+
+    // Leggi il pdf_text dal database (come Exam Ultra)
+    console.log(`📝 [PROBABLE_Q] Looking for session: ${sessionId}, user: ${user.id}`);
+
+    const { data: session, error: sessionError } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('pdf_text, file_name, title')
+      .eq('id', sessionId)
+      .eq('user_id', user.id)
+      .single();
+
+    if (sessionError || !session) {
+      console.error(`❌ [PROBABLE_Q] Session not found: ${sessionId}`, sessionError);
+      return NextResponse.json(
+        { error: 'Sessione non trovata', details: sessionError?.message },
+        { status: 404 }
+      );
+    }
+
+    const docContext = session.pdf_text;
+    const documentTitle = session.title || session.file_name || 'Documento';
+
+    console.log(`✅ [PROBABLE_Q] Session found: ${documentTitle}, text length: ${docContext?.length || 0}`);
+
+    if (!docContext || docContext.length < 200) {
+      return NextResponse.json(
+        { error: 'Testo del documento non disponibile o troppo breve' },
         { status: 400 }
       );
     }
@@ -139,14 +177,14 @@ export async function POST(request: NextRequest) {
       console.log('✅ First generation - no credits consumed');
     }
 
-    const prompt = `Analizza il seguente contenuto del documento e identifica le 7-10 domande più probabili che potrebbero essere chieste all'esame universitario.
+    const prompt = `Analizza il seguente documento "${documentTitle}" e identifica le 7-10 domande più probabili che potrebbero essere chieste all'esame universitario.
 
 Contenuto del documento:
-${docContext.substring(0, 8000)}
+${docContext.substring(0, 12000)}
 
 CRITERI per le domande "più probabili":
 1. Basate sui concetti CHIAVE del documento
-2. Tipiche domande d'esame universitario 
+2. Tipiche domande d'esame universitario
 3. Testano comprensione profonda, non solo memorizzazione
 4. Variano in tipologia (definizioni, spiegazioni, confronti, applicazioni)
 5. Focus sui temi più importanti e ricorrenti nel testo
@@ -242,93 +280,42 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
       }
     }
 
-    // USA UNA FUNZIONE RPC per garantire atomicità e persistenza (come per l'esame orale)
-    console.log('💾 [PROBABLE_UPDATE] Using RPC function to increment probable_questions_uses...');
-    
+    // Aggiorna il contatore probable_questions_uses nel profilo
     const newProbableQuestionsUses = (probableCount || 0) + 1;
-    
-    const { data: rpcData, error: rpcError } = await supabaseAdmin
-      .rpc('increment_probable_questions_uses', {
-        p_user_id: user.id
+
+    console.log('💾 [PROBABLE_UPDATE] Updating probable_questions_uses to:', newProbableQuestionsUses);
+
+    const { error: updateError } = await supabaseAdmin
+      .from('profiles')
+      .update({
+        probable_questions_uses: newProbableQuestionsUses,
+        updated_at: new Date().toISOString()
+      })
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('❌ Profile update failed:', updateError);
+      return NextResponse.json(
+        { error: 'Failed to update profile' },
+        { status: 500 }
+      );
+    }
+
+    console.log('✅ Profile updated successfully');
+
+    // Aggiorna cache Redis e memoria in parallelo
+    try {
+      const cacheKey = `probable_questions_uses_${user.id}`;
+      await cache.set(cacheKey, newProbableQuestionsUses, 30 * 24 * 60 * 60 * 1000);
+
+      (global as any).tempUserCache = (global as any).tempUserCache || new Map();
+      (global as any).tempUserCache.set(cacheKey, {
+        value: newProbableQuestionsUses,
+        expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
       });
-      
-    if (rpcError) {
-      console.error('❌ RPC increment_probable_questions_uses failed:', rpcError);
-      
-      // FALLBACK: Update normale
-      const { data: updateData, error: updateError } = await supabaseAdmin
-        .from('profiles')
-        .update({ 
-          probable_questions_uses: newProbableQuestionsUses,
-          updated_at: new Date().toISOString()
-        })
-        .eq('user_id', user.id)
-        .select('user_id, probable_questions_uses, updated_at');
-        
-      console.log('📝 [FALLBACK_UPDATE] Profile update result:', {
-        userId: user.id,
-        updateData,
-        updateError: updateError?.message || 'none'
-      });
-      
-      if (updateError) {
-        return NextResponse.json(
-          { error: 'Failed to update profile' },
-          { status: 500 }
-        );
-      }
-      
-      // IMPORTANTE: Imposta il cache anche nel fallback
-      console.log('💾 [FALLBACK_CACHE] Updating caches after fallback update...');
-      
-      // Redis cache
-      try {
-        const redisCacheKey = `probable_questions_uses_${user.id}`;
-        await cache.set(redisCacheKey, newProbableQuestionsUses, 30 * 24 * 60 * 60 * 1000);
-        console.log('🚀 [FALLBACK_REDIS] Updated Redis cache:', newProbableQuestionsUses);
-      } catch (redisError) {
-        console.log('⚠️ Fallback Redis cache error (non-critical):', redisError);
-      }
-      
-      // Memory cache
-      try {
-        const tempCacheKey = `probable_questions_uses_${user.id}`;
-        (global as any).tempUserCache = (global as any).tempUserCache || new Map();
-        (global as any).tempUserCache.set(tempCacheKey, {
-          value: newProbableQuestionsUses,
-          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
-        });
-        console.log('💾 [FALLBACK_MEMORY] Updated memory cache:', newProbableQuestionsUses);
-      } catch (fallbackCacheError) {
-        console.log('⚠️ Fallback memory cache error (non-critical):', fallbackCacheError);
-      }
-    } else {
-      console.log('✅ RPC increment_probable_questions_uses successful:', rpcData);
-      
-      // CACHE la nuova informazione in Redis e memoria
-      console.log('💾 [CACHE_UPDATE] Updating all caches with new probable_questions count...');
-      
-      // Aggiorna cache Redis per 30 giorni
-      try {
-        const redisCacheKey = `probable_questions_uses_${user.id}`;
-        await cache.set(redisCacheKey, newProbableQuestionsUses, 30 * 24 * 60 * 60 * 1000);
-        console.log('🚀 [REDIS_CACHE_UPDATE] Updated Redis cache:', newProbableQuestionsUses);
-      } catch (redisError) {
-        console.log('⚠️ Redis cache update error (non-critical):', redisError);
-      }
-      
-      // Aggiorna anche cache in memoria come fallback  
-      try {
-        const tempCacheKey = `probable_questions_uses_${user.id}`;
-        (global as any).tempUserCache = (global as any).tempUserCache || new Map();
-        (global as any).tempUserCache.set(tempCacheKey, {
-          value: newProbableQuestionsUses,
-          expires: Date.now() + (30 * 24 * 60 * 60 * 1000)
-        });
-        console.log('💾 [MEMORY_CACHE_UPDATE] Updated memory cache:', newProbableQuestionsUses);
-      } catch (cacheError) {
-        console.log('⚠️ Memory cache error (non-critical):', cacheError);
-      }
+      console.log('💾 [CACHE] Updated caches:', newProbableQuestionsUses);
+    } catch (cacheError) {
+      console.log('⚠️ Cache update error (non-critical):', cacheError);
     }
 
     // Opzionale: Salva la sessione per storico (non critico per il conteggio)
@@ -341,6 +328,7 @@ IMPORTANTE: Le domande devono essere REALISTICHE per un esame universitario e ba
             session_data: {
               questions: questionsData.questions || [],
               sessionId,
+              documentTitle,
               cost,
               was_free: wasFirstTime,
               generated_at: new Date().toISOString()

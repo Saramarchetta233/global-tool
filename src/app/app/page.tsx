@@ -1680,9 +1680,9 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
   }, [authToken]); // Solo quando cambia authToken (login/logout), NON per ogni documento
 
   const generateQuestions = async () => {
-    if (!authToken || !docContext) return;
+    if (!authToken || !sessionId) return;
 
-    console.log('[DEBUG_PROBABLE_QUESTIONS]', { documentId, sessionId, authToken: !!authToken });
+    console.log('[DEBUG_PROBABLE_QUESTIONS]', { sessionId, authToken: !!authToken });
 
     setIsGenerating(true);
     try {
@@ -1692,11 +1692,7 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({
-          docContext,
-          sessionId,
-          documentId: documentId || sessionId
-        })
+        body: JSON.stringify({ sessionId })
       });
 
       if (response.ok) {
