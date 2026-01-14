@@ -485,7 +485,7 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
   );
 };
 
-const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) => {
+const FlashCardView: React.FC<{ flashcards: FlashCard[]; difficultyFilter?: 'all' | 'base' | 'intermedio' | 'avanzato' }> = ({ flashcards, difficultyFilter }) => {
   const { flashcardState, updateFlashcardState } = useStudySessionStore();
 
   // Use store state
@@ -530,16 +530,59 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
     );
   }
 
+  // Colori in base alla difficoltà della flashcard corrente (solo per Ultra)
+  const currentFlashcard = flashcards[currentCard];
+  const difficulty = (currentFlashcard as any)?.difficulty;
+
+  const getDifficultyColors = () => {
+    if (!difficultyFilter || difficultyFilter === 'all') {
+      // Colori basati sulla difficoltà della flashcard corrente
+      switch (difficulty) {
+        case 'base':
+          return { bg: 'from-green-500/20 to-emerald-500/20', border: 'border-green-400/30', badge: 'from-green-400 to-emerald-400', button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' };
+        case 'intermedio':
+          return { bg: 'from-yellow-500/20 to-amber-500/20', border: 'border-yellow-400/30', badge: 'from-yellow-400 to-amber-400', button: 'from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700' };
+        case 'avanzato':
+          return { bg: 'from-red-500/20 to-rose-500/20', border: 'border-red-400/30', badge: 'from-red-400 to-rose-400', button: 'from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700' };
+        default:
+          return { bg: 'from-pink-500/20 to-rose-500/20', border: 'border-white/20', badge: 'from-pink-400 to-rose-400', button: 'from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700' };
+      }
+    }
+    // Se c'è un filtro attivo, usa il colore del filtro
+    switch (difficultyFilter) {
+      case 'base':
+        return { bg: 'from-green-500/20 to-emerald-500/20', border: 'border-green-400/30', badge: 'from-green-400 to-emerald-400', button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' };
+      case 'intermedio':
+        return { bg: 'from-yellow-500/20 to-amber-500/20', border: 'border-yellow-400/30', badge: 'from-yellow-400 to-amber-400', button: 'from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700' };
+      case 'avanzato':
+        return { bg: 'from-red-500/20 to-rose-500/20', border: 'border-red-400/30', badge: 'from-red-400 to-rose-400', button: 'from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700' };
+      default:
+        return { bg: 'from-pink-500/20 to-rose-500/20', border: 'border-white/20', badge: 'from-pink-400 to-rose-400', button: 'from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700' };
+    }
+  };
+
+  const colors = getDifficultyColors();
+
   return (
     <div className="max-w-lg mx-auto px-2 sm:px-0">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-3xl blur-xl"></div>
+        <div className={`absolute inset-0 bg-gradient-to-r ${colors.bg} rounded-3xl blur-xl`}></div>
 
-        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-[200px] sm:min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
-          <div className="text-center mb-3 sm:mb-6">
-            <span className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-3 py-1 rounded-full text-sm font-medium">
+        <div className={`relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-[200px] sm:min-h-64 flex flex-col justify-center ${colors.border} border shadow-2xl`}>
+          <div className="text-center mb-3 sm:mb-6 flex items-center justify-center gap-2">
+            <span className={`bg-gradient-to-r ${colors.badge} text-white px-3 py-1 rounded-full text-sm font-medium`}>
               {currentCard + 1} / {flashcards.length}
             </span>
+            {difficulty && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                difficulty === 'base' ? 'bg-green-500/30 text-green-300' :
+                difficulty === 'intermedio' ? 'bg-yellow-500/30 text-yellow-300' :
+                difficulty === 'avanzato' ? 'bg-red-500/30 text-red-300' :
+                'bg-white/20 text-gray-300'
+              }`}>
+                {difficulty === 'base' ? '🟢 Base' : difficulty === 'intermedio' ? '🟡 Intermedio' : difficulty === 'avanzato' ? '🔴 Avanzato' : ''}
+              </span>
+            )}
           </div>
 
           <div className="flex-grow flex items-center justify-center text-center mb-4 sm:mb-6 px-2">
@@ -550,7 +593,7 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
 
           <button
             onClick={() => updateFlashcardState({ showBack: !showBack })}
-            className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-4 sm:mb-6 hover:from-pink-700 hover:to-rose-700 font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]"
+            className={`bg-gradient-to-r ${colors.button} text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-4 sm:mb-6 font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]`}
           >
             {showBack ? 'Mostra Domanda' : 'Mostra Risposta'}
           </button>
@@ -1654,6 +1697,7 @@ const StudiusAIV2: React.FC = () => {
   const [showUltraFlashcards, setShowUltraFlashcards] = useState(false);
   const [showUltraMaps, setShowUltraMaps] = useState(false);
   const [ultraFlashcardsProcessing, setUltraFlashcardsProcessing] = useState(false);
+  const [ultraFlashcardsDifficultyFilter, setUltraFlashcardsDifficultyFilter] = useState<'all' | 'base' | 'intermedio' | 'avanzato'>('all');
   const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
   const [ultraMapsProgress, setUltraMapsProgress] = useState<{ current: number; total: number; estimatedMinutes: number }>({ current: 0, total: 0, estimatedMinutes: 10 });
   const ultraMapsPollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -3259,7 +3303,7 @@ const StudiusAIV2: React.FC = () => {
       'Conferma Flashcard Ultra?\n\n' +
       '• Verranno scalati 150 crediti\n' +
       '• L\'elaborazione richiederà 10-20 minuti\n' +
-      '• Otterrai 50-100 flashcard dettagliate e categorizzate\n\n' +
+      '• Otterrai 20-100 flashcard in base alla lunghezza del documento\n\n' +
       'Vuoi procedere?'
     );
 
@@ -5536,10 +5580,10 @@ const StudiusAIV2: React.FC = () => {
                           <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
                             <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
                             <p className="text-gray-300 mb-4">
-                              Ottieni 50-100 flashcard categorizzate per uno studio approfondito e completo.
+                              Ottieni da 20 a 100 flashcard categorizzate in base alla lunghezza del tuo documento.
                             </p>
                             <ul className="text-sm text-gray-300 space-y-1 mb-4">
-                              <li>📚 50-100 flashcard dettagliate (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>📚 20-100 flashcard in base alla lunghezza del documento (vs {results.flashcard?.length || 0} standard)</li>
                               <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
                               <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
                               <li>🪙 Costo: 150 crediti</li>
@@ -5560,32 +5604,165 @@ const StudiusAIV2: React.FC = () => {
                         {results.flashcard_ultra && (results.flashcard_ultra.flashcards || Array.isArray(results.flashcard_ultra)) ? (
                           <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
                             <div className="mb-4">
-                              <h4 className="text-lg font-bold text-pink-300 mb-2">
-                                📚 Flashcard Ultra - {results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0} carte
-                              </h4>
-                              {results.flashcard_ultra.stats && (
-                                <div className="flex flex-wrap gap-2 text-xs text-gray-400">
-                                  {results.flashcard_ultra.stats.by_difficulty && (
-                                    <>
-                                      <span className="bg-green-500/20 px-2 py-1 rounded">Base: {results.flashcard_ultra.stats.by_difficulty.base || 0}</span>
-                                      <span className="bg-yellow-500/20 px-2 py-1 rounded">Intermedio: {results.flashcard_ultra.stats.by_difficulty.intermedio || 0}</span>
-                                      <span className="bg-red-500/20 px-2 py-1 rounded">Avanzato: {results.flashcard_ultra.stats.by_difficulty.avanzato || 0}</span>
-                                    </>
-                                  )}
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <h4 className="text-lg font-bold text-pink-300">
+                                  📚 Flashcard Ultra - {results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0} carte
+                                </h4>
+                                {/* Download Button */}
+                                <button
+                                  onClick={() => {
+                                    const flashcards = results.flashcard_ultra?.flashcards || results.flashcard_ultra || [];
+                                    const getDifficultyColor = (diff: string) => {
+                                      switch(diff) {
+                                        case 'base': return { bg: '#22c55e', text: '#ffffff', label: '🟢 Base' };
+                                        case 'intermedio': return { bg: '#eab308', text: '#ffffff', label: '🟡 Intermedio' };
+                                        case 'avanzato': return { bg: '#ef4444', text: '#ffffff', label: '🔴 Avanzato' };
+                                        default: return { bg: '#6b7280', text: '#ffffff', label: 'N/A' };
+                                      }
+                                    };
+                                    const htmlContent = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Ultra - ${results.title || 'Documento'}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; padding: 40px 20px; color: #fff; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 40px; padding: 30px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+    .header h1 { font-size: 2rem; background: linear-gradient(90deg, #ec4899, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .header p { color: #9ca3af; font-size: 0.9rem; }
+    .stats { display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+    .stat { padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+    .stat-green { background: rgba(34,197,94,0.2); color: #86efac; }
+    .stat-yellow { background: rgba(234,179,8,0.2); color: #fde047; }
+    .stat-red { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .flashcard { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); page-break-inside: avoid; }
+    .flashcard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+    .flashcard-number { font-size: 0.8rem; color: #9ca3af; }
+    .flashcard-badges { display: flex; gap: 8px; }
+    .badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
+    .question { font-size: 1.1rem; font-weight: 600; color: #f472b6; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .answer { color: #d1d5db; line-height: 1.7; }
+    .footer { text-align: center; margin-top: 40px; padding: 20px; color: #6b7280; font-size: 0.8rem; }
+    @media print { body { background: #fff; color: #000; } .flashcard { border: 1px solid #ddd; } .question { color: #db2777; } .answer { color: #374151; } .header { background: #f9fafb; } .header h1 { background: none; -webkit-text-fill-color: #db2777; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Flashcard Ultra</h1>
+      <p>${results.title || 'Documento'}</p>
+      <p style="margin-top: 5px;">Generate il ${new Date().toLocaleDateString('it-IT')} • ${flashcards.length} flashcard</p>
+      <div class="stats">
+        <span class="stat stat-green">🟢 Base: ${results.flashcard_ultra?.stats?.by_difficulty?.base || 0}</span>
+        <span class="stat stat-yellow">🟡 Intermedio: ${results.flashcard_ultra?.stats?.by_difficulty?.intermedio || 0}</span>
+        <span class="stat stat-red">🔴 Avanzato: ${results.flashcard_ultra?.stats?.by_difficulty?.avanzato || 0}</span>
+      </div>
+    </div>
+    ${flashcards.map((fc: any, idx: number) => {
+      const diffColor = getDifficultyColor(fc.difficulty);
+      return `
+    <div class="flashcard">
+      <div class="flashcard-header">
+        <span class="flashcard-number">Flashcard ${idx + 1} di ${flashcards.length}</span>
+        <div class="flashcard-badges">
+          <span class="badge" style="background: ${diffColor.bg}; color: ${diffColor.text};">${diffColor.label}</span>
+          ${fc.category ? `<span class="badge" style="background: rgba(139,92,246,0.3); color: #c4b5fd;">${fc.category}</span>` : ''}
+        </div>
+      </div>
+      <div class="question">📌 ${fc.front}</div>
+      <div class="answer">${fc.back}</div>
+    </div>`;
+    }).join('')}
+    <div class="footer">
+      <p>Generato con Studius.ai • Per stampare come PDF usa Ctrl+P (Cmd+P su Mac)</p>
+    </div>
+  </div>
+</body>
+</html>`;
+                                    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `flashcard-ultra-${results.title?.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '-') || 'documento'}.html`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 text-xs bg-pink-500/20 text-pink-300 rounded-lg hover:bg-pink-500/30 transition-all"
+                                >
+                                  <Download size={14} />
+                                  Scarica Flashcard Ultra
+                                </button>
+                              </div>
+
+                              {/* Filtri Difficoltà Cliccabili */}
+                              {results.flashcard_ultra.stats?.by_difficulty && (
+                                <div className="flex flex-wrap gap-2 text-xs mt-3">
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('all')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'all'
+                                        ? 'bg-pink-500 text-white font-semibold'
+                                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                    }`}
+                                  >
+                                    Tutte ({results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('base')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'base'
+                                        ? 'bg-green-500 text-white font-semibold'
+                                        : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                                    }`}
+                                  >
+                                    🟢 Base ({results.flashcard_ultra.stats.by_difficulty.base || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('intermedio')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'intermedio'
+                                        ? 'bg-yellow-500 text-white font-semibold'
+                                        : 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30'
+                                    }`}
+                                  >
+                                    🟡 Intermedio ({results.flashcard_ultra.stats.by_difficulty.intermedio || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('avanzato')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'avanzato'
+                                        ? 'bg-red-500 text-white font-semibold'
+                                        : 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                    }`}
+                                  >
+                                    🔴 Avanzato ({results.flashcard_ultra.stats.by_difficulty.avanzato || 0})
+                                  </button>
                                 </div>
                               )}
                             </div>
-                            <FlashCardView flashcards={results.flashcard_ultra.flashcards || results.flashcard_ultra} />
+                            <FlashCardView
+                              flashcards={
+                                ultraFlashcardsDifficultyFilter === 'all'
+                                  ? (results.flashcard_ultra.flashcards || results.flashcard_ultra)
+                                  : (results.flashcard_ultra.flashcards || results.flashcard_ultra).filter(
+                                      (fc: any) => fc.difficulty === ultraFlashcardsDifficultyFilter
+                                    )
+                              }
+                              difficultyFilter={ultraFlashcardsDifficultyFilter}
+                            />
                           </div>
                         ) : !ultraFlashcardsProcessing ? (
                           // CTA Box per generare Ultra Flashcards
                           <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
                             <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
                             <p className="text-gray-300 mb-4">
-                              Ottieni 50-100 flashcard categorizzate per uno studio approfondito e completo.
+                              Ottieni da 20 a 100 flashcard categorizzate in base alla lunghezza del tuo documento.
                             </p>
                             <ul className="text-sm text-gray-300 space-y-1 mb-4">
-                              <li>📚 50-100 flashcard dettagliate (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>📚 20-100 flashcard in base alla lunghezza del documento (vs {results.flashcard?.length || 0} standard)</li>
                               <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
                               <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
                               <li>🪙 Costo: 150 crediti</li>

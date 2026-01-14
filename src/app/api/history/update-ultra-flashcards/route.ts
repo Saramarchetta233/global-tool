@@ -5,19 +5,38 @@ import { supabase } from '@/lib/supabase';
 /**
  * POST /api/history/update-ultra-flashcards
  * Aggiorna la cache Redis con le flashcard_ultra per un documento specifico
+ * Supporta sia autenticazione standard (Bearer token) che interna (X-Internal-Task)
  */
 export async function POST(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
+    let userId: string | null = null;
 
-    if (!token) {
-      return NextResponse.json({ error: 'Token richiesto' }, { status: 401 });
+    // Controlla se è una chiamata interna dal task Trigger.dev
+    const isInternalTask = request.headers.get('X-Internal-Task') === 'true';
+    const internalUserId = request.headers.get('X-User-Id');
+
+    if (isInternalTask && internalUserId) {
+      // Autenticazione interna dal task Trigger.dev
+      userId = internalUserId;
+      console.log(`🔐 [CACHE_UPDATE] Internal task authentication for user ${userId}`);
+    } else {
+      // Autenticazione standard con Bearer token
+      const token = request.headers.get('authorization')?.replace('Bearer ', '');
+
+      if (!token) {
+        return NextResponse.json({ error: 'Token richiesto' }, { status: 401 });
+      }
+
+      // Verifica utente
+      const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+      if (authError || !user) {
+        return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+      }
+      userId = user.id;
     }
 
-    // Verifica utente
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Non autorizzato' }, { status: 401 });
+    if (!userId) {
+      return NextResponse.json({ error: 'UserId non trovato' }, { status: 401 });
     }
 
     const { sessionId, flashcardUltra } = await request.json();
@@ -26,10 +45,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'sessionId e flashcardUltra richiesti' }, { status: 400 });
     }
 
-    // Aggiorna la cache Redis
-    const historyCacheKey = `document_history_${user.id}`;
+    // Invalida la cache Redis per forzare ricaricamento dal database
+    // Questo è più sicuro che aggiornare parzialmente
+    const historyCacheKey = `document_history_${userId}`;
 
     try {
+      // Prima prova ad aggiornare la cache esistente
       const cachedHistory = await cache.get(historyCacheKey);
 
       if (cachedHistory && Array.isArray(cachedHistory)) {
@@ -48,7 +69,7 @@ export async function POST(request: NextRequest) {
         console.log(`✅ [CACHE_UPDATE] flashcard_ultra aggiunta alla cache per sessione ${sessionId}`);
         return NextResponse.json({ success: true, cacheUpdated: true });
       } else {
-        console.log(`⚠️ [CACHE_UPDATE] Nessuna cache trovata per utente ${user.id}`);
+        console.log(`⚠️ [CACHE_UPDATE] Nessuna cache trovata per utente ${userId}`);
         return NextResponse.json({ success: true, cacheUpdated: false, reason: 'no_cache' });
       }
     } catch (cacheError) {

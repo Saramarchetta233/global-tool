@@ -165,7 +165,7 @@ export const ultraFlashcardsTask = task({
       let maxSections: number;
       let flashcardsPerSection: number;
 
-      // Calcola target totale flashcard in base alla lunghezza (50-100)
+      // Calcola target totale flashcard in base alla lunghezza (20-100)
       let totalTargetFlashcards: number;
       if (documentLength > 300000) {
         // Documento molto lungo: 100 flashcard
@@ -182,11 +182,21 @@ export const ultraFlashcardsTask = task({
         targetSectionSize = 6000;
         maxSections = 12;
         totalTargetFlashcards = 60;
-      } else {
-        // Documento breve: 50 flashcard
+      } else if (documentLength > 20000) {
+        // Documento medio-breve: 40 flashcard
         targetSectionSize = 5000;
-        maxSections = 10;
-        totalTargetFlashcards = 50;
+        maxSections = 8;
+        totalTargetFlashcards = 40;
+      } else if (documentLength > 10000) {
+        // Documento breve: 30 flashcard
+        targetSectionSize = 4000;
+        maxSections = 6;
+        totalTargetFlashcards = 30;
+      } else {
+        // Documento molto breve: 20 flashcard (minimo garantito)
+        targetSectionSize = 3000;
+        maxSections = 4;
+        totalTargetFlashcards = 20;
       }
 
       console.log(`📊 [Trigger.dev] Target: ${totalTargetFlashcards} flashcards, section size: ${targetSectionSize}`);
@@ -383,6 +393,51 @@ export const ultraFlashcardsTask = task({
       }
 
       console.log(`✅ [Trigger.dev] Save result:`, updateData ? `Updated ${updateData.length} rows` : 'No data returned');
+
+      // 9. Aggiorna la cache Redis per lo storico
+      console.log(`💾 [Trigger.dev] Updating Redis cache for history...`);
+      try {
+        // Recupera il token dell'utente per l'autenticazione
+        const { data: userData } = await supabaseAdmin
+          .from('users')
+          .select('id')
+          .eq('id', userId)
+          .single();
+
+        if (userData) {
+          // Chiama l'endpoint per aggiornare la cache Redis
+          const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL || 'https://studiusai.com';
+          const updateCacheUrl = `${baseUrl}/api/history/update-ultra-flashcards`;
+
+          // Crea un token service per l'autenticazione interna
+          const { data: { session: serviceSession } } = await supabaseAdmin.auth.admin.getUserById(userId);
+
+          const cacheResponse = await fetch(updateCacheUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              // Usa un header speciale per autenticazione interna dal task
+              'X-Internal-Task': 'true',
+              'X-User-Id': userId
+            },
+            body: JSON.stringify({
+              sessionId,
+              flashcardUltra: flashcardUltraData,
+              userId
+            })
+          });
+
+          if (cacheResponse.ok) {
+            const cacheResult = await cacheResponse.json();
+            console.log(`✅ [Trigger.dev] Redis cache updated:`, cacheResult);
+          } else {
+            console.warn(`⚠️ [Trigger.dev] Redis cache update failed:`, await cacheResponse.text());
+          }
+        }
+      } catch (cacheError) {
+        console.warn(`⚠️ [Trigger.dev] Redis cache update error (non-blocking):`, cacheError);
+        // Non blocchiamo l'esecuzione per errori di cache
+      }
 
       console.log(`🎉 [Trigger.dev] Ultra Flashcards completed! ${organizedFlashcards.length} flashcards`);
 

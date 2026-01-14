@@ -67,12 +67,23 @@ export const GET = async (request: NextRequest) => {
     // PRIMA: Controlla cache Redis per history (6 mesi = 180 giorni)
     const historyCacheKey = `document_history_${userAuth.user.id}`;
     const CACHE_TTL_6_MONTHS = 6 * 30 * 24 * 60 * 60 * 1000; // 6 mesi in ms
-    
+
     try {
       const cachedHistory = await cache.get(historyCacheKey);
-      if (cachedHistory) {
-        console.log('🚀 [REDIS_HISTORY_CACHE_HIT] Found cached document history:', cachedHistory.length, 'documents');
-        return NextResponse.json({ history: cachedHistory });
+      if (cachedHistory && Array.isArray(cachedHistory) && cachedHistory.length > 0) {
+        // Verifica se la cache è aggiornata (contiene il campo flashcard_ultra)
+        // Se almeno un documento ha 'flashcard_ultra' come chiave (anche se null), la cache è aggiornata
+        const firstDoc = cachedHistory[0];
+        const cacheHasFlashcardUltraField = 'flashcard_ultra' in firstDoc;
+
+        if (cacheHasFlashcardUltraField) {
+          console.log('🚀 [REDIS_HISTORY_CACHE_HIT] Found cached document history:', cachedHistory.length, 'documents');
+          return NextResponse.json({ history: cachedHistory });
+        } else {
+          // Cache vecchia - invalida e ricarica dal DB
+          console.log('🔄 [REDIS_HISTORY_CACHE_STALE] Cache missing flashcard_ultra field, reloading from DB');
+          await cache.delete(historyCacheKey);
+        }
       }
     } catch (cacheError) {
       console.log('⚠️ Redis history cache error (non-critical):', cacheError);
@@ -204,6 +215,7 @@ export const GET = async (request: NextRequest) => {
       mappa_concettuale: session.mappa_concettuale || [],
       mappa_ultra: session.mappa_ultra || null, // Added Ultra Maps field
       flashcard: session.flashcard || [],
+      flashcard_ultra: session.flashcard_ultra || null, // Added Ultra Flashcards field
       quiz: session.quiz || [],
       guida_esame: session.guida_esame || '',
       sessionId: session.id
