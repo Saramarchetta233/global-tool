@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -18,6 +18,7 @@ import {
   getNodesBounds,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
+import { toPng } from 'html-to-image';
 
 // Types for Ultra Map data
 interface UltraMapNode {
@@ -63,6 +64,15 @@ const typeColors: Record<string, { bg: string; border: string; text: string }> =
 const MindMapNode = ({ data, selected }: { data: any; selected: boolean }) => {
   const colors = typeColors[data.type] || typeColors.default;
   const [expanded, setExpanded] = useState(false);
+
+  // Auto-expand when forceExpand is true (for download)
+  useEffect(() => {
+    if (data.forceExpand && data.description) {
+      setExpanded(true);
+    } else if (data.forceExpand === false) {
+      setExpanded(false);
+    }
+  }, [data.forceExpand, data.description]);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -377,13 +387,21 @@ const ZoomControls: React.FC = () => {
   );
 };
 
+// Export handle type for parent components
+export interface UltraMindMapHandle {
+  download: () => Promise<void>;
+}
+
 // ============================================
 // Inner Flow Component with Smart Scroll
 // ============================================
-const MindMapFlow: React.FC<{ data: UltraMapData; isMobile: boolean }> = ({ data, isMobile }) => {
-  const { getViewport, setViewport } = useReactFlow();
+const MindMapFlow = forwardRef<UltraMindMapHandle, { data: UltraMapData; isMobile: boolean; documentTitle?: string }>(({ data, isMobile, documentTitle }, ref) => {
+  const { getViewport, setViewport, fitView } = useReactFlow();
   const containerRef = React.useRef<HTMLDivElement>(null);
+  const flowRef = useRef<HTMLDivElement>(null);
   const [canScroll, setCanScroll] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [expandAllForDownload, setExpandAllForDownload] = useState<boolean | null>(null);
 
   const { nodes: initialNodes, edges: initialEdges } = useMemo(
     () => calculateTreeLayout(data.nodes, data.connections || [], isMobile),
@@ -395,9 +413,78 @@ const MindMapFlow: React.FC<{ data: UltraMapData; isMobile: boolean }> = ({ data
 
   useEffect(() => {
     const { nodes: newNodes, edges: newEdges } = calculateTreeLayout(data.nodes, data.connections || [], isMobile);
-    setNodes(newNodes);
+    // Add forceExpand to all nodes
+    const nodesWithExpand = newNodes.map(node => ({
+      ...node,
+      data: { ...node.data, forceExpand: expandAllForDownload }
+    }));
+    setNodes(nodesWithExpand);
     setEdges(newEdges);
-  }, [data, isMobile, setNodes, setEdges]);
+  }, [data, isMobile, setNodes, setEdges, expandAllForDownload]);
+
+  // Download function
+  const handleDownload = useCallback(async () => {
+    if (!flowRef.current) return;
+
+    setIsDownloading(true);
+
+    try {
+      // 1. Espandi tutti i nodi
+      setExpandAllForDownload(true);
+
+      // 2. Aspetta che React renderizzi
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 3. Adatta la vista
+      fitView({ padding: 0.1, maxZoom: 1 });
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 4. Trova l'elemento del canvas ReactFlow
+      const flowElement = flowRef.current.querySelector('.react-flow__viewport');
+      if (!flowElement) {
+        throw new Error('Canvas non trovato');
+      }
+
+      // 5. Cattura l'immagine dell'intero container
+      const dataUrl = await toPng(flowRef.current, {
+        backgroundColor: '#0f172a',
+        width: flowRef.current.scrollWidth,
+        height: flowRef.current.scrollHeight,
+        style: {
+          width: `${flowRef.current.scrollWidth}px`,
+          height: `${flowRef.current.scrollHeight}px`,
+        },
+        filter: (node) => {
+          // Escludi i pulsanti di zoom dal download
+          if (node.classList?.contains('react-flow__panel')) {
+            return false;
+          }
+          return true;
+        }
+      });
+
+      // 6. Scarica l'immagine
+      const link = document.createElement('a');
+      link.download = `mappa-ultra-${documentTitle || 'documento'}-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = dataUrl;
+      link.click();
+
+    } catch (error) {
+      console.error('Errore durante il download:', error);
+      alert('Errore durante il download della mappa');
+    } finally {
+      // 7. Chiudi tutti i nodi
+      setExpandAllForDownload(false);
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setExpandAllForDownload(null);
+      setIsDownloading(false);
+    }
+  }, [fitView, documentTitle]);
+
+  // Expose download function to parent
+  useImperativeHandle(ref, () => ({
+    download: handleDownload
+  }), [handleDownload]);
 
   // Calcola i bounds della mappa
   const mapBounds = useMemo(() => {
@@ -503,6 +590,7 @@ const MindMapFlow: React.FC<{ data: UltraMapData; isMobile: boolean }> = ({ data
 
   return (
     <div ref={containerRef} className="w-full h-full" onWheel={handleWheel}>
+      <div ref={flowRef} className="w-full h-full">
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -562,16 +650,36 @@ const MindMapFlow: React.FC<{ data: UltraMapData; isMobile: boolean }> = ({ data
           🖱️ Trascina per spostarti • Clicca un nodo per dettagli
         </div>
       </Panel>
+
       </ReactFlow>
+      </div>
     </div>
   );
-};
+});
+
+MindMapFlow.displayName = 'MindMapFlow';
 
 // ============================================
 // Main Component (wrapped with Provider)
 // ============================================
-export const UltraMindMap: React.FC<{ data: UltraMapData }> = ({ data }) => {
+interface UltraMindMapProps {
+  data: UltraMapData;
+  documentTitle?: string;
+  onDownloadReady?: (downloadFn: () => Promise<void>) => void;
+}
+
+export const UltraMindMap: React.FC<UltraMindMapProps> = ({ data, documentTitle, onDownloadReady }) => {
   const [isMobile, setIsMobile] = useState(false);
+  const flowRef = useRef<UltraMindMapHandle>(null);
+
+  // Notify parent when download function is ready (only once)
+  const hasNotifiedRef = useRef(false);
+  useEffect(() => {
+    if (onDownloadReady && flowRef.current && !hasNotifiedRef.current) {
+      hasNotifiedRef.current = true;
+      onDownloadReady(() => flowRef.current?.download() || Promise.resolve());
+    }
+  }, [onDownloadReady]);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -593,7 +701,7 @@ export const UltraMindMap: React.FC<{ data: UltraMapData }> = ({ data }) => {
   return (
     <div className={`w-full rounded-xl overflow-hidden border border-slate-700 ${isMobile ? 'h-[500px]' : 'h-[700px]'}`}>
       <ReactFlowProvider>
-        <MindMapFlow data={data} isMobile={isMobile} />
+        <MindMapFlow ref={flowRef} data={data} isMobile={isMobile} documentTitle={documentTitle} />
       </ReactFlowProvider>
     </div>
   );

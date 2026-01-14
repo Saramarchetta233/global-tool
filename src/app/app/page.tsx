@@ -19,6 +19,77 @@ const UltraMindMap = dynamic(() => import('@/components/UltraMindMap'), {
   ),
 });
 
+// Component for Ultra Map with Download button
+const UltraMapSection: React.FC<{ mappaUltra: any; documentTitle: string }> = ({ mappaUltra, documentTitle }) => {
+  const downloadFnRef = useRef<(() => Promise<void>) | null>(null);
+  const [isDownloadReady, setIsDownloadReady] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadReady = useCallback((fn: () => Promise<void>) => {
+    downloadFnRef.current = fn;
+    setIsDownloadReady(true);
+  }, []);
+
+  const handleDownload = async () => {
+    if (!downloadFnRef.current) return;
+    setIsDownloading(true);
+    try {
+      await downloadFnRef.current();
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h4 className="text-lg font-bold text-emerald-300 mb-2">
+            🗺️ Mappa Ultra - {mappaUltra.stats?.total_nodes || 0} nodi
+            {mappaUltra.stats?.max_depth && ` • Profondità: ${mappaUltra.stats.max_depth} livelli`}
+          </h4>
+          {mappaUltra.connections?.length > 0 && (
+            <p className="text-sm text-emerald-400">
+              🔗 {mappaUltra.connections.length} collegamenti trasversali
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleDownload}
+          disabled={!isDownloadReady || isDownloading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-medium whitespace-nowrap ${
+            isDownloading
+              ? 'bg-slate-700 border-slate-600 text-slate-400 cursor-wait'
+              : isDownloadReady
+                ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white hover:shadow-lg'
+                : 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          {isDownloading ? (
+            <>
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Preparando...</span>
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              <span>Scarica PNG</span>
+            </>
+          )}
+        </button>
+      </div>
+      <UltraMindMap
+        data={mappaUltra}
+        documentTitle={documentTitle}
+        onDownloadReady={handleDownloadReady}
+      />
+    </div>
+  );
+};
+
 // Ultra Summary CTA Styles
 const ultraCTAStyles = `
 .ultra-cta-box {
@@ -5029,21 +5100,10 @@ const StudiusAIV2: React.FC = () => {
                       // Ultra Maps
                       <div className="space-y-4">
                         {results.mappa_ultra ? (
-                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                            <div className="mb-4">
-                              <h4 className="text-lg font-bold text-emerald-300 mb-2">
-                                🗺️ Mappa Ultra - {results.mappa_ultra.stats?.total_nodes || 0} nodi
-                                {results.mappa_ultra.stats?.max_depth && ` • Profondità: ${results.mappa_ultra.stats.max_depth} livelli`}
-                              </h4>
-                              {/* Display connections info if available */}
-                              {results.mappa_ultra.connections?.length > 0 && (
-                                <p className="text-sm text-emerald-400">
-                                  🔗 {results.mappa_ultra.connections.length} collegamenti trasversali
-                                </p>
-                              )}
-                            </div>
-                            <UltraMindMap data={results.mappa_ultra} />
-                          </div>
+                          <UltraMapSection
+                            mappaUltra={results.mappa_ultra}
+                            documentTitle={results.fileName || results.title || 'documento'}
+                          />
                         ) : (
                           // Same promotional content as Standard section
                           <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
