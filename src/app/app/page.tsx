@@ -642,6 +642,9 @@ const ExamSimulatorView: React.FC<{
   const questionType = examState.written.customExamConfig.type;
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingUltra, setIsGeneratingUltra] = useState(false);
+  const [ultraExamQuestions, setUltraExamQuestions] = useState<any[]>([]);
+  const [ultraExamStats, setUltraExamStats] = useState<{total: number; multiple_choice: number; open: number; sections_covered: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creditError, setCreditError] = useState<{
     required: number;
@@ -822,6 +825,80 @@ const ExamSimulatorView: React.FC<{
       score: correctCount,
       isCompleted: true
     });
+  };
+
+  // Genera Esame Ultra (30+ domande da tutto il documento)
+  const generateUltraExam = async () => {
+    if (!authToken) return;
+
+    const sessionId = useStudySessionStore.getState().sessionId;
+    if (!sessionId) {
+      setError('Sessione non trovata');
+      return;
+    }
+
+    setIsGeneratingUltra(true);
+    setError(null);
+
+    try {
+      console.log('📝 Starting Ultra Exam generation...');
+
+      const response = await fetch('/api/generate-exam-ultra', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ sessionId })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log(`✅ Ultra Exam generated: ${data.questions?.length} questions`);
+
+        setUltraExamQuestions(data.questions || []);
+        setUltraExamStats(data.stats);
+
+        // Update credits
+        if (data.newCreditBalance !== undefined) {
+          updateCredits(data.newCreditBalance);
+        }
+
+        // Set the questions as custom exam questions to use the existing UI
+        updateExamWrittenState({
+          customQuestions: data.questions || [],
+          currentQuestion: 0,
+          isCompleted: false,
+          score: 0,
+          userAnswers: new Array(data.questions?.length || 0).fill(null),
+          generatedExam: data
+        });
+
+        if (showSuccess) {
+          showSuccess(`Esame Ultra generato!\n${data.questions?.length} domande create.\nCrediti utilizzati: ${data.creditsUsed}`);
+        }
+      } else {
+        console.error('❌ Ultra Exam generation failed:', JSON.stringify(data));
+
+        if (data.type === 'insufficient_credits') {
+          setCreditError({
+            required: data.required,
+            current: data.available,
+            costDescription: 'Simulazione Scritto Ultra'
+          });
+        } else {
+          const errorMsg = data.error || data.details || `Errore ${response.status}: Generazione esame ultra fallita`;
+          console.error('Error message:', errorMsg);
+          setError(errorMsg);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Ultra Exam error:', err);
+      setError('Errore nella comunicazione con il server');
+    } finally {
+      setIsGeneratingUltra(false);
+    }
   };
 
   // Domande di default se non ci sono domande dal documento
@@ -1014,6 +1091,79 @@ const ExamSimulatorView: React.FC<{
             )}
           </button>
 
+        </div>
+
+        {/* Simulazione Scritto Ultra - PREMIUM */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/40 via-pink-900/30 to-purple-900/40 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-400/50 shadow-lg shadow-purple-500/20">
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 animate-pulse"></div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">👑</span>
+              <h4 className="text-xl font-bold text-white">Simulazione Scritto Ultra</h4>
+              <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-full font-bold uppercase tracking-wide shadow-lg">Premium</span>
+            </div>
+
+            <div className="space-y-4 mb-5">
+              <p className="text-white/90 text-base">
+                Genera un <strong className="text-yellow-300">vero esame universitario</strong> con <strong className="text-pink-300">30+ domande bomba</strong> basate sull'intero documento PDF.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>🎯</span> Mix Completo
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Domande aperte e scelta multipla</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>📖</span> Analisi Profonda
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Legge tutto il PDF originale</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>🔥</span> Difficoltà Avanzata
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Come un vero esame universitario</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>📚</span> Copertura Totale
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Ogni sezione del documento</div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/30 border border-red-400/50 rounded-xl p-3 mb-4">
+                <p className="text-red-200 text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={generateUltraExam}
+              disabled={isGeneratingUltra || isGenerating}
+              className="relative w-full bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 text-white px-6 py-4 rounded-xl font-bold text-lg transition-all duration-300 disabled:opacity-50 hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isGeneratingUltra ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-spin w-6 h-6 border-3 border-white border-t-transparent rounded-full"></div>
+                  <span>Generando esame ultra... (30-60 sec)</span>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xl">📝</span>
+                    <span>Genera Simulazione Ultra</span>
+                  </div>
+                  <div className="text-sm opacity-90 mt-1">50 crediti — 30+ domande esplosive</div>
+                </div>
+              )}
+            </button>
+          </div>
         </div>
 
         {currentQuestions.length === 0 ? (

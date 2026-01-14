@@ -43,26 +43,69 @@ export const POST = async (request: NextRequest) => {
     const now = new Date().toISOString();
     const sessionId = sessionData.sessionId || crypto.randomUUID();
 
+    // Check if session already exists
+    const { data: existingSession } = await supabaseAdmin
+      .from('tutor_sessions')
+      .select('id, pdf_text, file_name, title')
+      .eq('id', sessionId)
+      .single();
+
+    // Build update object - only include fields that have values
+    // This prevents overwriting existing data with null/undefined
+    const updateData: Record<string, any> = {
+      id: sessionId,
+      user_id: userAuth.user.id,
+      updated_at: now,
+      last_used_at: now
+    };
+
+    // Only update these fields if they have REAL values (not default placeholder values)
+    const newFileName = sessionData.docName || sessionData.docTitle;
+    // Don't overwrite with default placeholder values like "Documento"
+    if (newFileName && newFileName !== 'Documento' && newFileName.length > 0) {
+      updateData.file_name = newFileName;
+    }
+    const newTitle = sessionData.docTitle;
+    if (newTitle && newTitle !== 'Documento' && newTitle.length > 0) {
+      updateData.title = newTitle;
+    }
+    if (sessionData.summaryShort !== undefined) {
+      updateData.riassunto_breve = sessionData.summaryShort;
+    }
+    if (sessionData.summaryExtended !== undefined) {
+      updateData.riassunto_esteso = sessionData.summaryExtended;
+    }
+    if (sessionData.summaryUltra !== undefined) {
+      updateData.riassunto_ultra = sessionData.summaryUltra;
+    }
+    if (sessionData.conceptMap !== undefined) {
+      updateData.mappa_concettuale = sessionData.conceptMap;
+    }
+    if (sessionData.flashcards !== undefined) {
+      updateData.flashcard = sessionData.flashcards;
+    }
+    if (sessionData.quizData !== undefined) {
+      updateData.quiz = sessionData.quizData;
+    }
+    if (sessionData.studyInOneHour !== undefined) {
+      updateData.guida_esame = sessionData.studyInOneHour;
+    }
+    // CRITICAL: Only update pdf_text if it has a value - never overwrite with empty
+    if (sessionData.extractedText && sessionData.extractedText.length > 0) {
+      updateData.pdf_text = sessionData.extractedText;
+    }
+    // Only set created_at for new sessions
+    if (!existingSession) {
+      updateData.created_at = now;
+    }
+
+    console.log('💾 [SAVE_SESSION_API] Update fields:', Object.keys(updateData));
+    console.log('💾 [SAVE_SESSION_API] Preserving pdf_text:', !sessionData.extractedText ? 'YES (no new text provided)' : 'NO (updating with new text)');
+
     // Save to database using supabaseAdmin (same as history API)
     const { data, error } = await supabaseAdmin
       .from('tutor_sessions')
-      .upsert({
-        id: sessionId,
-        user_id: userAuth.user.id,
-        file_name: sessionData.docName || sessionData.docTitle,
-        title: sessionData.docTitle,
-        riassunto_breve: sessionData.summaryShort,
-        riassunto_esteso: sessionData.summaryExtended,
-        riassunto_ultra: sessionData.summaryUltra || null, // AGGIUNTO: Riassunto Ultra
-        mappa_concettuale: sessionData.conceptMap,
-        flashcard: sessionData.flashcards,
-        quiz: sessionData.quizData,
-        guida_esame: sessionData.studyInOneHour,
-        pdf_text: sessionData.extractedText,
-        created_at: now,
-        updated_at: now,
-        last_used_at: now
-      })
+      .upsert(updateData)
       .select()
       .single();
 
