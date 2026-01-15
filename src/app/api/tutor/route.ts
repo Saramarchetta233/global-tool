@@ -3,7 +3,6 @@ import OpenAI from 'openai';
 
 import { CreditCosts } from '@/lib/credits/creditRules';
 import { verifyAuth } from '@/lib/middleware';
-import { createTutorPrompt } from '@/lib/prompts';
 import { cache } from '@/lib/redis-cache';
 import { supabase, supabaseAdmin } from '@/lib/supabase';
 
@@ -43,6 +42,29 @@ export async function POST(request: NextRequest) {
         { error: "INVALID_REQUEST", message: "Campo 'message' mancante o non valido." },
         { status: 400 }
       );
+    }
+
+    // Leggi il testo completo del documento dal DB (come Domande Probabili)
+    let fullDocumentText = '';
+    let documentTitle = 'Documento';
+
+    if (documentId && supabaseAdmin) {
+      console.log(`📝 [TUTOR] Reading full pdf_text from DB for document: ${documentId}`);
+
+      const { data: session, error: sessionError } = await supabaseAdmin
+        .from('tutor_sessions')
+        .select('pdf_text, file_name, title, riassunto_breve, riassunto_esteso')
+        .eq('id', documentId)
+        .eq('user_id', user.id)
+        .single();
+
+      if (!sessionError && session?.pdf_text) {
+        fullDocumentText = session.pdf_text;
+        documentTitle = session.title || session.file_name || 'Documento';
+        console.log(`✅ [TUTOR] Document loaded: "${documentTitle}", text length: ${fullDocumentText.length}`);
+      } else {
+        console.log(`⚠️ [TUTOR] Could not load from DB, using fallback docContext`);
+      }
     }
 
     // LOGICA CORRETTA: conta messaggi tutor PER DOCUMENTO (non globalmente)
@@ -157,47 +179,46 @@ export async function POST(request: NextRequest) {
 
     // Usa targetLanguage se disponibile, altrimenti language, altrimenti default
     const effectiveLanguage = targetLanguage || language || "Italiano";
-    
-    // Assicurati che abbiamo un docContext valido
-    const safeDocContext = typeof docContext === "string" && docContext.trim() 
-      ? docContext 
-      : "Nessun documento caricato.";
 
-    // Usa i dati aggiuntivi se disponibili per contesto più ricco
-    const safeRiassuntoBreve = typeof riassuntoBreve === "string" ? riassuntoBreve : "";
-    const safeRiassuntoEsteso = typeof riassuntoEsteso === "string" ? riassuntoEsteso : "";
-    const safeFlashcards = Array.isArray(flashcards) ? flashcards : [];
+    // USA IL TESTO COMPLETO DAL DB, fallback al docContext dal frontend
+    const finalDocText = fullDocumentText || (typeof docContext === "string" && docContext.trim() ? docContext : "");
+
+    if (!finalDocText) {
+      console.log('⚠️ [TUTOR] No document text available');
+    }
 
     console.log(`🌐 Lingua effettiva: ${effectiveLanguage}`);
-    console.log(`📝 Contesto documento: ${safeDocContext.substring(0, 200)}...`);
+    console.log(`📝 Contesto documento: ${finalDocText.length} caratteri (da ${fullDocumentText ? 'DB' : 'frontend'})`);
 
-    // Usa il prompt avanzato del tutor per coerenza
-    const prompt = createTutorPrompt({
-      userMessage: message,
-      pdfText: safeDocContext,
-      riassuntoBrive: safeRiassuntoBreve,
-      riassuntoEsteso: safeRiassuntoEsteso,
-      flashcards: safeFlashcards
-    });
+    // Crea prompt diretto con testo completo (15000 caratteri)
+    const prompt = `Sei un tutor AI esperto e paziente per il documento "${documentTitle}".
 
-    // Aggiorna il prompt per rispettare targetLanguage
-    const languageInstructions = effectiveLanguage !== 'Italiano' 
-      ? `IMPORTANTE: Rispondi SEMPRE in ${effectiveLanguage}, mantenendo coerenza con la lingua del materiale di studio.`
-      : '';
+CONTENUTO COMPLETO DEL DOCUMENTO:
+${finalDocText.substring(0, 15000)}
 
-    const finalPrompt = languageInstructions ? `${languageInstructions}\n\n${prompt}` : prompt;
+DOMANDA DELLO STUDENTE:
+"${message}"
 
-    // Get response from OpenAI con prompt migliorato e supporto multilingua
+ISTRUZIONI:
+1. Rispondi basandoti ESCLUSIVAMENTE sul contenuto del documento
+2. Se la domanda riguarda qualcosa non presente nel documento, dillo chiaramente
+3. Fornisci spiegazioni chiare e dettagliate
+4. Usa esempi dal documento quando possibile
+5. Mantieni un tono pedagogico e incoraggiante
+
+Rispondi in ${effectiveLanguage}.`;
+
+    // Get response from OpenAI
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
-          content: `Sei un tutor AI esperto e paziente. Rispondi sempre in ${effectiveLanguage} in modo chiaro, pedagogico e incoraggiante. Mantieni coerenza con il materiale di studio fornito.`
+          content: `Sei un tutor AI esperto e paziente. Rispondi sempre in ${effectiveLanguage} in modo chiaro, pedagogico e incoraggiante.`
         },
         {
           role: "user",
-          content: finalPrompt
+          content: prompt
         }
       ],
       temperature: 0.4, // Più deterministico per consistenza

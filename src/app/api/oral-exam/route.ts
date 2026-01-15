@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     // Verifica autenticazione
     const user = await verifyAuth(request);
     
-    const { docContext, action, userAnswer, sessionHistory, targetLanguage, turnCount = 0 } = await request.json();
+    const { docContext, action, userAnswer, sessionHistory, targetLanguage, turnCount = 0, isUltra = false } = await request.json();
 
     if (!docContext) {
       return NextResponse.json(
@@ -35,32 +35,37 @@ export async function POST(request: NextRequest) {
     let oralExamCount = 0;
 
     // STEP 2: Costruisci il prompt per l'AI
+    // Per Ultra mode, usa più testo del documento
+    const maxContextLength = isUltra ? 15000 : 6000;
+    const examType = isUltra ? 'ULTRA (basato sull\'intero documento PDF)' : 'standard';
+
     if (action === 'start') {
-      prompt = `Sei un professore universitario che conduce un esame orale. Basati ESCLUSIVAMENTE sul seguente contenuto del documento per fare domande.
+      prompt = `Sei un professore universitario che conduce un esame orale ${isUltra ? 'APPROFONDITO' : ''}. Basati ESCLUSIVAMENTE sul seguente contenuto del documento per fare domande.
 
 Contenuto del documento:
-${docContext.substring(0, 6000)}
+${docContext.substring(0, maxContextLength)}
 
 ISTRUZIONI:
 - Rispondi in ${language}
 - Comportati come un vero professore universitario durante un esame orale
 - Fai UNA domanda alla volta
-- Inizia con una domanda di livello intermedio
+${isUltra ? '- Questo è un esame ULTRA: fai domande SPECIFICHE e DETTAGLIATE basate sui contenuti precisi del documento' : '- Inizia con una domanda di livello intermedio'}
+${isUltra ? '- Richiedi date, nomi, definizioni precise, collegamenti tra concetti' : ''}
 - Sii professionale ma incoraggiante
 - Le domande devono essere basate SOLO sui contenuti del documento
 
 FORMATO RISPOSTA:
-- Saluta lo studente
-- Fai la prima domanda
+- Saluta lo studente${isUltra ? ' e informa che questo è un esame approfondito' : ''}
+- Fai la prima domanda${isUltra ? ' (livello avanzato)' : ''}
 - Non dare ancora valutazioni
 
 Inizia l'esame orale ora.`;
 
     } else if (action === 'evaluate') {
-      prompt = `Sei un professore universitario che sta conducendo un esame orale. 
+      prompt = `Sei un professore universitario che sta conducendo un esame orale${isUltra ? ' APPROFONDITO' : ''}.
 
 Contenuto del documento (base per tutte le domande):
-${docContext.substring(0, 6000)}
+${docContext.substring(0, maxContextLength)}
 
 Cronologia conversazione:
 ${sessionHistory?.map((msg: any) => `${msg.role}: ${msg.content}`).join('\n\n') || ''}
@@ -179,15 +184,21 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
         }
 
         oralExamCount = profile?.oral_exam_uses ?? 0;
-        
+
         console.log('[ORAL_EXAM_DEBUG_COUNT]', {
           userId: user.id,
           oralExamCount,
+          isUltra
         });
-        
-        // 2. DECIDI il costo basato sul conteggio dal profilo
-        if (oralExamCount === 0) {
-          // PRIMO ESAME ORALE → GRATIS
+
+        // 2. DECIDI il costo basato sul conteggio dal profilo e modalità
+        if (isUltra) {
+          // ULTRA MODE → SEMPRE 50 CREDITI (nessun gratis)
+          cost = 50;
+          wasFirstTime = false;
+          console.log('👑 Ultra oral exam - charging 50 credits');
+        } else if (oralExamCount === 0) {
+          // PRIMO ESAME ORALE BASE → GRATIS
           cost = 0;
           wasFirstTime = true;
           console.log('🎉 First oral exam detected - making it FREE');
@@ -221,8 +232,8 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
             .rpc('consume_credits', {
               p_user_id: user.id,
               p_amount: cost,
-              p_description: `Esame orale (${cost} crediti)`,
-              p_feature_type: 'oral_exam'
+              p_description: isUltra ? `Esame Orale Ultra (${cost} crediti)` : `Esame orale (${cost} crediti)`,
+              p_feature_type: isUltra ? 'oral_exam_ultra' : 'oral_exam'
             });
 
           if (creditError || !creditResult?.success) {
@@ -324,6 +335,7 @@ Rispondi in ${language} con un tono professionale e costruttivo.`;
                 action: 'start',
                 cost: cost,
                 was_free: wasFirstTime,
+                is_ultra: isUltra,
                 started_at: new Date().toISOString()
               },
               completed: false

@@ -4,6 +4,91 @@ import { Award, BookOpen, Brain, Calendar, ChevronLeft, ChevronRight, ChevronUp,
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import dynamic from 'next/dynamic';
+
+// Dynamic import for UltraMindMap (React Flow needs client-side only)
+const UltraMindMap = dynamic(() => import('@/components/UltraMindMap'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[600px] rounded-xl bg-slate-900/50 flex items-center justify-center border border-white/20">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-emerald-400 mx-auto mb-3"></div>
+        <p className="text-gray-400 text-sm">Caricamento mappa interattiva...</p>
+      </div>
+    </div>
+  ),
+});
+
+// Component for Ultra Map with Download button
+const UltraMapSection: React.FC<{ mappaUltra: any; documentTitle: string }> = ({ mappaUltra, documentTitle }) => {
+  const downloadFnRef = useRef<(() => Promise<void>) | null>(null);
+  const [isDownloadReady, setIsDownloadReady] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const handleDownloadReady = useCallback((fn: () => Promise<void>) => {
+    downloadFnRef.current = fn;
+    setIsDownloadReady(true);
+  }, []);
+
+  const handleDownload = async () => {
+    if (!downloadFnRef.current) return;
+    setIsDownloading(true);
+    try {
+      await downloadFnRef.current();
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  return (
+    <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <h4 className="text-lg font-bold text-emerald-300 mb-2">
+            🗺️ Mappa Ultra - {mappaUltra.stats?.total_nodes || 0} nodi
+            {mappaUltra.stats?.max_depth && ` • Profondità: ${mappaUltra.stats.max_depth} livelli`}
+          </h4>
+          {mappaUltra.connections?.length > 0 && (
+            <p className="text-sm text-emerald-400">
+              🔗 {mappaUltra.connections.length} collegamenti trasversali
+            </p>
+          )}
+        </div>
+        <button
+          onClick={handleDownload}
+          disabled={!isDownloadReady || isDownloading}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all text-sm font-medium whitespace-nowrap ${
+            isDownloading
+              ? 'bg-slate-700 border-slate-600 text-slate-400 cursor-wait'
+              : isDownloadReady
+                ? 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500 text-white hover:shadow-lg'
+                : 'bg-slate-700 border-slate-600 text-slate-500 cursor-not-allowed'
+          }`}
+        >
+          {isDownloading ? (
+            <>
+              <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <span>Preparando...</span>
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4" />
+              <span>Scarica PNG</span>
+            </>
+          )}
+        </button>
+      </div>
+      <UltraMindMap
+        data={mappaUltra}
+        documentTitle={documentTitle}
+        onDownloadReady={handleDownloadReady}
+      />
+    </div>
+  );
+};
 
 // Ultra Summary CTA Styles
 const ultraCTAStyles = `
@@ -400,7 +485,7 @@ const ConceptMap: React.FC<{ concepts: ConceptNode[] }> = ({ concepts }) => {
   );
 };
 
-const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) => {
+const FlashCardView: React.FC<{ flashcards: FlashCard[]; difficultyFilter?: 'all' | 'base' | 'intermedio' | 'avanzato' }> = ({ flashcards, difficultyFilter }) => {
   const { flashcardState, updateFlashcardState } = useStudySessionStore();
 
   // Use store state
@@ -445,16 +530,59 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
     );
   }
 
+  // Colori in base alla difficoltà della flashcard corrente (solo per Ultra)
+  const currentFlashcard = flashcards[currentCard];
+  const difficulty = (currentFlashcard as any)?.difficulty;
+
+  const getDifficultyColors = () => {
+    if (!difficultyFilter || difficultyFilter === 'all') {
+      // Colori basati sulla difficoltà della flashcard corrente
+      switch (difficulty) {
+        case 'base':
+          return { bg: 'from-green-500/20 to-emerald-500/20', border: 'border-green-400/30', badge: 'from-green-400 to-emerald-400', button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' };
+        case 'intermedio':
+          return { bg: 'from-yellow-500/20 to-amber-500/20', border: 'border-yellow-400/30', badge: 'from-yellow-400 to-amber-400', button: 'from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700' };
+        case 'avanzato':
+          return { bg: 'from-red-500/20 to-rose-500/20', border: 'border-red-400/30', badge: 'from-red-400 to-rose-400', button: 'from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700' };
+        default:
+          return { bg: 'from-pink-500/20 to-rose-500/20', border: 'border-white/20', badge: 'from-pink-400 to-rose-400', button: 'from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700' };
+      }
+    }
+    // Se c'è un filtro attivo, usa il colore del filtro
+    switch (difficultyFilter) {
+      case 'base':
+        return { bg: 'from-green-500/20 to-emerald-500/20', border: 'border-green-400/30', badge: 'from-green-400 to-emerald-400', button: 'from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' };
+      case 'intermedio':
+        return { bg: 'from-yellow-500/20 to-amber-500/20', border: 'border-yellow-400/30', badge: 'from-yellow-400 to-amber-400', button: 'from-yellow-600 to-amber-600 hover:from-yellow-700 hover:to-amber-700' };
+      case 'avanzato':
+        return { bg: 'from-red-500/20 to-rose-500/20', border: 'border-red-400/30', badge: 'from-red-400 to-rose-400', button: 'from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700' };
+      default:
+        return { bg: 'from-pink-500/20 to-rose-500/20', border: 'border-white/20', badge: 'from-pink-400 to-rose-400', button: 'from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700' };
+    }
+  };
+
+  const colors = getDifficultyColors();
+
   return (
     <div className="max-w-lg mx-auto px-2 sm:px-0">
       <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/20 to-rose-500/20 rounded-3xl blur-xl"></div>
+        <div className={`absolute inset-0 bg-gradient-to-r ${colors.bg} rounded-3xl blur-xl`}></div>
 
-        <div className="relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-[200px] sm:min-h-64 flex flex-col justify-center border border-white/20 shadow-2xl">
-          <div className="text-center mb-3 sm:mb-6">
-            <span className="bg-gradient-to-r from-pink-400 to-rose-400 text-white px-3 py-1 rounded-full text-sm font-medium">
+        <div className={`relative bg-white/10 backdrop-blur-xl rounded-3xl p-4 sm:p-6 md:p-8 min-h-[200px] sm:min-h-64 flex flex-col justify-center ${colors.border} border shadow-2xl`}>
+          <div className="text-center mb-3 sm:mb-6 flex items-center justify-center gap-2">
+            <span className={`bg-gradient-to-r ${colors.badge} text-white px-3 py-1 rounded-full text-sm font-medium`}>
               {currentCard + 1} / {flashcards.length}
             </span>
+            {difficulty && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                difficulty === 'base' ? 'bg-green-500/30 text-green-300' :
+                difficulty === 'intermedio' ? 'bg-yellow-500/30 text-yellow-300' :
+                difficulty === 'avanzato' ? 'bg-red-500/30 text-red-300' :
+                'bg-white/20 text-gray-300'
+              }`}>
+                {difficulty === 'base' ? '🟢 Base' : difficulty === 'intermedio' ? '🟡 Intermedio' : difficulty === 'avanzato' ? '🔴 Avanzato' : ''}
+              </span>
+            )}
           </div>
 
           <div className="flex-grow flex items-center justify-center text-center mb-4 sm:mb-6 px-2">
@@ -465,7 +593,7 @@ const FlashCardView: React.FC<{ flashcards: FlashCard[] }> = ({ flashcards }) =>
 
           <button
             onClick={() => updateFlashcardState({ showBack: !showBack })}
-            className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-4 sm:mb-6 hover:from-pink-700 hover:to-rose-700 font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]"
+            className={`bg-gradient-to-r ${colors.button} text-white px-4 py-2 sm:px-6 sm:py-3 rounded-xl mb-4 sm:mb-6 font-semibold text-sm sm:text-base transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-[1.05]`}
           >
             {showBack ? 'Mostra Domanda' : 'Mostra Risposta'}
           </button>
@@ -514,6 +642,9 @@ const ExamSimulatorView: React.FC<{
   const questionType = examState.written.customExamConfig.type;
 
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isGeneratingUltra, setIsGeneratingUltra] = useState(false);
+  const [ultraExamQuestions, setUltraExamQuestions] = useState<any[]>([]);
+  const [ultraExamStats, setUltraExamStats] = useState<{total: number; multiple_choice: number; open: number; sections_covered: number} | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [creditError, setCreditError] = useState<{
     required: number;
@@ -694,6 +825,80 @@ const ExamSimulatorView: React.FC<{
       score: correctCount,
       isCompleted: true
     });
+  };
+
+  // Genera Esame Ultra (30+ domande da tutto il documento)
+  const generateUltraExam = async () => {
+    if (!authToken) return;
+
+    const sessionId = useStudySessionStore.getState().sessionId;
+    if (!sessionId) {
+      setError('Sessione non trovata');
+      return;
+    }
+
+    setIsGeneratingUltra(true);
+    setError(null);
+
+    try {
+      console.log('📝 Starting Ultra Exam generation...');
+
+      const response = await fetch('/api/generate-exam-ultra', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ sessionId })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        console.log(`✅ Ultra Exam generated: ${data.questions?.length} questions`);
+
+        setUltraExamQuestions(data.questions || []);
+        setUltraExamStats(data.stats);
+
+        // Update credits
+        if (data.newCreditBalance !== undefined) {
+          updateCredits(data.newCreditBalance);
+        }
+
+        // Set the questions as custom exam questions to use the existing UI
+        updateExamWrittenState({
+          customQuestions: data.questions || [],
+          currentQuestion: 0,
+          isCompleted: false,
+          score: 0,
+          userAnswers: new Array(data.questions?.length || 0).fill(null),
+          generatedExam: data
+        });
+
+        if (showSuccess) {
+          showSuccess(`Esame Ultra generato!\n${data.questions?.length} domande create.\nCrediti utilizzati: ${data.creditsUsed}`);
+        }
+      } else {
+        console.error('❌ Ultra Exam generation failed:', JSON.stringify(data));
+
+        if (data.type === 'insufficient_credits') {
+          setCreditError({
+            required: data.required,
+            current: data.available,
+            costDescription: 'Simulazione Scritto Ultra'
+          });
+        } else {
+          const errorMsg = data.error || data.details || `Errore ${response.status}: Generazione esame ultra fallita`;
+          console.error('Error message:', errorMsg);
+          setError(errorMsg);
+        }
+      }
+    } catch (err) {
+      console.error('❌ Ultra Exam error:', err);
+      setError('Errore nella comunicazione con il server');
+    } finally {
+      setIsGeneratingUltra(false);
+    }
   };
 
   // Domande di default se non ci sono domande dal documento
@@ -886,6 +1091,79 @@ const ExamSimulatorView: React.FC<{
             )}
           </button>
 
+        </div>
+
+        {/* Simulazione Scritto Ultra - PREMIUM */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-purple-900/40 via-pink-900/30 to-purple-900/40 backdrop-blur-sm p-6 rounded-2xl border-2 border-purple-400/50 shadow-lg shadow-purple-500/20">
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 animate-pulse"></div>
+
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-4">
+              <span className="text-2xl">👑</span>
+              <h4 className="text-xl font-bold text-white">Simulazione Scritto Ultra</h4>
+              <span className="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-full font-bold uppercase tracking-wide shadow-lg">Premium</span>
+            </div>
+
+            <div className="space-y-4 mb-5">
+              <p className="text-white/90 text-base">
+                Genera un <strong className="text-yellow-300">vero esame universitario</strong> con <strong className="text-pink-300">30+ domande bomba</strong> basate sull'intero documento PDF.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>🎯</span> Mix Completo
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Domande aperte e scelta multipla</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>📖</span> Analisi Profonda
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Legge tutto il PDF originale</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>🔥</span> Difficoltà Avanzata
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Come un vero esame universitario</div>
+                </div>
+                <div className="bg-white/10 backdrop-blur rounded-xl p-3 border border-white/20">
+                  <div className="text-yellow-300 font-bold text-sm flex items-center gap-2">
+                    <span>📚</span> Copertura Totale
+                  </div>
+                  <div className="text-white/70 text-xs mt-1">Ogni sezione del documento</div>
+                </div>
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/30 border border-red-400/50 rounded-xl p-3 mb-4">
+                <p className="text-red-200 text-sm font-medium">{error}</p>
+              </div>
+            )}
+
+            <button
+              onClick={generateUltraExam}
+              disabled={isGeneratingUltra || isGenerating}
+              className="relative w-full bg-gradient-to-r from-yellow-500 via-orange-500 to-pink-500 text-white px-6 py-4 rounded-xl font-bold text-lg transition-all duration-300 disabled:opacity-50 hover:shadow-xl hover:shadow-orange-500/30 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {isGeneratingUltra ? (
+                <div className="flex items-center justify-center gap-3">
+                  <div className="animate-spin w-6 h-6 border-3 border-white border-t-transparent rounded-full"></div>
+                  <span>Generando esame ultra... (30-60 sec)</span>
+                </div>
+              ) : (
+                <div className="text-center">
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-xl">📝</span>
+                    <span>Genera Simulazione Ultra</span>
+                  </div>
+                  <div className="text-sm opacity-90 mt-1">50 crediti — 30+ domande esplosive</div>
+                </div>
+              )}
+            </button>
+          </div>
         </div>
 
         {currentQuestions.length === 0 ? (
@@ -1402,9 +1680,9 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
   }, [authToken]); // Solo quando cambia authToken (login/logout), NON per ogni documento
 
   const generateQuestions = async () => {
-    if (!authToken || !docContext) return;
+    if (!authToken || !sessionId) return;
 
-    console.log('[DEBUG_PROBABLE_QUESTIONS]', { documentId, sessionId, authToken: !!authToken });
+    console.log('[DEBUG_PROBABLE_QUESTIONS]', { sessionId, authToken: !!authToken });
 
     setIsGenerating(true);
     try {
@@ -1414,11 +1692,7 @@ const ProbableQuestionsSection: React.FC<{ docContext: string; authToken?: strin
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
-        body: JSON.stringify({
-          docContext,
-          sessionId,
-          documentId: documentId || sessionId
-        })
+        body: JSON.stringify({ sessionId })
       });
 
       if (response.ok) {
@@ -1569,7 +1843,13 @@ const StudiusAIV2: React.FC = () => {
   const [showUltraFlashcards, setShowUltraFlashcards] = useState(false);
   const [showUltraMaps, setShowUltraMaps] = useState(false);
   const [ultraFlashcardsProcessing, setUltraFlashcardsProcessing] = useState(false);
+  const [ultraFlashcardsDifficultyFilter, setUltraFlashcardsDifficultyFilter] = useState<'all' | 'base' | 'intermedio' | 'avanzato'>('all');
+  const [oralExamMode, setOralExamMode] = useState<'base' | 'ultra'>('base');
   const [ultraMapsProcessing, setUltraMapsProcessing] = useState(false);
+  const [ultraMapsProgress, setUltraMapsProgress] = useState<{ current: number; total: number; estimatedMinutes: number }>({ current: 0, total: 0, estimatedMinutes: 10 });
+  const ultraMapsPollingRef = useRef<NodeJS.Timeout | null>(null);
+  const [ultraFlashcardsProgress, setUltraFlashcardsProgress] = useState<{ current: number; total: number; estimatedMinutes: number; targetFlashcards: number }>({ current: 0, total: 0, estimatedMinutes: 10, targetFlashcards: 50 });
+  const ultraFlashcardsPollingRef = useRef<NodeJS.Timeout | null>(null);
   const [creditError, setCreditError] = useState<{
     required: number;
     current: number;
@@ -1924,7 +2204,7 @@ const StudiusAIV2: React.FC = () => {
                 total: pollData.totalSections || 1,
                 estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 3)
               });
-            } else if (pollData.status === 'failed' || pollData.status === 'not_started') {
+            } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
               setUltraProcessing(false);
               localStorage.removeItem('ultra_processing_session');
               clearInterval(pollInterval);
@@ -2066,13 +2346,413 @@ const StudiusAIV2: React.FC = () => {
 
     checkUltraProcessing();
 
-    // Cleanup quando il componente si smonta
+    // NON fare cleanup qui - gli interval devono continuare anche se user/token cambiano!
+    // Il cleanup finale avviene quando il componente si smonta davvero (vedi useEffect separato sotto)
+  }, [user, token]);
+
+  // Cleanup SOLO quando il componente si smonta davvero (array vuoto = solo unmount)
+  useEffect(() => {
     return () => {
+      console.log('🧹 [UNMOUNT] Component unmounting, cleaning up intervals...');
       if (ultraPollingRef.current) {
         clearInterval(ultraPollingRef.current);
         ultraPollingRef.current = null;
       }
+      if (ultraMapsPollingRef.current) {
+        clearInterval(ultraMapsPollingRef.current);
+        ultraMapsPollingRef.current = null;
+      }
+      if (ultraFlashcardsPollingRef.current) {
+        clearInterval(ultraFlashcardsPollingRef.current);
+        ultraFlashcardsPollingRef.current = null;
+      }
     };
+  }, []); // Array vuoto = esegue cleanup SOLO su unmount
+
+  // Ripristina stato Ultra Maps dopo reload della pagina
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const checkUltraMapsProcessing = async () => {
+      // Se polling già attivo, skip
+      if (ultraMapsPollingRef.current) {
+        console.log('⚠️ Ultra Maps polling già attivo, skip check');
+        return;
+      }
+
+      // Se già in processing state, skip (evita popup multipli durante navigazione SPA)
+      if (ultraMapsProcessing) {
+        console.log('⚠️ Ultra Maps già in processing state, skip check');
+        return;
+      }
+
+      // Controlla localStorage per sessione in corso
+      const savedSession = localStorage.getItem('ultra_maps_processing_session');
+
+      if (savedSession) {
+        try {
+          const { sessionId, startedAt, fileName: savedFileName } = JSON.parse(savedSession);
+
+          // Controlla se l'utente ha già interrotto manualmente questa sessione
+          if (sessionStorage.getItem(`ultra_maps_dismissed_${sessionId}`)) {
+            console.log('⏹️ [ULTRA_MAPS] Sessione già interrotta manualmente, skip:', sessionId);
+            localStorage.removeItem('ultra_maps_processing_session');
+            return;
+          }
+
+          // Se è passato più di 1 ora, pulisci localStorage
+          const oneHourAgo = Date.now() - (60 * 60 * 1000);
+          if (startedAt < oneHourAgo) {
+            localStorage.removeItem('ultra_maps_processing_session');
+            return;
+          }
+
+          console.log('🔄 [ULTRA_MAPS] Trovata sessione in localStorage:', sessionId);
+
+          // Verifica lo stato attuale con l'API
+          const response = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (response.ok) {
+            const statusData = await response.json();
+            console.log('📊 [ULTRA_MAPS] Status check result:', statusData.status);
+
+            if (statusData.status === 'in_progress') {
+              console.log('🔄 [ULTRA_MAPS] Ripristino polling per sessione in corso...');
+
+              // Mostra stato di elaborazione
+              setUltraMapsProcessing(true);
+              setUltraMapsProgress({
+                current: statusData.currentSection || 0,
+                total: statusData.totalSections || 1,
+                estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 2)
+              });
+
+              // Avvia polling con sessionId salvato
+              const pollInterval = setInterval(async () => {
+                try {
+                  const pollResponse = await fetch(`/api/ultra-maps-status?sessionId=${sessionId}&userId=${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+
+                  if (pollResponse.ok) {
+                    const pollData = await pollResponse.json();
+
+                    if (pollData.status === 'completed' && pollData.ultraMaps) {
+                      console.log('🎉 [ULTRA_MAPS] Completata da sessione ripristinata!');
+                      clearInterval(pollInterval);
+                      ultraMapsPollingRef.current = null;
+                      setUltraMapsProcessing(false);
+                      localStorage.removeItem('ultra_maps_processing_session');
+
+                      // Aggiorna cache Redis (sempre)
+                      fetch('/api/history/update-ultra-maps', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                          sessionId,
+                          mappaUltra: pollData.ultraMaps
+                        })
+                      }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
+
+                      // Aggiorna results solo se siamo sullo stesso documento
+                      setResults(prevResults => {
+                        if (prevResults && prevResults.sessionId === sessionId) {
+                          setShowUltraMaps(true);
+                          return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                        }
+                        return prevResults;
+                      });
+
+                      // Mostra popup solo una volta per sessione browser
+                      const completedPopupKey = `ultra_maps_completed_shown_${sessionId}`;
+                      if (!sessionStorage.getItem(completedPopupKey)) {
+                        sessionStorage.setItem(completedPopupKey, 'true');
+                        showSuccess(`🎉 Mappa Ultra completata per "${savedFileName || 'Documento'}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                      }
+
+                    } else if (pollData.status === 'in_progress') {
+                      setUltraMapsProgress({
+                        current: pollData.currentSection || 0,
+                        total: pollData.totalSections || 1,
+                        estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
+                      });
+                    } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
+                      setUltraMapsProcessing(false);
+                      localStorage.removeItem('ultra_maps_processing_session');
+                      clearInterval(pollInterval);
+                      ultraMapsPollingRef.current = null;
+                      if (pollData.status === 'failed' || pollData.status === 'expired') {
+                        showError(`❌ ${pollData.error || 'Mappa Ultra fallita.'}`);
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error('Errore polling Ultra Maps:', error);
+                }
+              }, 8000);
+
+              ultraMapsPollingRef.current = pollInterval;
+
+              // Cleanup dopo 1 ora
+              setTimeout(() => {
+                if (ultraMapsPollingRef.current === pollInterval) {
+                  clearInterval(pollInterval);
+                  ultraMapsPollingRef.current = null;
+                  setUltraMapsProcessing(false);
+                  localStorage.removeItem('ultra_maps_processing_session');
+                }
+              }, 60 * 60 * 1000);
+
+              // Mostra popup solo una volta per sessione browser
+              const popupKey = `ultra_maps_popup_shown_${sessionId}`;
+              if (!sessionStorage.getItem(popupKey)) {
+                sessionStorage.setItem(popupKey, 'true');
+                showInfo(`📱 Rilevata elaborazione Mappa Ultra in corso per "${savedFileName}". Mostrando il progresso...`);
+              }
+              return; // Trovato in localStorage, non serve controllare database
+
+            } else if (statusData.status === 'completed' && statusData.ultraMaps) {
+              localStorage.removeItem('ultra_maps_processing_session');
+
+              // Aggiorna results e mostra mappa solo se siamo sullo stesso documento
+              setResults(prevResults => {
+                if (prevResults && prevResults.sessionId === sessionId) {
+                  setShowUltraMaps(true);
+                  return { ...prevResults, mappa_ultra: statusData.ultraMaps };
+                }
+                return prevResults;
+              });
+
+              console.log('🎉 [ULTRA_MAPS] Già completata, aggiornati results');
+              // Mostra popup solo una volta per sessione browser
+              const completedPopupKey = `ultra_maps_completed_shown_${sessionId}`;
+              if (!sessionStorage.getItem(completedPopupKey)) {
+                sessionStorage.setItem(completedPopupKey, 'true');
+                showSuccess(`🎉 Mappa Ultra per "${savedFileName}" già pronta!`, { autoClose: false });
+              }
+              return; // Già completata, non serve controllare database
+            } else {
+              localStorage.removeItem('ultra_maps_processing_session');
+            }
+          }
+        } catch (error) {
+          console.error('Errore parsing localStorage ultra maps:', error);
+          localStorage.removeItem('ultra_maps_processing_session');
+        }
+      }
+
+      // 2. Se non c'è localStorage, controlla il database (altri dispositivi)
+      console.log('🔍 [ULTRA_MAPS] Controllo database per elaborazioni in corso...');
+      try {
+        const response = await fetch(`/api/ultra-maps-status/check-user?userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          if (data.hasProcessing && data.sessions.length > 0) {
+            // Prendi la prima sessione in elaborazione
+            const session = data.sessions[0];
+
+            // Controlla se l'utente ha già interrotto manualmente questa sessione
+            if (sessionStorage.getItem(`ultra_maps_dismissed_${session.sessionId}`)) {
+              console.log('⏹️ [ULTRA_MAPS] Sessione già interrotta manualmente, skip:', session.sessionId);
+              return;
+            }
+
+            console.log('📱 [ULTRA_MAPS] Trovata elaborazione da altro dispositivo:', session);
+
+            // Salva in localStorage per questo dispositivo
+            const sessionFileName = session.fileName || 'Documento';
+            localStorage.setItem('ultra_maps_processing_session', JSON.stringify({
+              sessionId: session.sessionId,
+              fileName: sessionFileName,
+              startedAt: new Date(session.startedAt).getTime()
+            }));
+
+            // Mostra stato di elaborazione
+            setUltraMapsProcessing(true);
+            setUltraMapsProgress({
+              current: session.currentSection || 0,
+              total: session.totalSections || 1,
+              estimatedMinutes: Math.ceil((session.totalSections - session.currentSection) * 2)
+            });
+
+            // Avvia polling
+            const pollInterval = setInterval(async () => {
+              try {
+                const pollResponse = await fetch(`/api/ultra-maps-status?sessionId=${session.sessionId}&userId=${user.id}`, {
+                  headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (pollResponse.ok) {
+                  const pollData = await pollResponse.json();
+
+                  if (pollData.status === 'completed' && pollData.ultraMaps) {
+                    console.log('🎉 [ULTRA_MAPS] Completata da altro dispositivo!');
+                    clearInterval(pollInterval);
+                    ultraMapsPollingRef.current = null;
+                    setUltraMapsProcessing(false);
+                    localStorage.removeItem('ultra_maps_processing_session');
+
+                    // Aggiorna cache Redis (sempre)
+                    fetch('/api/history/update-ultra-maps', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                      },
+                      body: JSON.stringify({
+                        sessionId: session.sessionId,
+                        mappaUltra: pollData.ultraMaps
+                      })
+                    }).catch(err => console.error('Errore aggiornamento cache mappe:', err));
+
+                    // Aggiorna results solo se siamo sullo stesso documento
+                    setResults(prevResults => {
+                      if (prevResults && prevResults.sessionId === session.sessionId) {
+                        setShowUltraMaps(true);
+                        return { ...prevResults, mappa_ultra: pollData.ultraMaps };
+                      }
+                      return prevResults;
+                    });
+
+                    // Mostra popup solo una volta per sessione browser
+                    const completedPopupKey = `ultra_maps_completed_shown_${session.sessionId}`;
+                    if (!sessionStorage.getItem(completedPopupKey)) {
+                      sessionStorage.setItem(completedPopupKey, 'true');
+                      showSuccess(`🎉 Mappa Ultra completata per "${sessionFileName}"!\n${pollData.totalNodes} nodi generati.`, { autoClose: false });
+                    }
+
+                  } else if (pollData.status === 'in_progress') {
+                    setUltraMapsProgress({
+                      current: pollData.currentSection || 0,
+                      total: pollData.totalSections || 1,
+                      estimatedMinutes: Math.ceil((pollData.totalSections - pollData.currentSection) * 2)
+                    });
+                  } else if (pollData.status === 'failed' || pollData.status === 'expired' || pollData.status === 'not_started') {
+                    setUltraMapsProcessing(false);
+                    localStorage.removeItem('ultra_maps_processing_session');
+                    clearInterval(pollInterval);
+                    ultraMapsPollingRef.current = null;
+                    if (pollData.status === 'failed' || pollData.status === 'expired') {
+                      showError(`❌ ${pollData.error || 'Mappa Ultra fallita.'}`);
+                    }
+                  }
+                }
+              } catch (error) {
+                console.error('Errore polling Ultra Maps (cross-device):', error);
+              }
+            }, 8000);
+
+            ultraMapsPollingRef.current = pollInterval;
+
+            setTimeout(() => {
+              if (ultraMapsPollingRef.current === pollInterval) {
+                clearInterval(pollInterval);
+                ultraMapsPollingRef.current = null;
+                setUltraMapsProcessing(false);
+                localStorage.removeItem('ultra_maps_processing_session');
+              }
+            }, 60 * 60 * 1000);
+
+            // Mostra popup solo una volta per sessione browser
+            const popupKey = `ultra_maps_popup_shown_${session.sessionId}`;
+            if (!sessionStorage.getItem(popupKey)) {
+              sessionStorage.setItem(popupKey, 'true');
+              showInfo(`📱 Rilevata elaborazione Mappa Ultra in corso per "${sessionFileName}". Mostrando il progresso...`);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Errore controllo database ultra maps:', error);
+      }
+    };
+
+    checkUltraMapsProcessing();
+  }, [user, token]);
+
+  // Ripristina stato Ultra Flashcards dopo reload della pagina
+  useEffect(() => {
+    if (!user || !token) return;
+
+    const checkUltraFlashcardsProcessing = async () => {
+      if (ultraFlashcardsPollingRef.current || ultraFlashcardsProcessing) return;
+
+      const savedSession = localStorage.getItem('ultra_flashcards_processing_session');
+      if (!savedSession) return;
+
+      try {
+        const { sessionId, startedAt, fileName: savedFileName } = JSON.parse(savedSession);
+
+        // Se già interrotta manualmente
+        if (sessionStorage.getItem(`ultra_flashcards_dismissed_${sessionId}`)) {
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          return;
+        }
+
+        // Se passato più di 1 ora, pulisci
+        if (startedAt < Date.now() - (60 * 60 * 1000)) {
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          return;
+        }
+
+        console.log('🔄 [ULTRA_FLASHCARDS] Trovata sessione in localStorage:', sessionId);
+
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${sessionId}&userId=${user.id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+
+          if (statusData.status === 'in_progress') {
+            console.log('🔄 [ULTRA_FLASHCARDS] Ripristino polling...');
+            setUltraFlashcardsProcessing(true);
+            setUltraFlashcardsProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - statusData.currentSection) * 2),
+              targetFlashcards: statusData.targetFlashcards || 50
+            });
+            startUltraFlashcardsPolling(sessionId);
+
+            const popupKey = `ultra_flashcards_popup_shown_${sessionId}`;
+            if (!sessionStorage.getItem(popupKey)) {
+              sessionStorage.setItem(popupKey, 'true');
+              showInfo(`📱 Rilevata elaborazione Flashcard Ultra in corso. Mostrando il progresso...`);
+            }
+          } else if (statusData.status === 'completed' && statusData.flashcardUltra) {
+            localStorage.removeItem('ultra_flashcards_processing_session');
+            setResults(prevResults => {
+              if (prevResults && prevResults.sessionId === sessionId) {
+                setShowUltraFlashcards(true);
+                return { ...prevResults, flashcard_ultra: statusData.flashcardUltra };
+              }
+              return prevResults;
+            });
+            const completedPopupKey = `ultra_flashcards_completed_shown_${sessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              showSuccess(`🎉 Flashcard Ultra già pronte!`, { autoClose: false });
+            }
+          } else {
+            localStorage.removeItem('ultra_flashcards_processing_session');
+          }
+        }
+      } catch (error) {
+        console.error('Errore ripristino flashcards:', error);
+        localStorage.removeItem('ultra_flashcards_processing_session');
+      }
+    };
+
+    checkUltraFlashcardsProcessing();
   }, [user, token]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -2256,6 +2936,335 @@ const StudiusAIV2: React.FC = () => {
     }, 2 * 60 * 60 * 1000); // 2 hours
   };
 
+  // Ultra Maps Progress Polling - PATTERN IDENTICO A ULTRA SUMMARY
+  const startUltraMapsPolling = (overrideSessionId?: string) => {
+    const targetSessionId = overrideSessionId || results?.sessionId;
+    if (!targetSessionId || !user || !token) return;
+
+    // Evita polling multipli - usa lo stesso pattern di Ultra Summary
+    if (ultraMapsPollingRef.current) {
+      console.log('⚠️ Polling già attivo, skip startUltraMapsPolling');
+      return;
+    }
+
+    console.log('🔄 Starting Ultra Maps progress polling...');
+
+    // DEBUG: Contatore per vedere quante volte il setInterval viene chiamato
+    let pollCount = 0;
+    console.log('🔄 [DEBUG] Creating setInterval with 5000ms delay...');
+
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      console.log(`🔄 [POLL #${pollCount}] Polling for Ultra Maps progress... (interval firing)`);
+
+      // Verifica che user e token siano ancora validi
+      if (!user?.id || !token) {
+        console.error('❌ [POLL] Lost user/token during polling!', { hasUser: !!user, hasToken: !!token });
+        return;
+      }
+
+      try {
+        console.log('🔄 Polling for Ultra Maps progress...');
+
+        // Use dedicated status endpoint for efficient polling (no-cache per evitare dati stale)
+        const response = await fetch(`/api/ultra-maps-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 Ultra Maps polling response:', statusData.status, statusData.ultraMaps ? `(${statusData.totalNodes} nodes)` : '(no maps)');
+
+          if (statusData.status === 'completed' && statusData.ultraMaps) {
+            // Ultra Maps is completed!
+            console.log('🎉 Ultra Maps completed via polling!');
+            console.log('🎉 Ultra Maps nodes:', statusData.totalNodes);
+
+            // IMPORTANTE: Prima ferma il polling
+            clearInterval(pollInterval);
+            ultraMapsPollingRef.current = null;
+            setUltraMapsProcessing(false);
+            localStorage.removeItem('ultra_maps_processing_session');
+
+            // Salva la mappa in una variabile locale per uso immediato
+            const completedUltraMaps = statusData.ultraMaps;
+
+            // Update results state usando forma funzionale per evitare closure stale
+            setResults(prevResults => {
+              console.log('🔄 Updating results state, prevSessionId:', prevResults?.sessionId, 'targetSessionId:', targetSessionId);
+              if (prevResults && prevResults.sessionId === targetSessionId) {
+                const updatedResults = {
+                  ...prevResults,
+                  mappa_ultra: completedUltraMaps
+                };
+                console.log('✅ Results updated with ultra maps');
+                return updatedResults;
+              }
+              console.log('⚠️ SessionId mismatch, results not updated');
+              return prevResults;
+            });
+
+            // Aggiorna anche la cache Redis dello storico
+            fetch('/api/history/update-ultra-maps', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                sessionId: targetSessionId,
+                mappaUltra: completedUltraMaps
+              })
+            }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+            // Mostra la mappa
+            setShowUltraMaps(true);
+
+            // Show completion popup - NON auto-close così l'utente lo vede sicuramente!
+            const completedPopupKey = `ultra_maps_completed_shown_${targetSessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              console.log('🔔 Showing success popup...');
+              showSuccess(`🎉 Mappa Ultra completata!\n${statusData.totalNodes} nodi generati.\nVisualizzala nel tab "Mappe".`, { autoClose: false });
+            }
+
+          } else if (statusData.status === 'in_progress') {
+            // Update progress if available
+            const current = statusData.currentSection || 0;
+            const total = statusData.totalSections || 1;
+            const estimatedMinutes = Math.ceil((total - current) * 2); // 2 min per section
+
+            console.log(`📊 Progress update: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+
+            setUltraMapsProgress({
+              current,
+              total,
+              estimatedMinutes
+            });
+          } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+            console.error('❌ Ultra Maps failed via polling:', statusData.error);
+            setUltraMapsProcessing(false);
+            localStorage.removeItem('ultra_maps_processing_session');
+            clearInterval(pollInterval);
+            ultraMapsPollingRef.current = null;
+            showError(`❌ Mappa Ultra fallita: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Error during Ultra Maps polling:', error);
+      }
+    }, 5000); // Poll every 5 seconds (più veloce di Ultra Summary perché mappe sono più veloci)
+
+    // Salva il ref per evitare polling multipli
+    ultraMapsPollingRef.current = pollInterval;
+    console.log('🔄 [DEBUG] Interval saved to ref, ID:', pollInterval, 'typeof:', typeof pollInterval);
+
+    // IMPORTANTE: Esegui primo poll subito per feedback immediato
+    console.log('🔄 Executing first Ultra Maps poll immediately...');
+    (async () => {
+      try {
+        const response = await fetch(`/api/ultra-maps-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 First Ultra Maps poll:', statusData.status, `${statusData.currentSection || 0}/${statusData.totalSections || 0}`);
+          if (statusData.status === 'in_progress') {
+            setUltraMapsProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - (statusData.currentSection || 0)) * 2)
+            });
+          }
+        }
+      } catch (err) {
+        console.error('❌ First poll error:', err);
+      }
+    })();
+
+    // Stop polling after 1 hour (maximum Trigger.dev duration for maps)
+    setTimeout(() => {
+      if (ultraMapsPollingRef.current === pollInterval) {
+        clearInterval(pollInterval);
+        ultraMapsPollingRef.current = null;
+        if (ultraMapsProcessing) {
+          console.log('⏰ Ultra Maps polling timeout');
+          setUltraMapsProcessing(false);
+          localStorage.removeItem('ultra_maps_processing_session');
+          showError('⏰ Timeout: Mappa Ultra sta impiegando più del previsto. Ricarica la pagina per verificare lo stato.');
+        }
+      }
+    }, 1 * 60 * 60 * 1000); // 1 hour
+  };
+
+  // Ultra Flashcards Polling - Same pattern as Ultra Maps
+  const startUltraFlashcardsPolling = (overrideSessionId?: string) => {
+    const targetSessionId = overrideSessionId || results?.sessionId;
+    if (!targetSessionId || !user || !token) return;
+
+    // Evita polling multipli
+    if (ultraFlashcardsPollingRef.current) {
+      console.log('⚠️ Polling già attivo, skip startUltraFlashcardsPolling');
+      return;
+    }
+
+    console.log('🔄 Starting Ultra Flashcards progress polling...');
+
+    let pollCount = 0;
+    const pollInterval = setInterval(async () => {
+      pollCount++;
+      console.log(`🔄 [POLL #${pollCount}] Polling for Ultra Flashcards progress...`);
+
+      if (!user?.id || !token) {
+        console.error('❌ [POLL] Lost user/token during polling!');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          cache: 'no-store'
+        });
+
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 Ultra Flashcards polling response:', statusData.status, statusData.flashcardUltra ? `(${statusData.totalFlashcards} flashcards)` : '(no flashcards)');
+
+          if (statusData.status === 'completed' && statusData.flashcardUltra) {
+            // Ultra Flashcards is completed!
+            console.log('🎉 Ultra Flashcards completed via polling!');
+            console.log('🎉 Ultra Flashcards count:', statusData.totalFlashcards);
+
+            // Stop polling
+            clearInterval(pollInterval);
+            ultraFlashcardsPollingRef.current = null;
+            setUltraFlashcardsProcessing(false);
+            localStorage.removeItem('ultra_flashcards_processing_session');
+
+            const completedFlashcards = statusData.flashcardUltra;
+
+            // Update results state
+            setResults(prevResults => {
+              if (prevResults && prevResults.sessionId === targetSessionId) {
+                return {
+                  ...prevResults,
+                  flashcard_ultra: completedFlashcards
+                };
+              }
+              return prevResults;
+            });
+
+            // Update cache
+            fetch('/api/history/update-ultra-flashcards', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                sessionId: targetSessionId,
+                flashcardUltra: completedFlashcards
+              })
+            }).catch(err => console.error('Errore aggiornamento cache:', err));
+
+            // Show flashcards
+            setShowUltraFlashcards(true);
+
+            // Show completion popup
+            const completedPopupKey = `ultra_flashcards_completed_shown_${targetSessionId}`;
+            if (!sessionStorage.getItem(completedPopupKey)) {
+              sessionStorage.setItem(completedPopupKey, 'true');
+              showSuccess(`🎉 Flashcard Ultra completate!\n${statusData.totalFlashcards} flashcard generate.\nVisualizzale nel tab "Flashcard".`, { autoClose: false });
+            }
+
+          } else if (statusData.status === 'in_progress') {
+            const current = statusData.currentSection || 0;
+            const total = statusData.totalSections || 1;
+            const targetFlashcards = statusData.targetFlashcards || 50;
+            const estimatedMinutes = Math.ceil((total - current) * 2);
+
+            console.log(`📊 Flashcards Progress: ${current}/${total} sections, ~${estimatedMinutes} min remaining`);
+
+            setUltraFlashcardsProgress({
+              current,
+              total,
+              estimatedMinutes,
+              targetFlashcards
+            });
+          } else if (statusData.status === 'failed' || statusData.status === 'expired') {
+            console.error('❌ Ultra Flashcards failed via polling:', statusData.error);
+            setUltraFlashcardsProcessing(false);
+            localStorage.removeItem('ultra_flashcards_processing_session');
+            clearInterval(pollInterval);
+            ultraFlashcardsPollingRef.current = null;
+            showError(`❌ Flashcard Ultra fallite: ${statusData.error || 'Errore durante l\'elaborazione.'}`);
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Error during Ultra Flashcards polling:', error);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    ultraFlashcardsPollingRef.current = pollInterval;
+
+    // Execute first poll immediately
+    (async () => {
+      try {
+        const response = await fetch(`/api/ultra-flashcards-status?sessionId=${targetSessionId}&userId=${user.id}&_t=${Date.now()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Cache-Control': 'no-cache, no-store, must-revalidate'
+          },
+          cache: 'no-store'
+        });
+        if (response.ok) {
+          const statusData = await response.json();
+          console.log('📊 First Ultra Flashcards poll:', statusData.status, `${statusData.currentSection || 0}/${statusData.totalSections || 0}`);
+          if (statusData.status === 'in_progress') {
+            setUltraFlashcardsProgress({
+              current: statusData.currentSection || 0,
+              total: statusData.totalSections || 1,
+              estimatedMinutes: Math.ceil((statusData.totalSections - (statusData.currentSection || 0)) * 2),
+              targetFlashcards: statusData.targetFlashcards || 50
+            });
+          }
+        }
+      } catch (err) {
+        console.error('❌ First flashcards poll error:', err);
+      }
+    })();
+
+    // Stop polling after 1 hour
+    setTimeout(() => {
+      if (ultraFlashcardsPollingRef.current === pollInterval) {
+        clearInterval(pollInterval);
+        ultraFlashcardsPollingRef.current = null;
+        if (ultraFlashcardsProcessing) {
+          console.log('⏰ Ultra Flashcards polling timeout');
+          setUltraFlashcardsProcessing(false);
+          localStorage.removeItem('ultra_flashcards_processing_session');
+          showError('⏰ Timeout: Flashcard Ultra stanno impiegando più del previsto. Ricarica la pagina.');
+        }
+      }
+    }, 1 * 60 * 60 * 1000); // 1 hour
+  };
+
   // Ultra Summary Generation Handler
   const handleGenerateUltra = async () => {
     console.log('🚀 Ultra Summary requested');
@@ -2401,8 +3410,9 @@ const StudiusAIV2: React.FC = () => {
     }
   };
 
-  // Ultra Flashcards Generation Handler
+  // Ultra Flashcards Generation Handler (Async with Trigger.dev)
   const handleGenerateUltraFlashcards = async () => {
+    console.log('🎴 Ultra Flashcards requested');
 
     if (ultraFlashcardsProcessing) {
       return;
@@ -2420,17 +3430,17 @@ const StudiusAIV2: React.FC = () => {
     }
 
     // Check if already exists
-    if (results.flashcard_ultra) {
+    if (results.flashcard_ultra && results.flashcard_ultra.flashcards && results.flashcard_ultra.flashcards.length > 0) {
       setShowUltraFlashcards(true);
       return;
     }
 
     const userCredits = user?.credits || 0;
-    if (userCredits < 100) {
+    if (userCredits < 150) {
       setCreditError({
-        required: 100,
+        required: 150,
         current: userCredits,
-        costDescription: 'Flashcard Ultra (100 crediti)'
+        costDescription: 'Flashcard Ultra (150 crediti)'
       });
       setShowInsufficientCreditsModal(true);
       return;
@@ -2438,23 +3448,19 @@ const StudiusAIV2: React.FC = () => {
 
     const confirmed = window.confirm(
       'Conferma Flashcard Ultra?\n\n' +
-      '• Verranno scalati 100 crediti\n' +
-      '• L\'elaborazione richiederà 2-3 minuti\n' +
-      '• Otterrai 50-100+ flashcard categorizzate\n\n' +
+      '• Verranno scalati 150 crediti\n' +
+      '• L\'elaborazione richiederà 10-20 minuti\n' +
+      '• Otterrai 20-100 flashcard in base alla lunghezza del documento\n\n' +
       'Vuoi procedere?'
     );
 
     if (!confirmed) return;
 
-    // Save sessionId locally to avoid race condition
-    const currentSessionId = results.sessionId;
-    const currentResults = results;
-
     setUltraFlashcardsProcessing(true);
-    showInfo('🃏 Flashcard Ultra in elaborazione...');
+    setUltraFlashcardsProgress({ current: 0, total: 0, estimatedMinutes: 15, targetFlashcards: 50 });
+    showInfo('🎴 Flashcard Ultra avviate! Elaborazione in corso...');
 
     try {
-
       const response = await fetch('/api/generate-ultra-flashcards', {
         method: 'POST',
         headers: {
@@ -2462,7 +3468,8 @@ const StudiusAIV2: React.FC = () => {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          sessionId: currentSessionId,
+          sessionId: results.sessionId,
+          userId: user.id,
           targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
         })
       });
@@ -2473,53 +3480,92 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('🎴 Ultra Flashcards API Response:', data);
 
-      // Update results
-      setResults(prev => prev ? {
-        ...prev,
-        flashcard_ultra: data.flashcard_ultra
-      } : null);
-
-      // Deduct credits only if it's a new generation
-      if (!data.fromCache && !data.fromDatabase) {
-        await updateCredits(userCredits - 100);
-        showSuccess(`✅ Flashcard Ultra generate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
-      } else {
-        showSuccess(`✅ Flashcard Ultra trovate! ${data.flashcard_ultra?.length || 0} flashcard disponibili.`);
+      // Update credits if consumed
+      if (data.newCreditBalance !== undefined) {
+        updateCredits(data.newCreditBalance);
+        console.log(`💳 Ultra Flashcards: 150 credits used, new balance: ${data.newCreditBalance}`);
       }
 
-      setShowUltraFlashcards(true);
+      // Check if flashcards returned immediately (from cache/database) or need polling
+      if (data.flashcard_ultra && data.flashcard_ultra.flashcards && data.flashcard_ultra.flashcards.length > 0) {
+        // Immediate completion
+        console.log('🎉 Ultra Flashcards found immediately!');
+        setUltraFlashcardsProcessing(false);
+
+        setResults(prev => prev ? {
+          ...prev,
+          flashcard_ultra: data.flashcard_ultra
+        } : null);
+
+        setShowUltraFlashcards(true);
+
+        if (data.fromDatabase) {
+          showSuccess(`✅ Flashcard Ultra trovate! ${data.flashcard_ultra.flashcards?.length || 0} flashcard disponibili.`);
+        } else {
+          showSuccess(`🎉 Flashcard Ultra completate!\n${data.flashcard_ultra.flashcards?.length || 0} flashcard generate.`, { autoClose: false });
+        }
+      } else if (data.status === 'in_progress') {
+        // Background processing started, begin polling
+        console.log('⏳ Ultra Flashcards processing started, beginning progress monitoring...');
+
+        if (data.totalSections) {
+          setUltraFlashcardsProgress({
+            current: data.currentSection || 0,
+            total: data.totalSections,
+            estimatedMinutes: Math.ceil(data.totalSections * 2),
+            targetFlashcards: data.estimatedFlashcards || 50
+          });
+        }
+
+        // Save to localStorage for page reload persistence
+        localStorage.setItem('ultra_flashcards_processing_session', JSON.stringify({
+          sessionId: results.sessionId,
+          startedAt: Date.now(),
+          fileName: file?.name || 'Documento',
+          totalSections: data.totalSections || 0
+        }));
+
+        startUltraFlashcardsPolling(results.sessionId);
+        showSuccess(`✅ Flashcard Ultra avviate! ~${data.estimatedFlashcards || 50} flashcard in arrivo...`);
+      }
 
     } catch (error) {
       console.error('❌ Ultra Flashcards Error:', error);
-      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
       setUltraFlashcardsProcessing(false);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   };
 
   // Ultra Maps Generation Handler
   const handleGenerateUltraMaps = async () => {
     console.log('🗺️ Ultra Maps requested');
+    console.log('🗺️ Ultra Maps DEBUG - User:', user?.id, 'Session:', results?.sessionId);
 
+    // 1. Check if user is authenticated
     if (!user || !token) {
       setShowAuthModal(true);
       return;
     }
 
+    // 2. Check if we have results with valid session
     if (!results || !results.sessionId) {
       console.error('❌ [ULTRA_MAPS] Results state corrupted:', { results, sessionId: results?.sessionId });
       showError('Errore: nessun documento elaborato. Elabora prima un documento.');
       return;
     }
 
-    // Check if already exists
-    if (results.mappa_ultra) {
+    // 3. Check if already exists
+    if (results.mappa_ultra && results.mappa_ultra.nodes && results.mappa_ultra.nodes.length > 0) {
       setShowUltraMaps(true);
       return;
     }
 
+    // 4. Check user credits
     const userCredits = user?.credits || 0;
+    console.log('🗺️ Ultra Maps DEBUG - User credits:', userCredits);
+
     if (userCredits < 100) {
       setCreditError({
         required: 100,
@@ -2530,20 +3576,26 @@ const StudiusAIV2: React.FC = () => {
       return;
     }
 
+    // 5. Show confirmation modal
     const confirmed = window.confirm(
       'Conferma Mappa Ultra?\n\n' +
       '• Verranno scalati 100 crediti\n' +
-      '• L\'elaborazione richiederà 2-3 minuti\n' +
-      '• Otterrai una mappa dettagliata e stratificata\n\n' +
+      '• L\'elaborazione richiederà 10-20 minuti\n' +
+      '• Vedrai il risultato immediatamente al termine\n\n' +
       'Vuoi procedere?'
     );
 
     if (!confirmed) return;
 
+    // 6. Show processing state
     setUltraMapsProcessing(true);
-    showInfo('🗺️ Mappa Ultra in elaborazione...');
+    setUltraMapsProgress({ current: 0, total: 0, estimatedMinutes: 15 });
+    showInfo('🗺️ Mappa Ultra avviata! Elaborazione in corso...');
 
     try {
+      // 7. Call Ultra Maps API
+      console.log('🗺️ Ultra Maps DEBUG - Calling API...');
+
       const response = await fetch('/api/generate-ultra-maps', {
         method: 'POST',
         headers: {
@@ -2552,9 +3604,11 @@ const StudiusAIV2: React.FC = () => {
         },
         body: JSON.stringify({
           sessionId: results.sessionId,
-          targetLanguage: targetLanguage === 'Auto' ? 'Italiano' : targetLanguage
+          userId: user.id
         })
       });
+
+      console.log('🗺️ Ultra Maps DEBUG - API Response status:', response.status);
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -2562,28 +3616,67 @@ const StudiusAIV2: React.FC = () => {
       }
 
       const data = await response.json();
+      console.log('🗺️ Ultra Maps DEBUG - API Response:', {
+        success: data.success,
+        fromDatabase: data.fromDatabase,
+        hasUltraMaps: !!data.mappa_ultra,
+        status: data.status
+      });
 
-      // Update results
-      setResults(prev => prev ? {
-        ...prev,
-        mappa_ultra: data.mappa_ultra
-      } : null);
-
-      // Deduct credits only if it's a new generation
-      if (!data.fromCache && !data.fromDatabase) {
-        await updateCredits(userCredits - 100);
-        showSuccess(`✅ Mappa Ultra generata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
-      } else {
-        showSuccess(`✅ Mappa Ultra trovata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+      // 8. Update user credits if consumed
+      if (data.newCreditBalance !== undefined) {
+        updateCredits(data.newCreditBalance);
+        console.log(`💳 Ultra Maps: 100 credits used, new balance: ${data.newCreditBalance}`);
       }
 
-      setShowUltraMaps(true);
+      // 9. Check if maps were returned immediately (from cache/database) or need polling
+      if (data.mappa_ultra && data.mappa_ultra.nodes && data.mappa_ultra.nodes.length > 0) {
+        // Immediate completion (from cache or database)
+        console.log('🎉 Ultra Maps found immediately!');
+        setUltraMapsProcessing(false);
+
+        setResults(prev => prev ? {
+          ...prev,
+          mappa_ultra: data.mappa_ultra
+        } : null);
+
+        setShowUltraMaps(true);
+
+        if (data.fromDatabase) {
+          showSuccess(`✅ Mappa Ultra trovata! ${data.mappa_ultra?.stats?.total_nodes || 0} nodi disponibili.`);
+        } else {
+          console.log('🔔 Showing ultra maps success popup (immediate)...');
+          showSuccess(`🎉 Mappa Ultra completata!\n${data.mappa_ultra?.stats?.total_nodes || 0} nodi generati.`, { autoClose: false });
+        }
+      } else if (data.status === 'in_progress') {
+        // Background processing started, begin polling
+        console.log('⏳ Ultra Maps processing started, beginning progress monitoring...');
+
+        // Inizializza subito il progresso con i valori dalla risposta API
+        if (data.totalSections) {
+          setUltraMapsProgress({
+            current: data.currentSection || 0,
+            total: data.totalSections,
+            estimatedMinutes: Math.ceil(data.totalSections * 2)
+          });
+        }
+
+        // Save to localStorage for page reload persistence
+        localStorage.setItem('ultra_maps_processing_session', JSON.stringify({
+          sessionId: results.sessionId,
+          startedAt: Date.now(),
+          fileName: file?.name || 'Documento',
+          totalSections: data.totalSections || 0 // Salva anche la stima
+        }));
+
+        startUltraMapsPolling(results.sessionId);
+        showSuccess(`✅ Mappa Ultra avviata! ~${data.totalSections || 10} sezioni da elaborare...`);
+      }
 
     } catch (error) {
       console.error('❌ Ultra Maps Error:', error);
-      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
-    } finally {
       setUltraMapsProcessing(false);
+      showError(`Errore: ${error instanceof Error ? error.message : 'Errore sconosciuto'}`);
     }
   };
 
@@ -4333,13 +5426,16 @@ const StudiusAIV2: React.FC = () => {
                             : 'text-gray-400 hover:text-white hover:bg-white/5'
                             }`}
                         >
-                          Base ({results.mappa_concettuale?.length || 0} nodi)
+                          Standard ({results.mappa_concettuale?.length || 0} nodi)
                         </button>
                         <button
-                          disabled={true}
-                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                          onClick={() => setShowUltraMaps(true)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${showUltraMaps
+                            ? 'bg-emerald-500/30 text-emerald-200 border border-emerald-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                         >
-                          Ultra (in arrivo)
+                          Ultra {results.mappa_ultra?.stats?.total_nodes ? `(${results.mappa_ultra.stats.total_nodes} nodi)` : ''}
                         </button>
                       </div>
                     </div>
@@ -4353,12 +5449,66 @@ const StudiusAIV2: React.FC = () => {
                             Generazione Mappa Ultra in corso...
                           </div>
                         </div>
-                        <p className="text-gray-300 text-sm">
-                          🗺️ Creando mappa stratificata con 40-60+ nodi • Tempo stimato: 2-3 minuti
-                        </p>
-                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
-                          <div className="bg-gradient-to-r from-purple-400 to-blue-400 h-full animate-pulse w-3/4"></div>
-                        </div>
+                        {ultraMapsProgress.total > 0 ? (
+                          <div className="space-y-2">
+                            {/* Percentage display */}
+                            <div className="text-3xl font-bold text-purple-300 mb-2">
+                              {Math.round((ultraMapsProgress.current / ultraMapsProgress.total) * 100)}%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🗺️ Elaborazione sezione {ultraMapsProgress.current} di {ultraMapsProgress.total}
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              ⏱️ Tempo rimanente stimato: ~{ultraMapsProgress.estimatedMinutes} minuti
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-purple-400 to-blue-400 h-full transition-all duration-500"
+                                style={{ width: `${Math.max(5, (ultraMapsProgress.current / ultraMapsProgress.total) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-purple-300 mb-2 animate-pulse">
+                              0%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🗺️ Avvio elaborazione in corso...
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              ⏱️ Tempo stimato: 10-20 minuti per documenti lunghi
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div className="bg-gradient-to-r from-purple-400 to-blue-400 h-full animate-pulse w-1/4"></div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Cancel button */}
+                        <button
+                          onClick={() => {
+                            // Salva il sessionId prima di pulire
+                            const savedSession = localStorage.getItem('ultra_maps_processing_session');
+                            if (savedSession) {
+                              try {
+                                const { sessionId } = JSON.parse(savedSession);
+                                // Marca come "dismissed" così non ricominciamo dal database check
+                                sessionStorage.setItem(`ultra_maps_dismissed_${sessionId}`, 'true');
+                              } catch (e) {}
+                            }
+
+                            if (ultraMapsPollingRef.current) {
+                              clearInterval(ultraMapsPollingRef.current);
+                              ultraMapsPollingRef.current = null;
+                            }
+                            setUltraMapsProcessing(false);
+                            localStorage.removeItem('ultra_maps_processing_session');
+                            showInfo('Monitoraggio interrotto. Se l\'elaborazione è ancora in corso, il risultato verrà salvato nello storico.');
+                          }}
+                          className="mt-4 px-4 py-2 text-sm text-gray-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
+                        >
+                          ✕ Interrompi monitoraggio
+                        </button>
                       </div>
                     )}
 
@@ -4395,10 +5545,15 @@ const StudiusAIV2: React.FC = () => {
                               <li>💾 Salvata per sempre nel tuo account</li>
                             </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraMaps}
+                              disabled={ultraMapsProcessing}
+                              className={`px-6 py-3 font-semibold rounded-lg transition-all ${
+                                ultraMapsProcessing
+                                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-emerald-500/25'
+                              }`}
                             >
-                              🚧 In arrivo
+                              {ultraMapsProcessing ? '⏳ Generazione in corso...' : '🚀 Genera Mappa Ultra (100 crediti)'}
                             </button>
                           </div>
                         )}
@@ -4407,33 +5562,35 @@ const StudiusAIV2: React.FC = () => {
                       // Ultra Maps
                       <div className="space-y-4">
                         {results.mappa_ultra ? (
-                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                            <div className="mb-4">
-                              <h4 className="text-lg font-bold text-emerald-300 mb-2">
-                                🗺️ Mappa Ultra - {results.mappa_ultra.stats?.total_nodes || 0} nodi
-                                {results.mappa_ultra.stats?.max_depth && ` • Profondità: ${results.mappa_ultra.stats.max_depth} livelli`}
-                              </h4>
-                              {/* Display connections info if available */}
-                              {results.mappa_ultra.connections?.length > 0 && (
-                                <p className="text-sm text-emerald-400">
-                                  🔗 {results.mappa_ultra.connections.length} collegamenti trasversali
-                                </p>
-                              )}
-                            </div>
-                            <ConceptMap concepts={results.mappa_ultra.nodes || results.mappa_ultra} />
-                          </div>
+                          <UltraMapSection
+                            mappaUltra={results.mappa_ultra}
+                            documentTitle={results.fileName || results.title || 'documento'}
+                          />
                         ) : (
-                          <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
-                            <Brain className="w-16 h-16 text-emerald-400 mx-auto mb-4" />
-                            <h4 className="text-xl font-bold text-white mb-3">Mappa Ultra non disponibile</h4>
-                            <p className="text-gray-300 mb-6">
-                              Genera una mappa Ultra per ottenere una visualizzazione completa e stratificata.
+                          // Same promotional content as Standard section
+                          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-emerald-300 mb-3">🗺️ Vuoi una mappa ULTRA dettagliata?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni una mappa concettuale stratificata con collegamenti profondi e dettagli completi.
                             </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>🌳 Struttura a 4-5 livelli di profondità</li>
+                              <li>🔗 Collegamenti trasversali tra concetti</li>
+                              <li>📊 40-60 nodi dettagliati con relazioni</li>
+                              <li>🎨 Metadata per priorità e tipologia</li>
+                              <li>🪙 Costo: 100 crediti</li>
+                              <li>💾 Salvata per sempre nel tuo account</li>
+                            </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraMaps}
+                              disabled={ultraMapsProcessing}
+                              className={`px-6 py-3 font-semibold rounded-lg transition-all ${
+                                ultraMapsProcessing
+                                  ? 'bg-gray-500 text-gray-300 cursor-not-allowed opacity-50'
+                                  : 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white shadow-lg hover:shadow-emerald-500/25'
+                              }`}
                             >
-                              🚧 In arrivo
+                              {ultraMapsProcessing ? '⏳ Generazione in corso...' : '🚀 Genera Mappa Ultra (100 crediti)'}
                             </button>
                           </div>
                         )}
@@ -4467,15 +5624,18 @@ const StudiusAIV2: React.FC = () => {
                           Standard ({results.flashcard?.length || 0})
                         </button>
                         <button
-                          disabled={true}
-                          className="px-3 py-2 rounded-lg text-xs font-medium text-gray-500 bg-gray-700/50 cursor-not-allowed opacity-50"
+                          onClick={() => setShowUltraFlashcards(true)}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium transition-all ${showUltraFlashcards
+                            ? 'bg-gradient-to-r from-pink-500/30 to-purple-500/30 text-pink-200 border border-pink-400/50'
+                            : 'text-gray-400 hover:text-white hover:bg-white/5'
+                            }`}
                         >
-                          Ultra (in arrivo)
+                          Ultra {results.flashcard_ultra?.flashcards?.length || results.flashcard_ultra?.length ? `(${results.flashcard_ultra?.flashcards?.length || results.flashcard_ultra?.length})` : ''}
                         </button>
                       </div>
                     </div>
 
-                    {/* Processing State */}
+                    {/* Processing State with Progress */}
                     {ultraFlashcardsProcessing && (
                       <div className="bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-2xl p-8 border border-pink-400/30 text-center">
                         <div className="flex items-center justify-center space-x-3 mb-4">
@@ -4484,12 +5644,64 @@ const StudiusAIV2: React.FC = () => {
                             Generazione Flashcard Ultra in corso...
                           </div>
                         </div>
-                        <p className="text-gray-300 text-sm">
-                          🃏 Creando 50-100+ flashcard categorizzate • Tempo stimato: 2-3 minuti
-                        </p>
-                        <div className="mt-4 bg-black/20 rounded-full h-2 overflow-hidden">
-                          <div className="bg-gradient-to-r from-pink-400 to-purple-400 h-full animate-pulse w-3/4"></div>
-                        </div>
+                        {ultraFlashcardsProgress.total > 0 ? (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-pink-300 mb-2">
+                              {Math.round((ultraFlashcardsProgress.current / ultraFlashcardsProgress.total) * 100)}%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🎴 Elaborazione sezione {ultraFlashcardsProgress.current} di {ultraFlashcardsProgress.total}
+                            </p>
+                            <p className="text-pink-300 text-xs">
+                              ⏱️ Tempo rimanente stimato: ~{ultraFlashcardsProgress.estimatedMinutes} minuti
+                            </p>
+                            <p className="text-purple-300 text-xs">
+                              📚 Target: ~{ultraFlashcardsProgress.targetFlashcards} flashcard
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div
+                                className="bg-gradient-to-r from-pink-400 to-purple-400 h-full transition-all duration-500"
+                                style={{ width: `${Math.max(5, (ultraFlashcardsProgress.current / ultraFlashcardsProgress.total) * 100)}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            <div className="text-3xl font-bold text-pink-300 mb-2 animate-pulse">
+                              0%
+                            </div>
+                            <p className="text-gray-300 text-sm">
+                              🎴 Avvio elaborazione in corso...
+                            </p>
+                            <p className="text-pink-300 text-xs">
+                              ⏱️ Tempo stimato: 10-20 minuti
+                            </p>
+                            <div className="mt-4 bg-black/20 rounded-full h-3 overflow-hidden">
+                              <div className="bg-gradient-to-r from-pink-400 to-purple-400 h-full animate-pulse w-1/4"></div>
+                            </div>
+                          </div>
+                        )}
+                        {/* Cancel button */}
+                        <button
+                          onClick={() => {
+                            const savedSession = localStorage.getItem('ultra_flashcards_processing_session');
+                            if (savedSession) {
+                              try {
+                                const { sessionId } = JSON.parse(savedSession);
+                                sessionStorage.setItem(`ultra_flashcards_dismissed_${sessionId}`, 'true');
+                              } catch {}
+                            }
+                            setUltraFlashcardsProcessing(false);
+                            localStorage.removeItem('ultra_flashcards_processing_session');
+                            if (ultraFlashcardsPollingRef.current) {
+                              clearInterval(ultraFlashcardsPollingRef.current);
+                              ultraFlashcardsPollingRef.current = null;
+                            }
+                          }}
+                          className="mt-6 text-sm text-gray-400 hover:text-white underline"
+                        >
+                          Elaborazione continua in background - Clicca per nascondere
+                        </button>
                       </div>
                     )}
 
@@ -4510,25 +5722,25 @@ const StudiusAIV2: React.FC = () => {
                           )}
                         </div>
 
-                        {/* Ultra CTA Box - Only if Ultra not available */}
-                        {!results.flashcard_ultra && (
+                        {/* CTA promozionale per Ultra Flashcards - visibile solo se non esistono già */}
+                        {!results.flashcard_ultra && !ultraFlashcardsProcessing && (
                           <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
                             <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
                             <p className="text-gray-300 mb-4">
-                              Ottieni 50-100+ flashcard categorizzate per uno studio approfondito e completo.
+                              Ottieni da 20 a 100 flashcard categorizzate in base alla lunghezza del tuo documento.
                             </p>
                             <ul className="text-sm text-gray-300 space-y-1 mb-4">
-                              <li>📚 50-100+ flashcard (vs {results.flashcard?.length || 0} standard)</li>
-                              <li>🏷️ Categorizzate: Definizioni, Formule, Esempi, Date</li>
-                              <li>📈 Difficoltà progressive: Basic → Advanced</li>
-                              <li>🪙 Costo: 100 crediti</li>
+                              <li>📚 20-100 flashcard in base alla lunghezza del documento (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
+                              <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
+                              <li>🪙 Costo: 150 crediti</li>
                               <li>💾 Salvate per sempre nel tuo account</li>
                             </ul>
                             <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
+                              onClick={handleGenerateUltraFlashcards}
+                              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all"
                             >
-                              🚧 In arrivo
+                              🎴 Genera Flashcard Ultra (150 crediti)
                             </button>
                           </div>
                         )}
@@ -4536,29 +5748,184 @@ const StudiusAIV2: React.FC = () => {
                     ) : (
                       // Ultra Flashcards
                       <div className="space-y-4">
-                        {results.flashcard_ultra ? (
+                        {results.flashcard_ultra && (results.flashcard_ultra.flashcards || Array.isArray(results.flashcard_ultra)) ? (
                           <div className="bg-white/5 rounded-2xl p-3 sm:p-6 border border-white/10">
                             <div className="mb-4">
-                              <h4 className="text-lg font-bold text-pink-300 mb-2">
-                                📚 Flashcard Ultra - {results.flashcard_ultra.length} carte
-                              </h4>
-                              {/* TODO: Add category filters here */}
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <h4 className="text-lg font-bold text-pink-300">
+                                  📚 Flashcard Ultra - {results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0} carte
+                                </h4>
+                                {/* Download Button */}
+                                <button
+                                  onClick={() => {
+                                    const flashcards = results.flashcard_ultra?.flashcards || results.flashcard_ultra || [];
+                                    const getDifficultyColor = (diff: string) => {
+                                      switch(diff) {
+                                        case 'base': return { bg: '#22c55e', text: '#ffffff', label: '🟢 Base' };
+                                        case 'intermedio': return { bg: '#eab308', text: '#ffffff', label: '🟡 Intermedio' };
+                                        case 'avanzato': return { bg: '#ef4444', text: '#ffffff', label: '🔴 Avanzato' };
+                                        default: return { bg: '#6b7280', text: '#ffffff', label: 'N/A' };
+                                      }
+                                    };
+                                    const htmlContent = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flashcard Ultra - ${results.title || 'Documento'}</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 100vh; padding: 40px 20px; color: #fff; }
+    .container { max-width: 900px; margin: 0 auto; }
+    .header { text-align: center; margin-bottom: 40px; padding: 30px; background: rgba(255,255,255,0.05); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+    .header h1 { font-size: 2rem; background: linear-gradient(90deg, #ec4899, #8b5cf6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px; }
+    .header p { color: #9ca3af; font-size: 0.9rem; }
+    .stats { display: flex; gap: 15px; justify-content: center; margin-top: 20px; flex-wrap: wrap; }
+    .stat { padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+    .stat-green { background: rgba(34,197,94,0.2); color: #86efac; }
+    .stat-yellow { background: rgba(234,179,8,0.2); color: #fde047; }
+    .stat-red { background: rgba(239,68,68,0.2); color: #fca5a5; }
+    .flashcard { background: rgba(255,255,255,0.05); border-radius: 16px; padding: 24px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.1); page-break-inside: avoid; }
+    .flashcard-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; flex-wrap: wrap; gap: 10px; }
+    .flashcard-number { font-size: 0.8rem; color: #9ca3af; }
+    .flashcard-badges { display: flex; gap: 8px; }
+    .badge { padding: 4px 12px; border-radius: 12px; font-size: 0.75rem; font-weight: 500; }
+    .question { font-size: 1.1rem; font-weight: 600; color: #f472b6; margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .answer { color: #d1d5db; line-height: 1.7; }
+    .footer { text-align: center; margin-top: 40px; padding: 20px; color: #6b7280; font-size: 0.8rem; }
+    @media print { body { background: #fff; color: #000; } .flashcard { border: 1px solid #ddd; } .question { color: #db2777; } .answer { color: #374151; } .header { background: #f9fafb; } .header h1 { background: none; -webkit-text-fill-color: #db2777; } }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📚 Flashcard Ultra</h1>
+      <p>${results.title || 'Documento'}</p>
+      <p style="margin-top: 5px;">Generate il ${new Date().toLocaleDateString('it-IT')} • ${flashcards.length} flashcard</p>
+      <div class="stats">
+        <span class="stat stat-green">🟢 Base: ${results.flashcard_ultra?.stats?.by_difficulty?.base || 0}</span>
+        <span class="stat stat-yellow">🟡 Intermedio: ${results.flashcard_ultra?.stats?.by_difficulty?.intermedio || 0}</span>
+        <span class="stat stat-red">🔴 Avanzato: ${results.flashcard_ultra?.stats?.by_difficulty?.avanzato || 0}</span>
+      </div>
+    </div>
+    ${flashcards.map((fc: any, idx: number) => {
+      const diffColor = getDifficultyColor(fc.difficulty);
+      return `
+    <div class="flashcard">
+      <div class="flashcard-header">
+        <span class="flashcard-number">Flashcard ${idx + 1} di ${flashcards.length}</span>
+        <div class="flashcard-badges">
+          <span class="badge" style="background: ${diffColor.bg}; color: ${diffColor.text};">${diffColor.label}</span>
+          ${fc.category ? `<span class="badge" style="background: rgba(139,92,246,0.3); color: #c4b5fd;">${fc.category}</span>` : ''}
+        </div>
+      </div>
+      <div class="question">📌 ${fc.front}</div>
+      <div class="answer">${fc.back}</div>
+    </div>`;
+    }).join('')}
+    <div class="footer">
+      <p>Generato con Studius.ai • Per stampare come PDF usa Ctrl+P (Cmd+P su Mac)</p>
+    </div>
+  </div>
+</body>
+</html>`;
+                                    const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `flashcard-ultra-${results.title?.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '-') || 'documento'}.html`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="flex items-center gap-1 px-3 py-1.5 text-xs bg-pink-500/20 text-pink-300 rounded-lg hover:bg-pink-500/30 transition-all"
+                                >
+                                  <Download size={14} />
+                                  Scarica Flashcard Ultra
+                                </button>
+                              </div>
+
+                              {/* Filtri Difficoltà Cliccabili */}
+                              {results.flashcard_ultra.stats?.by_difficulty && (
+                                <div className="flex flex-wrap gap-2 text-xs mt-3">
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('all')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'all'
+                                        ? 'bg-pink-500 text-white font-semibold'
+                                        : 'bg-white/10 text-gray-300 hover:bg-white/20'
+                                    }`}
+                                  >
+                                    Tutte ({results.flashcard_ultra.flashcards?.length || results.flashcard_ultra.length || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('base')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'base'
+                                        ? 'bg-green-500 text-white font-semibold'
+                                        : 'bg-green-500/20 text-green-300 hover:bg-green-500/30'
+                                    }`}
+                                  >
+                                    🟢 Base ({results.flashcard_ultra.stats.by_difficulty.base || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('intermedio')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'intermedio'
+                                        ? 'bg-yellow-500 text-white font-semibold'
+                                        : 'bg-yellow-500/20 text-yellow-300 hover:bg-yellow-500/30'
+                                    }`}
+                                  >
+                                    🟡 Intermedio ({results.flashcard_ultra.stats.by_difficulty.intermedio || 0})
+                                  </button>
+                                  <button
+                                    onClick={() => setUltraFlashcardsDifficultyFilter('avanzato')}
+                                    className={`px-3 py-1.5 rounded-lg transition-all ${
+                                      ultraFlashcardsDifficultyFilter === 'avanzato'
+                                        ? 'bg-red-500 text-white font-semibold'
+                                        : 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                                    }`}
+                                  >
+                                    🔴 Avanzato ({results.flashcard_ultra.stats.by_difficulty.avanzato || 0})
+                                  </button>
+                                </div>
+                              )}
                             </div>
-                            <FlashCardView flashcards={results.flashcard_ultra} />
+                            <FlashCardView
+                              flashcards={
+                                ultraFlashcardsDifficultyFilter === 'all'
+                                  ? (results.flashcard_ultra.flashcards || results.flashcard_ultra)
+                                  : (results.flashcard_ultra.flashcards || results.flashcard_ultra).filter(
+                                      (fc: any) => fc.difficulty === ultraFlashcardsDifficultyFilter
+                                    )
+                              }
+                              difficultyFilter={ultraFlashcardsDifficultyFilter}
+                            />
+                          </div>
+                        ) : !ultraFlashcardsProcessing ? (
+                          // CTA Box per generare Ultra Flashcards
+                          <div className="bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/30 rounded-2xl p-6">
+                            <h4 className="text-lg font-bold text-pink-300 mb-3">🚀 Vuoi flashcard ULTRA dettagliate?</h4>
+                            <p className="text-gray-300 mb-4">
+                              Ottieni da 20 a 100 flashcard categorizzate in base alla lunghezza del tuo documento.
+                            </p>
+                            <ul className="text-sm text-gray-300 space-y-1 mb-4">
+                              <li>📚 20-100 flashcard in base alla lunghezza del documento (vs {results.flashcard?.length || 0} standard)</li>
+                              <li>🏷️ Categorizzate: Definizioni, Formule, Concetti, Esempi, Date</li>
+                              <li>📈 Difficoltà progressive: Base → Intermedio → Avanzato</li>
+                              <li>🪙 Costo: 150 crediti</li>
+                              <li>💾 Salvate per sempre nel tuo account</li>
+                            </ul>
+                            <button
+                              onClick={handleGenerateUltraFlashcards}
+                              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold rounded-lg hover:from-pink-600 hover:to-purple-600 transition-all"
+                            >
+                              🎴 Genera Flashcard Ultra (150 crediti)
+                            </button>
                           </div>
                         ) : (
+                          // Placeholder mentre è in elaborazione (la progress bar è già sopra)
                           <div className="bg-white/5 rounded-2xl p-6 border border-white/10 text-center">
-                            <BookOpen className="w-16 h-16 text-pink-400 mx-auto mb-4" />
-                            <h4 className="text-xl font-bold text-white mb-3">Flashcard Ultra non disponibili</h4>
-                            <p className="text-gray-300 mb-6">
-                              Genera flashcard Ultra per ottenere uno studio più approfondito e categorizzato.
-                            </p>
-                            <button
-                              className="px-6 py-3 bg-gray-500 text-gray-300 font-semibold rounded-lg cursor-not-allowed opacity-50"
-                              disabled={true}
-                            >
-                              🚧 In arrivo
-                            </button>
+                            <p className="text-gray-400">Elaborazione in corso... guarda la progress bar sopra.</p>
                           </div>
                         )}
                       </div>
@@ -4639,9 +6006,86 @@ const StudiusAIV2: React.FC = () => {
                             </div>
                           </div>
 
+                          {/* Mode Selector - Base vs Ultra */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <button
+                              onClick={() => setOralExamMode('base')}
+                              className={`p-5 rounded-xl border-2 transition-all duration-300 text-left ${
+                                oralExamMode === 'base'
+                                  ? 'bg-green-500/20 border-green-400/50 shadow-lg shadow-green-500/20'
+                                  : 'bg-white/5 border-white/10 hover:border-white/30'
+                              }`}
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="text-3xl">🎓</div>
+                                <div className="flex-1">
+                                  <div className={`font-bold text-lg ${oralExamMode === 'base' ? 'text-green-300' : 'text-white'}`}>
+                                    Esame Base
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-2 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Professore disponibile e paziente</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Domande sui concetti principali</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-green-400">✓</span>
+                                      <span>Ideale per ripassare</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+
+                            <button
+                              onClick={() => setOralExamMode('ultra')}
+                              className={`p-5 rounded-xl border-2 transition-all duration-300 text-left relative overflow-hidden ${
+                                oralExamMode === 'ultra'
+                                  ? 'bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-400/50 shadow-lg shadow-purple-500/20'
+                                  : 'bg-white/5 border-white/10 hover:border-purple-400/30'
+                              }`}
+                            >
+                              {oralExamMode === 'ultra' && (
+                                <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-purple-500/10 animate-pulse"></div>
+                              )}
+                              <div className="flex items-start gap-3 relative z-10">
+                                <div className="text-3xl">👑</div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-bold text-lg ${oralExamMode === 'ultra' ? 'text-yellow-300' : 'text-white'}`}>
+                                      Esame Ultra
+                                    </span>
+                                    <span className="px-2 py-0.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-[10px] rounded-full font-bold">
+                                      PRO
+                                    </span>
+                                  </div>
+                                  <div className="text-xs text-gray-400 mt-2 space-y-1">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Professore severo ed esigente</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Domande su dettagli, date e definizioni</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-yellow-400">★</span>
+                                      <span>Simulazione realistica d'esame</span>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </button>
+                          </div>
 
                           <OralExamSection
-                            docContext={renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve)}
+                            docContext={oralExamMode === 'ultra'
+                              ? (docContext || results.pdf_text || renderContent(results.riassunto_ultra) || renderContent(results.riassunto_esteso))
+                              : (renderContent(results.riassunto_esteso) || renderContent(results.riassunto_breve))
+                            }
                             authToken={token || undefined}
                             targetLanguage={targetLanguage === 'Auto' ? 'Italiano' : targetLanguage}
                             onBack={() => setActiveTab('riassunto_breve')}
@@ -4651,6 +6095,7 @@ const StudiusAIV2: React.FC = () => {
                               updateCredits(newCredits);
                             }}
                             documentId={documentId || results.sessionId}
+                            isUltra={oralExamMode === 'ultra'}
                           />
                         </div>
                       )}
